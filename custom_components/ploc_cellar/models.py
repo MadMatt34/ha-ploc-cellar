@@ -5,6 +5,8 @@ import math
 from dataclasses import asdict, dataclass, field
 from typing import TypeAlias, cast
 
+from .const import STORAGE_VERSION
+
 JsonScalar: TypeAlias = str | int | float | bool | None
 JsonValue: TypeAlias = JsonScalar | list["JsonValue"] | dict[str, "JsonValue"]
 JsonObject: TypeAlias = dict[str, JsonValue]
@@ -90,7 +92,7 @@ class Cellar:
         return cast(
             JsonObject,
             {
-                "version": 1,
+                "version": STORAGE_VERSION,
                 "cursor": self.cursor,
                 "last_sync": self.last_sync,
                 "initialized": self.initialized,
@@ -106,7 +108,7 @@ class Cellar:
     @classmethod
     def from_storage(cls, data: JsonObject) -> Cellar:
         """Restore a snapshot from persistent storage."""
-        if data.get("version") != 1:
+        if data.get("version") != STORAGE_VERSION:
             raise ValueError("Unsupported Ploc Cellar storage version")
 
         cellar = cls(
