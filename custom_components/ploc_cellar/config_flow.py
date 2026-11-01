@@ -3,6 +3,7 @@ from __future__ import annotations
 
 from typing import Any, cast
 from urllib.parse import urlsplit
+from uuid import uuid4
 
 import voluptuous as vol
 from homeassistant import config_entries
@@ -69,14 +70,15 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             validated_input = cast(ConfigFlowUserInput, user_input)
             server = _normalise_server(validated_input[CONF_SERVER])
             token = validated_input[CONF_TOKEN].strip()
-            device = validated_input[CONF_DEVICE].strip()
             if server is None:
                 errors["base"] = "invalid_server"
             elif not token:
                 errors["base"] = "invalid_token"
-            elif len(device) != DEVICE_ID_LENGTH:
-                errors["base"] = "invalid_device"
             else:
+                # PLOC's shortIdentifier() uses the first five characters
+                # of a newly generated UUID. Keep this identity in the entry
+                # so it remains stable across reloads and reauthentication.
+                device = uuid4().hex[:DEVICE_ID_LENGTH]
                 await self.async_set_unique_id(device)
                 self._abort_if_unique_id_configured()
                 return self.async_create_entry(
@@ -98,7 +100,6 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                         default=PLOUD_DEFAULT_SERVER,
                     ): str,
                     vol.Required(CONF_TOKEN): str,
-                    vol.Required(CONF_DEVICE): str,
                     vol.Required(
                         CONF_LANGUAGE,
                         default=DEFAULT_LANGUAGE,
