@@ -13,11 +13,26 @@ from aiohttp import ClientError, ClientSession, ClientTimeout, FormData
 from .const import HMAC_KEY, PLOUD_VERSION
 from .models import Cellar, Rack, RackItem, Wine
 
-REFERENCE_COLLECTIONS = ("appellations", "bottleFormats", "classifications", "colors", "countries", "regions")
+REFERENCE_COLLECTIONS = (
+    "appellations",
+    "bottleFormats",
+    "classifications",
+    "colors",
+    "countries",
+    "grapes",
+    "globalParameters",
+    "owners",
+    "regions",
+    "vendors",
+)
 WINE_REFERENCE_FIELDS = ("ap", "cl", "cn", "co", "rn", "vf", "pid", "cs", "cu", "tg", "re", "gr", "de", "ep", "it", "af", "at", "cf", "ct", "ti", "to", "lt", "lg", "ac", "no", "ps", "ml")
 
 class PloudError(Exception):
     """PLOUD communication or payload error."""
+
+
+class PloudAuthError(PloudError):
+    """PLOUD rejected the configured access token."""
 
 def _sha_repeat(value: str, count: int) -> str:
     result = value
@@ -135,12 +150,24 @@ async def async_sync(session: ClientSession, *, server: str, token: str,
         async with session.post(server.rstrip("/") + "/sync/exec", data=form,
                                 timeout=ClientTimeout(total=120)) as response:
             body = await response.text()
-            if response.status != 200:
-                raise PloudError(f"PLOUD HTTP {response.status}: {body[:500]}")
             try:
                 payload: Any = await response.json(content_type=None)
-            except (ValueError, TypeError) as err:
-                raise PloudError("PLOUD returned invalid JSON") from err
+            except (ValueError, TypeError):
+                payload = None
+            if response.status in (401, 403):
+                error_code = (
+                    payload.get("error")
+                    if isinstance(payload, dict)
+                    else None
+                )
+                if response.status == 401 or error_code == 20:
+                    raise PloudAuthError("PLOUD rejected the access token")
+            if response.status != 200:
+                raise PloudError(
+                    f"PLOUD HTTP {response.status}: {body[:500]}"
+                )
+            if payload is None:
+                raise PloudError("PLOUD returned invalid JSON")
     except (ClientError, asyncio.TimeoutError) as err:
         raise PloudError(f"PLOUD sync request failed: {err}") from err
     if not isinstance(payload, dict):
@@ -174,12 +201,25 @@ def apply_sync(cellar: Cellar, objects: dict[str, list[dict]], next_cursor: int)
         object_id = _deleted_id(raw)
         if not object_id: continue
         kind = next((raw[k] for k in ("type","Type","objectType","ObjectType") if isinstance(raw.get(k), str)), "")
-        targets = {"Wine": cellar.wines, "Rack": cellar.racks, "RackItem": cellar.rack_items}
-        if kind in targets:
-            targets[kind].pop(object_id, None)
+        targets: list[dict[str, Any]] = [
+            cellar.wines,
+            cellar.racks,
+            cellar.rack_items,
+            *cellar.references.values(),
+        ]
+        named_targets = {
+            "Wine": cellar.wines,
+            "Rack": cellar.racks,
+            "RackItem": cellar.rack_items,
+        }
+        if kind in named_targets:
+            named_targets[kind].pop(object_id, None)
         else:
-            matches = [mapping for mapping in targets.values() if object_id in mapping]
-            if len(matches) == 1: matches[0].pop(object_id, None)
+            matches = [
+                mapping for mapping in targets if object_id in mapping
+            ]
+            if len(matches) == 1:
+                matches[0].pop(object_id, None)
     # Re-resolve all wines if a reference entry changed.
     if any(_collection(objects, name) for name in REFERENCE_COLLECTIONS):
         for wine_id, wine in tuple(cellar.wines.items()):
