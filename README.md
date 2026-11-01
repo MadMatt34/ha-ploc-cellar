@@ -7,51 +7,73 @@ A Home Assistant custom integration for a **read-only** view of a PLOC wine cell
 ## Requirements
 
 - Home Assistant 2026.10.4 or newer.
-- Python 3.14.2 or newer (required by Home Assistant 2026.10.4).
+- Python 3.14.2 or newer, as required by Home Assistant 2026.10.4.
 
 ## Features
 
 - PLOUD remains the source of truth.
-- Incremental synchronization through the existing PLOUD `POST /sync/exec` endpoint with `Objects={}`.
-- Initial synchronization uses the validated `LastSyncTime=1` bootstrap value. Later requests use the client-maintained Unix-millisecond cursor.
-- Complete local model retained in Home Assistant's persistent `Store`: wines (including zero-stock wines), racks, rack positions and reference data.
+- Read-only incremental synchronization through `POST https://ploud.ploc.co/v1/sync/exec`, using `Objects={}`.
+- Initial synchronization uses the validated bootstrap value `LastSyncTime=1`. Later synchronizations use the client-maintained Unix-millisecond cursor.
+- Persistent local model containing wines (including zero-stock wines), racks, rack positions and reference data.
 - One compact summary sensor; no entity is created for each wine, rack or position.
-- Detailed inventory is returned on demand by `ploc_cellar.get_inventory`.
-- Manual refresh through `ploc_cellar.sync`.
+- Detailed inventory is returned on demand by the `ploc_cellar.get_inventory` action.
+- Immediate synchronization is available through the `ploc_cellar.sync` action.
+- One Ploc Cellar config entry is allowed per Home Assistant instance.
 - No write operations are sent to PLOUD.
 
 ## Installation and first-time setup
 
-1. Copy `custom_components/ploc_cellar` into `<config>/custom_components/`.
+1. Copy the `custom_components/ploc_cellar` folder into `<config>/custom_components/`.
 2. Restart Home Assistant.
 3. Go to **Settings → Devices & services → Add integration** and select **Ploc Cellar**.
-4. Enter your PLOC account email address and password, then review or change the PLOUD server URL (pre-filled with `https://ploud.ploc.co/v1`).
+4. Enter your PLOC account email address and password.
+
+You do not need to enter a technical token, device identifier or PLOUD server. The integration uses a fixed PLOUD server endpoint.
+
+### Authentication and PLOUD activation
 
 Home Assistant automatically performs the following operations:
 
-1. Generates a UUID device identifier dedicated to this installation.
-2. Signs in to the PLOC account through `POST https://api.ploc.co/v1/signin`. The request uses the encryption and signature scheme employed by the PLOC application.
-3. Activates PLOUD for the **Home Assistant** application through `POST /ploud/activate`, using the PLOC session token obtained in the previous step.
-4. Retrieves the PLOUD access token returned by the API. The server URL entered in the form is used, even if the API returns a different one.
-5. Stores the selected server URL, PLOUD token and device identifier in the Home Assistant config entry.
-6. Runs the first read-only cellar synchronization.
+1. Signs in to the PLOC account through `POST https://api.ploc.co/a/v3/signin`. The request uses the encryption and signature scheme employed by the PLOC application.
+2. Activates PLOUD for the **Home Assistant** application through `POST https://api.ploc.co/v1/ploud/activate`, using the PLOC session token obtained in the previous step.
+3. Retrieves the PLOUD access token returned by the activation endpoint.
+4. Generates a UUID device identifier dedicated to this installation.
+5. Stores the PLOUD access token, device identifier and initial language in the Home Assistant config entry.
+6. Runs the first read-only synchronization against the fixed PLOUD server.
 
-The PLOC password and PLOC session token are not stored in the config entry. Only the information required for subsequent PLOUD synchronization is retained. The password is used only during initial authentication or reauthentication.
+The full UUID is stored locally. PLOUD requests send only its first five characters in the `Device` field and use that short identifier when calculating the request signature, matching the Android client's behavior.
 
-If authentication fails, check the PLOC credentials and the availability of PLOC/PLOUD services. The integration does not ask the user for a technical token and does not require the Python preparation client.
+The email address, password and PLOC session token are not stored in the config entry. The password is used only during initial authentication or reauthentication.
 
-## Device identity
+### Reauthentication
 
-The Python client used to validate the protocol generated its device identifier with `str(uuid4())`, which is a full UUID. The integration follows the same mechanism: each new Home Assistant installation gets its own full UUID, stored in the config entry. For PLOUD requests, only its first five characters are sent in the `Device` field and used to calculate the HMAC signature, matching the Android application's `shortIdentifier()` behavior. The full UUID remains stored locally. Do not enter or copy an identifier from a phone or the Python client.
+When Home Assistant requests reauthentication, enter the PLOC account email address and password again. The integration renews PLOUD activation and replaces the stored access token. The device identifier remains unchanged.
 
 ## Synchronization options
 
-The reconfigure flow lets you change the PLOUD server URL; the currently configured URL is pre-filled. Open **Configure** to change the polling interval (5 to 1,440 minutes; default 15 minutes) and PLOUD response language (French or English). Saving options reloads the config entry. Manual synchronization remains available.
+Open **Settings → Devices & services → Ploc Cellar → Configure** to change:
+
+- **Synchronization interval**: 5 to 1,440 minutes; 15 minutes by default.
+- **PLOUD response language**: French or English; French by default.
+
+Saving the options reloads the config entry. The PLOUD server endpoint cannot be changed through the integration.
 
 ## Entity
 
-- `sensor.ploc_cellar_inventory`: total bottle count.
-- Attributes: stocked wines, rack count, occupied positions and a `stale` flag indicating whether the latest synchronization failed. The last synchronization time is included in the inventory action response.
+The integration creates one summary sensor:
+
+- `sensor.ploc_cellar_inventory`: total number of bottles in stock.
+
+Its attributes are:
+
+| Attribute ID | Description |
+|---|---|
+| `stocked_wines` | Number of wines with at least one bottle in stock |
+| `rack_count` | Number of racks |
+| `occupied_positions` | Number of positions occupied by stocked wines |
+| `stale` | Indicates that the latest synchronization failed |
+
+Attribute labels are translated using the Home Assistant language. If synchronization fails, the last known local inventory is retained and `stale` indicates that the data may be outdated. A successful synchronization resets this flag to `false`.
 
 The full wine list is deliberately not stored in sensor attributes. It remains in persistent storage and is returned only when requested.
 
@@ -61,7 +83,12 @@ The full wine list is deliberately not stored in sensor attributes. It remains i
 
 A response action. Use `response_variable` in a script or automation.
 
-A `config_entry_id` is required to identify the PLOUD connection. Home Assistant provides a config-entry selector restricted to Ploc Cellar. Optional filters are `search` (wine name, appellation, region, country, grapes or cuvée) and `color`.
+A `config_entry_id` is required to identify the Ploc Cellar connection. Home Assistant provides a selector restricted to this integration's config entries. Optional filters are:
+
+- `search`: partial match against wine name, appellation, region, country, grape or cuvée.
+- `color`: partial match against the wine color.
+
+Example:
 
 ```yaml
 action: ploc_cellar.get_inventory
@@ -71,11 +98,19 @@ data:
 response_variable: cellar
 ```
 
-The response includes global bottle and stocked-wine counts, the number of matching wines, racks, occupied positions, wine details and the last successful synchronization timestamp. Filtering does not change global totals.
+The response contains:
+
+- global totals: `total_bottles`, `stocked_wines`, `rack_count` and `occupied_positions`;
+- `matching_wines`, the number of wines matching the filters;
+- `racks`, the list of racks;
+- `wines`, wines with at least one bottle in stock, including their details and locations;
+- `last_sync`, the date and time of the last successful synchronization.
+
+Filters do not change the global totals. Each wine location contains its rack name and ID, plus row and column when available.
 
 ### `ploc_cellar.sync`
 
-Triggers an immediate synchronization:
+Triggers an immediate read-only synchronization:
 
 ```yaml
 action: ploc_cellar.sync
@@ -85,10 +120,14 @@ data:
 
 ## Storage and privacy
 
-The PLOUD access token and device identifier are stored in the Home Assistant config entry. The local inventory and matching synchronization cursor are stored through Home Assistant's persistent `Store`. Received changes are saved before replacing the in-memory model, so a failed storage write does not advance the active cursor.
+The PLOUD access token and device UUID are stored in the Home Assistant config entry. The password and PLOC session token are not stored.
 
-The integration only requests synchronization data; it does not send cellar objects or perform cellar modifications.
+The local inventory and its matching synchronization cursor are stored through Home Assistant's persistent `Store`. Received changes are applied to a candidate model and saved before replacing the in-memory model, so a failed storage write does not advance the active cursor.
 
-## Development status
+The integration sends only the parameters required for synchronization and an empty `Objects` field. It does not send cellar objects or perform cellar modifications.
 
-This integration is under active development. CI runs Ruff and Hassfest and performs strict Pyright type analysis against the latest stable Home Assistant release available from PyPI. Older Home Assistant versions are not part of the compatibility target. These static checks do not replace end-to-end testing against a real Home Assistant instance and the PLOUD cellar.
+## Validation
+
+CI runs Ruff and Hassfest and performs strict Pyright type analysis against the latest stable Home Assistant release available from PyPI.
+
+These static checks do not replace end-to-end testing against a real Home Assistant instance and the PLOUD cellar.
