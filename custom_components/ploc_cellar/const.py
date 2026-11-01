@@ -37,6 +37,8 @@ CONF_TOKEN = "token"
 CONF_DEVICE = "device"
 CONF_LANGUAGE = "language"
 CONF_SCAN_INTERVAL = "scan_interval"
+CONF_SEARCH = "search"
+CONF_COLOR = "color"
 
 SENSOR_UNIQUE_ID = f"{DOMAIN}_summary"
 
