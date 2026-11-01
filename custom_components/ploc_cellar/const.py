@@ -2,7 +2,6 @@
 from datetime import timedelta
 
 DOMAIN = "ploc_cellar"
-PLATFORM = "sensor"
 PLOUD_VERSION = 611
 HMAC_KEY = b"PLOC.co.20@16"
 DEFAULT_SCAN_INTERVAL = timedelta(minutes=15)
