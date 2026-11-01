@@ -3,7 +3,8 @@ from datetime import timedelta
 
 DOMAIN = "ploc_cellar"
 
-PLOC_API_BASE = "https://api.ploc.co/v1"
+AUTH_API_BASE = "https://api.ploc.co/a/v3"
+GATEWAY_API_BASE = "https://api.ploc.co/v1"
 PLOC_APPLICATION_NAME = "Home Assistant"
 PLOC_VERSION = 611
 PLOC_RSA_PUBLIC_KEY = (
@@ -44,7 +45,6 @@ MAX_SCAN_INTERVAL_MINUTES = 1440
 STORAGE_VERSION = 1
 STORAGE_KEY = f"{DOMAIN}.cellar"
 
-CONF_SERVER = "server"
 CONF_TOKEN = "token"
 CONF_DEVICE = "device"
 CONF_LANGUAGE = "language"

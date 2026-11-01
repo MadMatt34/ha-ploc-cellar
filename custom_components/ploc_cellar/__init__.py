@@ -25,10 +25,10 @@ from .const import (
     CONF_LANGUAGE,
     CONF_SCAN_INTERVAL,
     CONF_SEARCH,
-    CONF_SERVER,
     CONF_TOKEN,
     DEFAULT_LANGUAGE,
     DEFAULT_SCAN_INTERVAL,
+    PLOUD_DEFAULT_SERVER,
     DOMAIN,
     MAX_SCAN_INTERVAL_MINUTES,
     MIN_SCAN_INTERVAL_MINUTES,
@@ -230,13 +230,10 @@ async def async_setup_entry(
         else DEFAULT_LANGUAGE
     )
 
-    server = entry.data.get(CONF_SERVER)
     token = entry.data.get(CONF_TOKEN)
     device = entry.data.get(CONF_DEVICE)
     if (
-        not isinstance(server, str)
-        or not server
-        or not isinstance(token, str)
+        not isinstance(token, str)
         or not token
         or not isinstance(device, str)
         or not device
@@ -250,7 +247,7 @@ async def async_setup_entry(
         hass,
         entry,
         async_get_clientsession(hass),
-        server,
+        PLOUD_DEFAULT_SERVER,
         token,
         device,
         language,

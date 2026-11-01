@@ -15,7 +15,8 @@ from cryptography.hazmat.primitives.asymmetric import padding as asym_padding
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 
 from .const import (
-    PLOC_API_BASE,
+    AUTH_API_BASE,
+    GATEWAY_API_BASE,
     PLOC_APPLICATION_NAME,
     PLOC_RSA_PUBLIC_KEY,
     PLOC_VERSION,
@@ -171,10 +172,14 @@ def _extract_ploud_model(payload: dict[str, Any]) -> dict[str, Any]:
 
 
 async def _post_json(
-    session: ClientSession, endpoint: str, payload: dict[str, Any], operation: str
+    session: ClientSession,
+    base_url: str,
+    endpoint: str,
+    payload: dict[str, Any],
+    operation: str,
 ) -> dict[str, Any]:
     """Post a JSON request and validate the API response."""
-    url = f"{PLOC_API_BASE.rstrip('/')}/{endpoint.lstrip('/')}"
+    url = f"{base_url.rstrip('/')}/{endpoint.lstrip('/')}"
     try:
         async with session.post(
             url,
@@ -217,6 +222,7 @@ async def async_authenticate(
     """Sign in to PLOC and return the PLOUD access token for this installation."""
     account = await _post_json(
         session,
+        AUTH_API_BASE,
         "signin",
         _build_signin_payload(email.strip(), password),
         "PLOC sign-in",
@@ -247,6 +253,7 @@ async def async_authenticate(
     )
     activation = await _post_json(
         session,
+        GATEWAY_API_BASE,
         "ploud/activate",
         {
             "timestamp": timestamp,

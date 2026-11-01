@@ -25,20 +25,6 @@ class SyncServiceData(TypedDict):
     config_entry_id: str
 
 
-class ConfigFlowUserInput(TypedDict):
-    """Validated PLOC credentials and selected PLOUD server."""
-
-    email: str
-    password: str
-    server: str
-
-
-class ReconfigureFlowInput(TypedDict):
-    """Validated reconfiguration flow input."""
-
-    server: str
-
-
 class ReauthFlowInput(TypedDict):
     """Validated PLOC account credentials for reauthentication."""
 

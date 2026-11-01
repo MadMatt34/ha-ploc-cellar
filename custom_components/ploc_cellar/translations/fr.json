@@ -3,18 +3,10 @@
     "step": {
       "user": {
         "title": "Connexion à PLOC",
-        "description": "Saisir les identifiants du compte PLOC et l'URL du serveur PLOUD à utiliser. L'URL proposée par défaut peut être modifiée.",
+        "description": "Saisir les identifiants du compte PLOC. Les serveurs PLOC et PLOUD sont définis par l'intégration.",
         "data": {
           "email": "Adresse e-mail PLOC",
-          "password": "Mot de passe PLOC",
-          "server": "URL du serveur PLOUD"
-        }
-      },
-      "reconfigure": {
-        "title": "Modifier le serveur PLOUD",
-        "description": "Modifier l'URL de base utilisée pour joindre PLOUD. L'URL actuellement configurée est proposée par défaut. L'identifiant de l'appareil et le jeton sont conservés.",
-        "data": {
-          "server": "URL du serveur PLOUD"
+          "password": "Mot de passe PLOC"
         }
       },
       "reauth_confirm": {
@@ -29,8 +21,7 @@
     "error": {
       "invalid_email": "Saisir une adresse e-mail valide.",
       "invalid_auth": "Échec de l'authentification PLOC ou de l'activation PLOUD. Consulter le journal Home Assistant pour connaître l'étape et le détail de l'erreur.",
-      "cannot_connect": "Impossible de joindre le service PLOC. Vérifier la connexion Internet et réessayer.",
-      "invalid_server": "Saisir une URL de base HTTP ou HTTPS valide, sans identifiants, paramètres de requête ni fragment."
+      "cannot_connect": "Impossible de joindre le service PLOC. Vérifier la connexion Internet et réessayer."
     },
     "abort": {
       "already_configured": "Ploc Cellar est déjà configuré."

@@ -3,18 +3,10 @@
     "step": {
       "user": {
         "title": "Connect to PLOC",
-        "description": "Enter your PLOC account credentials and the PLOUD server URL to use. The suggested default URL can be changed.",
+        "description": "Enter your PLOC account credentials. The PLOC and PLOUD servers are defined by the integration.",
         "data": {
           "email": "PLOC email address",
-          "password": "PLOC password",
-          "server": "PLOUD server URL"
-        }
-      },
-      "reconfigure": {
-        "title": "Change PLOUD server",
-        "description": "Change the base URL used to connect to PLOUD. The currently configured URL is prefilled. The device identifier and token will be kept.",
-        "data": {
-          "server": "PLOUD server URL"
+          "password": "PLOC password"
         }
       },
       "reauth_confirm": {
@@ -29,8 +21,7 @@
     "error": {
       "invalid_email": "Enter a valid email address.",
       "invalid_auth": "PLOC authentication or PLOUD activation failed. Check the Home Assistant log for the failing stage and technical details.",
-      "cannot_connect": "Unable to reach the PLOC service. Check the Internet connection and try again.",
-      "invalid_server": "Enter a valid HTTP or HTTPS base URL without credentials, query parameters or a fragment."
+      "cannot_connect": "Unable to reach the PLOC service. Check the Internet connection and try again."
     },
     "abort": {
       "already_configured": "Ploc Cellar is already configured."

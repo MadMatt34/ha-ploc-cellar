@@ -3,7 +3,6 @@ from __future__ import annotations
 
 import logging
 from typing import Any, cast
-from urllib.parse import urlsplit
 from uuid import uuid4
 
 import voluptuous as vol
@@ -18,21 +17,17 @@ from .const import (
     CONF_DEVICE,
     CONF_LANGUAGE,
     CONF_SCAN_INTERVAL,
-    CONF_SERVER,
     CONF_TOKEN,
     DEFAULT_LANGUAGE,
     DEFAULT_SCAN_INTERVAL,
     DOMAIN,
     MAX_SCAN_INTERVAL_MINUTES,
     MIN_SCAN_INTERVAL_MINUTES,
-    PLOUD_DEFAULT_SERVER,
     SUPPORTED_LANGUAGES,
 )
 from .types import (
-    ConfigFlowUserInput,
     OptionsFlowInput,
     ReauthFlowInput,
-    ReconfigureFlowInput,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -47,24 +42,6 @@ def _is_valid_email(value: str) -> bool:
     return True
 
 
-def _normalise_server(value: str) -> str | None:
-    """Validate and normalize the PLOUD base URL."""
-    server = value.strip().rstrip("/")
-    try:
-        parsed = urlsplit(server)
-        _ = parsed.port
-    except ValueError:
-        return None
-    if (
-        parsed.scheme not in {"http", "https"}
-        or not parsed.hostname
-        or parsed.username is not None
-        or parsed.password is not None
-        or parsed.query
-        or parsed.fragment
-    ):
-        return None
-    return server
 
 
 class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
@@ -84,10 +61,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             credentials = cast(ConfigFlowUserInput, user_input)
             if not _is_valid_email(credentials["email"]):
                 errors["email"] = "invalid_email"
-            server = _normalise_server(credentials["server"])
-            if server is None:
-                errors["base"] = "invalid_server"
-            elif "email" not in errors:
+            if "email" not in errors:
                 try:
                     token = await async_authenticate(
                         async_get_clientsession(self.hass),
@@ -110,7 +84,6 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     return self.async_create_entry(
                         title="Ploc Cellar",
                         data={
-                            CONF_SERVER: server,
                             CONF_TOKEN: token,
                             CONF_DEVICE: device,
                             CONF_LANGUAGE: DEFAULT_LANGUAGE,
@@ -128,51 +101,11 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                         )
                     ),
                     vol.Required("password"): str,
-                    vol.Required(
-                        CONF_SERVER,
-                        default=PLOUD_DEFAULT_SERVER,
-                    ): str,
                 }
             ),
         )
         return self.async_show_form(
             step_id="user",
-            data_schema=schema,
-            errors=errors,
-        )
-
-    async def async_step_reconfigure(
-        self, user_input: dict[str, Any] | None = None
-    ) -> config_entries.ConfigFlowResult:
-        """Change the PLOUD server without changing the device identity."""
-        entry = self._get_reconfigure_entry()
-        errors: dict[str, str] = {}
-        if user_input is not None:
-            validated_input = cast(ReconfigureFlowInput, user_input)
-            server = _normalise_server(validated_input["server"])
-            if server is None:
-                errors["base"] = "invalid_server"
-            else:
-                await self.async_set_unique_id(entry.unique_id)
-                self._abort_if_unique_id_mismatch()
-                return self.async_update_reload_and_abort(
-                    entry,
-                    data_updates={CONF_SERVER: server},
-                )
-
-        schema = cast(
-            Any,
-            vol.Schema(
-                {
-                    vol.Required(
-                        CONF_SERVER,
-                        default=entry.data[CONF_SERVER],
-                    ): str
-                }
-            ),
-        )
-        return self.async_show_form(
-            step_id="reconfigure",
             data_schema=schema,
             errors=errors,
         )
