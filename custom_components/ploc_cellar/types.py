@@ -8,7 +8,6 @@ from homeassistant.config_entries import ConfigEntry
 if TYPE_CHECKING:
     from .coordinator import PlocCellarCoordinator
 
-
 type PlocCellarConfigEntry = ConfigEntry["PlocCellarCoordinator"]
 
 
@@ -27,11 +26,10 @@ class SyncServiceData(TypedDict):
 
 
 class ConfigFlowUserInput(TypedDict):
-    """Validated initial configuration flow input."""
+    """Validated PLOC account credentials."""
 
-    server: str
-    token: str
-    language: str
+    email: str
+    password: str
 
 
 class ReconfigureFlowInput(TypedDict):
@@ -41,9 +39,10 @@ class ReconfigureFlowInput(TypedDict):
 
 
 class ReauthFlowInput(TypedDict):
-    """Validated reauthentication flow input."""
+    """Validated PLOC account credentials for reauthentication."""
 
-    token: str
+    email: str
+    password: str
 
 
 class OptionsFlowInput(TypedDict):
