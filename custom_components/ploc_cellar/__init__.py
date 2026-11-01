@@ -1,8 +1,9 @@
 """Home Assistant integration for a read-only PLOUD wine cellar."""
 from __future__ import annotations
 
+from collections.abc import Callable
 from datetime import timedelta
-from typing import cast
+from typing import Any, cast
 
 import probatio
 from homeassistant.config_entries import ConfigEntryState
@@ -15,7 +16,7 @@ from homeassistant.core import (
 from homeassistant.exceptions import HomeAssistantError, ServiceValidationError
 from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
-from homeassistant.helpers.typing import ConfigType, VolSchemaType
+from homeassistant.helpers.typing import ConfigType
 from homeassistant.util.json import JsonObjectType, JsonValueType
 
 from .const import (
@@ -40,18 +41,19 @@ from .models import Cellar
 from .types import GetInventoryServiceData, PlocCellarConfigEntry, SyncServiceData
 
 PLATFORMS: list[Platform] = [Platform.SENSOR]
-CONFIG_SCHEMA: VolSchemaType = cast(
-    VolSchemaType, cv.config_entry_only_config_schema(DOMAIN)
+CONFIG_SCHEMA: Callable[[dict[str, Any]], dict[str, Any]] = cast(
+    Callable[[dict[str, Any]], dict[str, Any]],
+    cv.config_entry_only_config_schema(DOMAIN),
 )
 
-GET_INVENTORY_SCHEMA: VolSchemaType = probatio.Schema(
+GET_INVENTORY_SCHEMA: probatio.Schema = probatio.Schema(
     {
         probatio.Required(ATTR_CONFIG_ENTRY_ID): cv.string,
         probatio.Optional(CONF_SEARCH, default=""): cv.string,
         probatio.Optional(CONF_COLOR, default=""): cv.string,
     }
 )
-SYNC_SCHEMA: VolSchemaType = probatio.Schema(
+SYNC_SCHEMA: probatio.Schema = probatio.Schema(
     {
         probatio.Required(ATTR_CONFIG_ENTRY_ID): cv.string,
     }
