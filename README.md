@@ -19,7 +19,7 @@ Le formulaire demande le serveur PLOUD, le jeton d'accès existant et l'identifi
 
 ## Entités
 
-- `sensor.ploc_cellar_cellar` : nombre total de bouteilles. Attributs limités : vins en stock, casiers, positions occupées et date de synchronisation.
+- `sensor.ploc_cellar_inventory` : nombre total de bouteilles. Attributs limités : vins en stock, casiers, positions occupées et date de synchronisation.
 
 ## Actions
 
