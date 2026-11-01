@@ -33,10 +33,6 @@ from .types import (
     ReconfigureFlowInput,
 )
 
-
-_EMAIL_VALIDATOR: Any = vol.Email  # pyright: ignore[reportUnknownMemberType]
-
-
 def _normalise_server(value: str) -> str | None:
     """Validate and normalize the PLOUD base URL."""
     server = value.strip().rstrip("/")
@@ -107,7 +103,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             Any,
             vol.Schema(
                 {
-                    vol.Required("email"): _EMAIL_VALIDATOR,
+                    vol.Required("email"): vol.Email,  # pyright: ignore[reportUnknownMemberType]
                     vol.Required("password"): str,
                     vol.Required(
                         CONF_SERVER,
@@ -198,7 +194,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             Any,
             vol.Schema(
                 {
-                    vol.Required("email"): _EMAIL_VALIDATOR,
+                    vol.Required("email"): vol.Email,  # pyright: ignore[reportUnknownMemberType]
                     vol.Required("password"): str,
                 }
             ),
