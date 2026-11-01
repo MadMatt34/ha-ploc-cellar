@@ -48,7 +48,7 @@ class PlocCellarSensor(CoordinatorEntity[PlocCellarCoordinator], SensorEntity):
             "stocked_wines": cellar.stocked_wines,
             "rack_count": len(cellar.racks),
             "occupied_positions": cellar.occupied_positions,
-            "stale": not self.coordinator.last_update_success,
+            "stale": cellar.stale,
         }
 
 
