@@ -2,8 +2,8 @@
 from homeassistant.components.sensor import SensorEntity, SensorStateClass
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.device_registry import DeviceInfo
+from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .const import DOMAIN
@@ -33,13 +33,13 @@ class PlocCellarSensor(CoordinatorEntity[PlocCellarCoordinator], SensorEntity):
         return self.coordinator.data.total_bottles
 
     @property
-    def extra_state_attributes(self) -> dict[str, int | str | None]:
+    def extra_state_attributes(self) -> dict[str, int]:
+        """Expose only stable aggregate attributes."""
         cellar = self.coordinator.data
         return {
             "stocked_wines": cellar.stocked_wines,
             "rack_count": len(cellar.racks),
             "occupied_positions": cellar.occupied_positions,
-            "last_sync": cellar.last_sync,
         }
 
 
