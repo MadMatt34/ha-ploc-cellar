@@ -29,7 +29,7 @@ class PlocCellarSensor(CoordinatorEntity[PlocCellarCoordinator], SensorEntity):
         super().__init__(coordinator)
         self._attr_unique_id = SENSOR_UNIQUE_ID
 
-    @cached_property
+    @property
     def available(self) -> bool:
         """Keep the last persisted totals visible during a PLOUD outage."""
         # Setup guarantees a successful first refresh or a restored cellar snapshot.
