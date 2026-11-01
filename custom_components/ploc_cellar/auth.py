@@ -152,9 +152,9 @@ def _http_context(response: Any, url: str, detail: str) -> str:
 
 
 def _extract_account_access_token(payload: dict[str, Any]) -> str | None:
-    """Extract the PLOC token from the documented signin response."""
-    account = _get_dict(payload.get("account"))
-    token = account.get("accessToken") if account else None
+    """Extract the PLOC token from the observed signin response."""
+    account = _get_dict(payload.get("Account"))
+    token = account.get("AccessToken") if account else None
     return token if isinstance(token, str) and token else None
 
 
@@ -245,7 +245,7 @@ async def async_authenticate(
     if not account_token:
         raise PlocAuthError(
             "PLOC sign-in response has no account access token "
-            "(expected account.accessToken; "
+            "(expected Account.AccessToken; "
             f"response fields: {_format_keys(account)}; "
             f"account fields: {_format_keys(account.get('account'))}; "
             f"Account fields: {_format_keys(account.get('Account'))})"
