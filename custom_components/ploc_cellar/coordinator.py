@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import logging
 from copy import deepcopy
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 from aiohttp import ClientSession
 from homeassistant.core import HomeAssistant
@@ -85,7 +85,7 @@ class PlocCellarCoordinator(DataUpdateCoordinator[Cellar]):
 
             updated_cellar = deepcopy(self.cellar)
             apply_sync(updated_cellar, objects, next_cursor)
-            updated_cellar.last_sync = datetime.now(timezone.utc).isoformat()
+            updated_cellar.last_sync = datetime.now(UTC).isoformat()
             await self.store.async_save(updated_cellar.to_storage())
             self.cellar = updated_cellar
             return updated_cellar
