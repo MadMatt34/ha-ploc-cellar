@@ -25,15 +25,42 @@ A Home Assistant custom integration for a **read-only** view of a PLOC wine cell
 1. Copy `custom_components/ploc_cellar` into `<config>/custom_components/`.
 2. Restart Home Assistant.
 3. Go to **Settings → Devices & services → Add integration** and select **Ploc Cellar**.
-4. Enter the existing PLOUD server URL, access token and five-character device identifier.
+4. Enter the PLOUD server URL, PLOUD access token and preferred language. The device identifier is generated automatically.
 
-The integration does not create a PLOC account, activate PLOUD, or change cellar contents.
+## Preparing the PLOUD access token
+
+The integration requires the technical PLOUD access token. This is not the PLOC password, the PLOC session token, or the `ploud_token` field.
+
+The Python PLOC/PLOUD client used to validate the protocol performs the preparation:
+
+1. It signs in to the PLOC account using the PLOC email address and password.
+2. It activates PLOUD for this client (`POST /ploud/activate`).
+3. The response contains the PLOUD model, including `accessToken`. The client stores this value under `ploud_access_token` in its local state file.
+4. The Python synchronization client then reuses that value as the `Token` field in `/sync/exec` requests.
+
+The Python client's default state file is:
+
+```text
+~/.ploc_ploud_state.json
+```
+
+After activation with the Python client, display the value to enter in Home Assistant locally:
+
+```bash
+jq -r '.ploud_access_token' ~/.ploc_ploud_state.json
+```
+
+Copy that value into the integration's **PLOUD access token** field. Do not use `ploud_token` or the top-level `accessToken`: these are different fields. Do not publish or share the token.
+
+If the state file already exists, the Python client normally reuses its saved credentials and does not run activation again. The `~/.ploc_ploud_cellar.json` file is only the local inventory cache; it does not contain authentication credentials.
+
+> The Home Assistant integration does not currently sign in to the PLOC account or activate PLOUD itself. This prerequisite is performed by the Python preparation client.
 
 ## Configuration
 
 ### Connection settings
 
-The initial setup asks for the PLOUD server URL (default `https://ploud.ploc.co/v1`), the existing access token, the five-character device identifier and the PLOUD response language (`fr` or `en`).
+Initial setup asks for the PLOUD server URL (default `https://ploud.ploc.co/v1`), the PLOUD access token and the response language (`fr` or `en`). A new device identifier is generated for each new installation. It is derived from the first five hexadecimal characters of a random UUID, matching the short identifier used by PLOC. It is stored in the config entry and remains stable across reloads and reauthentication.
 
 Use **Reconfigure** to change the server URL. If PLOUD rejects the token, Home Assistant starts reauthentication so it can be replaced without removing the integration.
 
@@ -78,7 +105,7 @@ data:
 
 ## Storage and privacy
 
-The access token is stored in the Home Assistant config entry. The local inventory and matching synchronization cursor are stored through Home Assistant's persistent `Store`. Received changes are saved before replacing the in-memory model, so a failed storage write does not advance the active cursor.
+The PLOUD access token and device identifier are stored in the Home Assistant config entry. The local inventory and matching synchronization cursor are stored through Home Assistant's persistent `Store`. Received changes are saved before replacing the in-memory model, so a failed storage write does not advance the active cursor.
 
 The integration only requests synchronization data; it does not send cellar objects or perform cellar modifications.
 
