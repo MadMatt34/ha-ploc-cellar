@@ -103,9 +103,7 @@ def _parse_wine(raw: dict, refs: dict) -> Wine:
         cuvee=_text(raw.get("cuvee")) or _text(raw_refs.get("cu")),
         bottle_format=_text(fmt.get("nm")) if fmt else _text(raw.get("bottle_format")),
         bottle_volume_l=(
-            float(fmt["vo"])
-            if fmt and isinstance(fmt.get("vo"), (int, float))
-            else _float(raw.get("bottle_volume_l"))
+            _float(fmt.get("vo")) if fmt else _float(raw.get("bottle_volume_l"))
         ),
         ploud_pid=_text(raw.get("ploud_pid")) or _text(raw_refs.get("pid")),
         ploud_reference_fields=raw_refs,
