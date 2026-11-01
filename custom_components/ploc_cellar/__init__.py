@@ -46,8 +46,8 @@ CONFIG_SCHEMA: Callable[[dict[str, Any]], dict[str, Any]] = cast(
     cv.config_entry_only_config_schema(DOMAIN),  # pyright: ignore[reportUnknownMemberType]
 )
 
-GET_INVENTORY_SCHEMA: VolSchemaType = cast(
-    VolSchemaType,
+GET_INVENTORY_SCHEMA: Any = cast(
+    Any,
     vol.Schema(
         {
             vol.Required(ATTR_CONFIG_ENTRY_ID): cv.string,
@@ -56,8 +56,8 @@ GET_INVENTORY_SCHEMA: VolSchemaType = cast(
         }
     ),
 )
-SYNC_SCHEMA: VolSchemaType = cast(
-    VolSchemaType,
+SYNC_SCHEMA: Any = cast(
+    Any,
     vol.Schema(
         {
             vol.Required(ATTR_CONFIG_ENTRY_ID): cv.string,
