@@ -149,7 +149,6 @@ async def async_sync(session: ClientSession, *, server: str, token: str,
     try:
         async with session.post(server.rstrip("/") + "/sync/exec", data=form,
                                 timeout=ClientTimeout(total=120)) as response:
-            body = await response.text()
             try:
                 payload: Any = await response.json(content_type=None)
             except (ValueError, TypeError):
