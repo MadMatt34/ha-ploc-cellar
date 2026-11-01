@@ -27,6 +27,7 @@
       }
     },
     "error": {
+      "invalid_email": "Saisir une adresse e-mail valide.",
       "invalid_auth": "Authentification PLOC refusée ou réponse d'activation PLOUD invalide. Vérifier les identifiants et l'état du service PLOUD.",
       "cannot_connect": "Impossible de joindre le service PLOC. Vérifier la connexion Internet et réessayer.",
       "invalid_server": "Saisir une URL de base HTTP ou HTTPS valide, sans identifiants, paramètres de requête ni fragment."
