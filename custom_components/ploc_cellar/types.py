@@ -25,12 +25,12 @@ class SyncServiceData(TypedDict):
     config_entry_id: str
 
 
-
 class ConfigFlowUserInput(TypedDict):
     """Validated PLOC account credentials for initial setup."""
 
     username: str
     password: str
+
 
 class ReauthFlowInput(TypedDict):
     """Validated PLOC account credentials for reauthentication."""
