@@ -12,10 +12,6 @@ from homeassistant.config_entries import ConfigEntry, OptionsFlowWithReload
 from homeassistant.core import callback
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
-_EMAIL_VALIDATOR: Callable[[object], str] = cast(
-    Callable[[object], str], getattr(vol, "Email")
-)
-
 from .auth import PlocAuthError, PlocConnectionError, async_authenticate
 from .const import (
     CONF_DEVICE,
@@ -36,6 +32,11 @@ from .types import (
     OptionsFlowInput,
     ReauthFlowInput,
     ReconfigureFlowInput,
+)
+
+
+_EMAIL_VALIDATOR: Callable[[object], str] = cast(
+    Callable[[object], str], vol.Email  # pyright: ignore[reportUnknownMemberType]
 )
 
 
