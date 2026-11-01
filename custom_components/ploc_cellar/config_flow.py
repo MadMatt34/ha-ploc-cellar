@@ -9,7 +9,9 @@ import voluptuous as vol
 from homeassistant import config_entries
 from homeassistant.config_entries import ConfigEntry, OptionsFlowWithReload
 from homeassistant.core import callback
+from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
+from .auth import PlocAuthError, PlocConnectionError, async_authenticate
 from .const import (
     CONF_DEVICE,
     CONF_LANGUAGE,
@@ -18,11 +20,9 @@ from .const import (
     CONF_TOKEN,
     DEFAULT_LANGUAGE,
     DEFAULT_SCAN_INTERVAL,
-    DEVICE_ID_LENGTH,
     DOMAIN,
     MAX_SCAN_INTERVAL_MINUTES,
     MIN_SCAN_INTERVAL_MINUTES,
-    PLOUD_DEFAULT_SERVER,
     SUPPORTED_LANGUAGES,
 )
 from .types import (
@@ -54,31 +54,35 @@ def _normalise_server(value: str) -> str | None:
 
 
 class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
-    """Configure one PLOUD device."""
+    """Configure a PLOC account and activate PLOUD for Home Assistant."""
 
     VERSION = 1
 
     async def async_step_user(
         self, user_input: dict[str, Any] | None = None
     ) -> config_entries.ConfigFlowResult:
-        """Set up a PLOUD connection."""
+        """Sign in to PLOC and activate PLOUD."""
         if self._async_current_entries():
             return self.async_abort(reason="already_configured")
 
         errors: dict[str, str] = {}
         if user_input is not None:
-            validated_input = cast(ConfigFlowUserInput, user_input)
-            server = _normalise_server(validated_input[CONF_SERVER])
-            token = validated_input[CONF_TOKEN].strip()
-            if server is None:
-                errors["base"] = "invalid_server"
-            elif not token:
-                errors["base"] = "invalid_token"
+            credentials = cast(ConfigFlowUserInput, user_input)
+            try:
+                server, token = await async_authenticate(
+                    async_get_clientsession(self.hass),
+                    credentials["email"],
+                    credentials["password"],
+                    DEFAULT_LANGUAGE,
+                )
+            except PlocAuthError:
+                errors["base"] = "invalid_auth"
+            except PlocConnectionError:
+                errors["base"] = "cannot_connect"
             else:
-                # PLOC's shortIdentifier() uses the first five characters
-                # of a newly generated UUID. Keep this identity in the entry
-                # so it remains stable across reloads and reauthentication.
-                device = uuid4().hex[:DEVICE_ID_LENGTH]
+                # The tested PLOC client creates a full UUID for every new
+                # device. Keep it stable for all subsequent PLOUD requests.
+                device = str(uuid4())
                 await self.async_set_unique_id(device)
                 self._abort_if_unique_id_configured()
                 return self.async_create_entry(
@@ -87,7 +91,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                         CONF_SERVER: server,
                         CONF_TOKEN: token,
                         CONF_DEVICE: device,
-                        CONF_LANGUAGE: validated_input[CONF_LANGUAGE],
+                        CONF_LANGUAGE: DEFAULT_LANGUAGE,
                     },
                 )
 
@@ -95,15 +99,8 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             Any,
             vol.Schema(
                 {
-                    vol.Required(
-                        CONF_SERVER,
-                        default=PLOUD_DEFAULT_SERVER,
-                    ): str,
-                    vol.Required(CONF_TOKEN): str,
-                    vol.Required(
-                        CONF_LANGUAGE,
-                        default=DEFAULT_LANGUAGE,
-                    ): vol.In(SUPPORTED_LANGUAGES),
+                    vol.Required("email"): vol.Email(),
+                    vol.Required("password"): str,
                 }
             ),
         )
@@ -121,7 +118,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         errors: dict[str, str] = {}
         if user_input is not None:
             validated_input = cast(ReconfigureFlowInput, user_input)
-            server = _normalise_server(validated_input[CONF_SERVER])
+            server = _normalise_server(validated_input["server"])
             if server is None:
                 errors["base"] = "invalid_server"
             else:
@@ -152,7 +149,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     async def async_step_reauth(
         self, entry_data: dict[str, Any]
     ) -> config_entries.ConfigFlowResult:
-        """Start token renewal."""
+        """Start PLOC account reauthentication."""
         entry = self._get_reauth_entry()
         await self.async_set_unique_id(entry.unique_id)
         self._abort_if_unique_id_mismatch()
@@ -161,33 +158,44 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     async def async_step_reauth_confirm(
         self, user_input: dict[str, Any] | None = None
     ) -> config_entries.ConfigFlowResult:
-        """Replace an invalid PLOUD token."""
+        """Sign in again and renew PLOUD activation."""
+        errors: dict[str, str] = {}
         if user_input is not None:
-            validated_input = cast(ReauthFlowInput, user_input)
-            token = validated_input[CONF_TOKEN].strip()
-            if not token:
-                schema = cast(
-                    Any,
-                    vol.Schema({vol.Required(CONF_TOKEN): str}),
-                )
-                return self.async_show_form(
-                    step_id="reauth_confirm",
-                    data_schema=schema,
-                    errors={"base": "invalid_token"},
-                )
+            credentials = cast(ReauthFlowInput, user_input)
             entry = self._get_reauth_entry()
-            return self.async_update_reload_and_abort(
-                entry,
-                data_updates={CONF_TOKEN: token},
-            )
+            try:
+                server, token = await async_authenticate(
+                    async_get_clientsession(self.hass),
+                    credentials["email"],
+                    credentials["password"],
+                    entry.data.get(CONF_LANGUAGE, DEFAULT_LANGUAGE),
+                )
+            except PlocAuthError:
+                errors["base"] = "invalid_auth"
+            except PlocConnectionError:
+                errors["base"] = "cannot_connect"
+            else:
+                return self.async_update_reload_and_abort(
+                    entry,
+                    data_updates={
+                        CONF_SERVER: server,
+                        CONF_TOKEN: token,
+                    },
+                )
 
         schema = cast(
             Any,
-            vol.Schema({vol.Required(CONF_TOKEN): str}),
+            vol.Schema(
+                {
+                    vol.Required("email"): vol.Email(),
+                    vol.Required("password"): str,
+                }
+            ),
         )
         return self.async_show_form(
             step_id="reauth_confirm",
             data_schema=schema,
+            errors=errors,
         )
 
     @staticmethod
