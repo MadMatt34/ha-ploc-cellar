@@ -2,12 +2,11 @@
   "config": {
     "step": {
       "user": {
-        "title": "Connect to PLOUD",
-        "description": "Enter the PLOUD access token. A new device identifier is generated automatically for this installation.",
+        "title": "Connect to PLOC",
+        "description": "Enter your PLOC account email and password. Home Assistant will sign in to PLOC, activate PLOUD for this installation and store the required connection details automatically.",
         "data": {
-          "server": "PLOUD server URL",
-          "token": "PLOUD access token",
-          "language": "PLOUD response language"
+          "email": "PLOC email address",
+          "password": "PLOC password"
         }
       },
       "reconfigure": {
@@ -18,20 +17,21 @@
         }
       },
       "reauth_confirm": {
-        "title": "Reauthenticate with PLOUD",
-        "description": "The PLOUD access token was rejected. Enter a valid token to restore synchronization.",
+        "title": "Reauthenticate with PLOC",
+        "description": "The PLOUD connection must be renewed. Enter your PLOC account credentials to sign in again and reactivate PLOUD.",
         "data": {
-          "token": "New PLOUD access token"
+          "email": "PLOC email address",
+          "password": "PLOC password"
         }
       }
     },
     "error": {
-      "invalid_server": "Enter a valid HTTP or HTTPS base URL without credentials, query parameters or a fragment.",
-      "invalid_token": "The access token cannot be empty."
+      "invalid_auth": "PLOC authentication was rejected or the PLOUD activation response was invalid. Check the credentials and PLOUD service status.",
+      "cannot_connect": "Unable to reach the PLOC service. Check the Internet connection and try again.",
+      "invalid_server": "Enter a valid HTTP or HTTPS base URL without credentials, query parameters or a fragment."
     },
     "abort": {
-      "already_configured": "This PLOUD device is already configured.",
-      "reauth_successful": "The PLOUD access token has been updated."
+      "already_configured": "Ploc Cellar is already configured."
     }
   },
   "options": {
