@@ -4,7 +4,7 @@ from __future__ import annotations
 from datetime import timedelta
 from typing import cast
 
-import voluptuous as vol
+import probatio
 from homeassistant.config_entries import ConfigEntryState
 from homeassistant.const import ATTR_CONFIG_ENTRY_ID, Platform
 from homeassistant.core import (
@@ -15,8 +15,8 @@ from homeassistant.core import (
 from homeassistant.exceptions import HomeAssistantError, ServiceValidationError
 from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
-from homeassistant.helpers.typing import ConfigType
-from homeassistant.util.json import JsonObjectType
+from homeassistant.helpers.typing import ConfigType, VolSchemaType
+from homeassistant.util.json import JsonObjectType, JsonValueType
 
 from .const import (
     CONF_COLOR,
@@ -40,16 +40,18 @@ from .models import Cellar
 from .types import GetInventoryServiceData, PlocCellarConfigEntry, SyncServiceData
 
 PLATFORMS: list[Platform] = [Platform.SENSOR]
-CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
+CONFIG_SCHEMA: VolSchemaType = cast(
+    VolSchemaType, cv.config_entry_only_config_schema(DOMAIN)
+)
 
-GET_INVENTORY_SCHEMA = vol.Schema(
+GET_INVENTORY_SCHEMA: VolSchemaType = probatio.Schema(
     {
-        vol.Required(ATTR_CONFIG_ENTRY_ID): cv.string,
-        vol.Optional(CONF_SEARCH, default=""): cv.string,
+        probatio.Required(ATTR_CONFIG_ENTRY_ID): cv.string,
+        probatio.Optional(CONF_SEARCH, default=""): cv.string,
         vol.Optional(CONF_COLOR, default=""): cv.string,
     }
 )
-SYNC_SCHEMA = vol.Schema(
+SYNC_SCHEMA: VolSchemaType = probatio.Schema(
     {
         vol.Required(ATTR_CONFIG_ENTRY_ID): cv.string,
     }
@@ -83,7 +85,7 @@ def _build_inventory_response(
     """Build a JSON-safe inventory response without exposing sensor attributes."""
     normalized_search = search.casefold().strip()
     normalized_color = color.casefold().strip()
-    inventory: list[JsonObjectType] = []
+    inventory: list[JsonValueType] = []
 
     stocked_wines = sorted(
         (wine for wine in cellar.wines.values() if wine.bottles > 0),
@@ -105,7 +107,7 @@ def _build_inventory_response(
         if normalized_color and normalized_color not in (wine.color or "").casefold():
             continue
 
-        locations: list[JsonObjectType] = [
+        locations: list[JsonValueType] = [
             {
                 "rack": cellar.racks[item.rack_id].name,
                 "rack_id": item.rack_id,
@@ -123,7 +125,10 @@ def _build_inventory_response(
                 "vintage": wine.vintage,
                 "appellation": wine.appellation,
                 "color": wine.color,
-                "color_rgb": list(wine.color_rgb) if wine.color_rgb else None,
+                "color_rgb": cast(
+                    JsonValueType,
+                    list(wine.color_rgb) if wine.color_rgb is not None else None,
+                ),
                 "classification": wine.classification,
                 "region": wine.region,
                 "country": wine.country,
@@ -136,7 +141,7 @@ def _build_inventory_response(
             }
         )
 
-    racks: list[JsonObjectType] = [
+    racks: list[JsonValueType] = [
         {"id": rack.id, "name": rack.name} for rack in cellar.racks.values()
     ]
     return {
