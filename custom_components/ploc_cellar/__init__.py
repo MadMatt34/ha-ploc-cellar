@@ -220,9 +220,13 @@ async def async_setup_entry(
     server = entry.data.get(CONF_SERVER)
     token = entry.data.get(CONF_TOKEN)
     device = entry.data.get(CONF_DEVICE)
-    if not all(
-        isinstance(value, str) and value
-        for value in (server, token, device)
+    if (
+        not isinstance(server, str)
+        or not server
+        or not isinstance(token, str)
+        or not token
+        or not isinstance(device, str)
+        or not device
     ):
         raise HomeAssistantError(
             translation_domain=DOMAIN,
