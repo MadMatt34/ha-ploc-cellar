@@ -2,16 +2,19 @@
 from __future__ import annotations
 
 import logging
-from datetime import datetime, timezone
+from copy import deepcopy
+from datetime import datetime, timedelta, timezone
 
 from aiohttp import ClientSession
+from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
+from homeassistant.exceptions import ConfigEntryAuthFailed, HomeAssistantError
 from homeassistant.helpers.storage import Store
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
-from .const import DEFAULT_SCAN_INTERVAL, DOMAIN, STORAGE_KEY, STORAGE_VERSION
+from .const import DOMAIN, STORAGE_KEY, STORAGE_VERSION
 from .models import Cellar, JsonValue
-from .ploud import PloudError, apply_sync, async_sync
+from .ploud import PloudAuthError, PloudError, apply_sync, async_sync
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -22,18 +25,20 @@ class PlocCellarCoordinator(DataUpdateCoordinator[Cellar]):
     def __init__(
         self,
         hass: HomeAssistant,
+        entry: ConfigEntry,
         session: ClientSession,
-        entry_id: str,
         server: str,
         token: str,
         device: str,
         language: str,
+        scan_interval: timedelta,
     ) -> None:
         super().__init__(
             hass,
             logger=_LOGGER,
+            config_entry=entry,
             name=DOMAIN,
-            update_interval=DEFAULT_SCAN_INTERVAL,
+            update_interval=scan_interval,
         )
         self.session = session
         self.server = server
@@ -41,18 +46,23 @@ class PlocCellarCoordinator(DataUpdateCoordinator[Cellar]):
         self.device = device
         self.language = language
         self.store: Store[dict[str, JsonValue]] = Store(
-            hass, STORAGE_VERSION, f"{STORAGE_KEY}.{entry_id}"
+            hass, STORAGE_VERSION, f"{STORAGE_KEY}.{entry.entry_id}"
         )
         self.cellar = Cellar()
 
     async def async_load(self) -> None:
         """Restore the model and its matching incremental cursor."""
-        stored = await self.store.async_load()
-        if stored is not None:
-            self.cellar = Cellar.from_storage(stored)
+        try:
+            stored = await self.store.async_load()
+            if stored is not None:
+                self.cellar = Cellar.from_storage(stored)
+        except (OSError, ValueError, TypeError) as err:
+            raise HomeAssistantError(
+                "The stored Ploc Cellar data is invalid; refusing to discard it"
+            ) from err
 
     async def _async_update_data(self) -> Cellar:
-        """Apply one read-only PLOUD delta and persist it atomically."""
+        """Apply a PLOUD delta and persist it before publishing the new model."""
         try:
             cursor = self.cellar.cursor if self.cellar.initialized else 1
             objects, next_cursor = await async_sync(
@@ -71,14 +81,20 @@ class PlocCellarCoordinator(DataUpdateCoordinator[Cellar]):
                         "Initial PLOUD sync is missing one or more cellar collections"
                     )
 
-            apply_sync(self.cellar, objects, next_cursor)
-            self.cellar.last_sync = datetime.now(timezone.utc).isoformat()
-            await self.store.async_save(self.cellar.to_storage())
-            return self.cellar
-        except PloudError as err:
+            updated_cellar = deepcopy(self.cellar)
+            apply_sync(updated_cellar, objects, next_cursor)
+            updated_cellar.last_sync = datetime.now(timezone.utc).isoformat()
+            await self.store.async_save(updated_cellar.to_storage())
+            self.cellar = updated_cellar
+            return updated_cellar
+        except PloudAuthError as err:
+            raise ConfigEntryAuthFailed from err
+        except (PloudError, HomeAssistantError, OSError) as err:
             raise UpdateFailed(str(err)) from err
 
     async def async_force_sync(self) -> Cellar:
-        """Request an immediate refresh."""
+        """Request an immediate refresh and report failure to the caller."""
         await self.async_refresh()
+        if not self.last_update_success or self.data is None:
+            raise HomeAssistantError("PLOUD synchronization failed") from self.last_exception
         return self.data
