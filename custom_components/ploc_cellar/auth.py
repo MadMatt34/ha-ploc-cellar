@@ -7,7 +7,6 @@ import hmac
 import os
 import time
 from typing import Any, cast
-from urllib.parse import urlsplit
 
 from aiohttp import ClientError, ClientSession, ClientTimeout
 from cryptography.hazmat.primitives import padding as sym_padding
@@ -103,6 +102,18 @@ def _get_dict(value: object) -> dict[str, Any] | None:
     return cast(dict[str, Any], value) if isinstance(value, dict) else None
 
 
+def _response_detail(value: object) -> str:
+    """Return a short, non-secret API error detail when one is available."""
+    payload = _get_dict(value)
+    if payload is None:
+        return ""
+    for key in ("message", "Message", "error", "Error", "status", "Status"):
+        detail = payload.get(key)
+        if isinstance(detail, (str, int)) and detail not in ("", 0):
+            return f"; {key}={str(detail)[:200]}"
+    return ""
+
+
 def _extract_access_token(payload: dict[str, Any]) -> str | None:
     token = payload.get("accessToken")
     if isinstance(token, str) and token:
@@ -141,25 +152,34 @@ async def _post_json(
                 data: object = await response.json(content_type=None)
             except (ValueError, TypeError):
                 data = None
+            detail = _response_detail(data)
             if response.status in (401, 403):
-                raise PlocAuthError(f"{operation} was rejected")
+                raise PlocAuthError(
+                    f"{operation} was rejected (HTTP {response.status}){detail}"
+                )
+            if response.status in (408, 425, 429) or response.status >= 500:
+                raise PlocConnectionError(
+                    f"{operation} endpoint returned HTTP {response.status}{detail}"
+                )
             if not 200 <= response.status < 300:
                 raise PlocAuthError(
-                    f"{operation} failed with HTTP {response.status}"
+                    f"{operation} failed with HTTP {response.status}{detail}"
                 )
     except (ClientError, TimeoutError) as err:
         raise PlocConnectionError(f"{operation} endpoint is unavailable") from err
 
     result = _get_dict(data)
     if result is None:
-        raise PlocAuthError(f"{operation} returned an invalid response")
+        raise PlocAuthError(
+            f"{operation} returned an invalid JSON object (HTTP {response.status})"
+        )
     return result
 
 
 async def async_authenticate(
     session: ClientSession, email: str, password: str, language: str
-) -> tuple[str, str]:
-    """Sign in to PLOC and activate PLOUD for this Home Assistant installation."""
+) -> str:
+    """Sign in to PLOC and return the PLOUD access token for this installation."""
     account = await _post_json(
         session,
         "signin",
@@ -204,28 +224,16 @@ async def async_authenticate(
 
     activated_model = _extract_ploud_model(activation)
     merged = {**initial_model, **activated_model}
-    server = merged.get("server")
     access_token = merged.get("accessToken")
-    if (
-        not isinstance(server, str)
-        or not isinstance(access_token, str)
-        or not access_token
-    ):
+    if not isinstance(access_token, str) or not access_token:
+        initial_keys = ", ".join(sorted(initial_model)) or "(none)"
+        activated_keys = ", ".join(sorted(activated_model)) or "(none)"
         raise PlocAuthError(
-            "PLOUD activation did not return a valid server and access token"
+            "PLOUD activation succeeded but no accessToken was found "
+            f"(sign-in PLOUD fields: {initial_keys}; "
+            f"activation PLOUD fields: {activated_keys})"
         )
-    try:
-        parsed_server = urlsplit(server)
-        _ = parsed_server.port
-    except ValueError as err:
-        raise PlocAuthError("PLOUD activation returned an invalid server URL") from err
-    if (
-        parsed_server.scheme not in {"https", "http"}
-        or not parsed_server.hostname
-        or parsed_server.username is not None
-        or parsed_server.password is not None
-        or parsed_server.query
-        or parsed_server.fragment
-    ):
-        raise PlocAuthError("PLOUD activation returned an invalid server URL")
-    return server.rstrip("/"), access_token
+    # The server URL is intentionally supplied by the user in the config flow.
+    # It must not be required from the API response or silently replace the
+    # explicitly selected server.
+    return access_token

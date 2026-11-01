@@ -1,6 +1,7 @@
 """Config and options flows for Ploc Cellar."""
 from __future__ import annotations
 
+import logging
 from typing import Any, cast
 from urllib.parse import urlsplit
 from uuid import uuid4
@@ -33,6 +34,8 @@ from .types import (
     ReauthFlowInput,
     ReconfigureFlowInput,
 )
+
+_LOGGER = logging.getLogger(__name__)
 
 
 def _is_valid_email(value: str) -> bool:
@@ -86,15 +89,17 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 errors["base"] = "invalid_server"
             elif "email" not in errors:
                 try:
-                    _, token = await async_authenticate(
+                    token = await async_authenticate(
                         async_get_clientsession(self.hass),
                         credentials["email"],
                         credentials["password"],
                         DEFAULT_LANGUAGE,
                     )
-                except PlocAuthError:
+                except PlocAuthError as err:
+                    _LOGGER.warning("PLOC/PLOUD authentication failed: %s", err)
                     errors["base"] = "invalid_auth"
-                except PlocConnectionError:
+                except PlocConnectionError as err:
+                    _LOGGER.warning("PLOC/PLOUD service unavailable: %s", err)
                     errors["base"] = "cannot_connect"
                 else:
                     # Keep the full UUID in configuration. PLOUD requests use
@@ -193,15 +198,17 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 errors["email"] = "invalid_email"
             else:
                 try:
-                    _, token = await async_authenticate(
+                    token = await async_authenticate(
                         async_get_clientsession(self.hass),
                         credentials["email"],
                         credentials["password"],
                         entry.data.get(CONF_LANGUAGE, DEFAULT_LANGUAGE),
                     )
-                except PlocAuthError:
+                except PlocAuthError as err:
+                    _LOGGER.warning("PLOC/PLOUD reauthentication failed: %s", err)
                     errors["base"] = "invalid_auth"
-                except PlocConnectionError:
+                except PlocConnectionError as err:
+                    _LOGGER.warning("PLOC/PLOUD service unavailable: %s", err)
                     errors["base"] = "cannot_connect"
                 else:
                     return self.async_update_reload_and_abort(
