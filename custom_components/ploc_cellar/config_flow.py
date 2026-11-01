@@ -95,9 +95,9 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     CONF_SERVER,
                     default=PLOUD_DEFAULT_SERVER,
                 ): str,
-                vol.Required(CONF_TOKEN): str,
-                vol.Required(CONF_DEVICE): str,
-                vol.Required(
+                probatio.Required(CONF_TOKEN): str,
+                probatio.Required(CONF_DEVICE): str,
+                probatio.Required(
                     CONF_LANGUAGE,
                     default=DEFAULT_LANGUAGE,
                 ): probatio.In(SUPPORTED_LANGUAGES),
@@ -130,9 +130,9 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
         return self.async_show_form(
             step_id="reconfigure",
-            data_schema=vol.Schema(
+            data_schema=probatio.Schema(
                 {
-                    vol.Required(
+                    probatio.Required(
                         CONF_SERVER,
                         default=entry.data[CONF_SERVER],
                     ): str
@@ -160,7 +160,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             if not token:
                 return self.async_show_form(
                     step_id="reauth_confirm",
-                    data_schema=vol.Schema({vol.Required(CONF_TOKEN): str}),
+                    data_schema=probatio.Schema({probatio.Required(CONF_TOKEN): str}),
                     errors={"base": "invalid_token"},
                 )
             entry = self._get_reauth_entry()
@@ -171,7 +171,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
         return self.async_show_form(
             step_id="reauth_confirm",
-            data_schema=vol.Schema({vol.Required(CONF_TOKEN): str}),
+            data_schema=probatio.Schema({probatio.Required(CONF_TOKEN): str}),
         )
 
     @staticmethod
@@ -218,9 +218,9 @@ class PlocCellarOptionsFlow(OptionsFlowWithReload):
             else DEFAULT_LANGUAGE
         )
 
-        schema = vol.Schema(
+        schema = probatio.Schema(
             {
-                vol.Required(
+                probatio.Required(
                     CONF_SCAN_INTERVAL,
                     default=current_interval,
                 ): probatio.All(
@@ -230,10 +230,10 @@ class PlocCellarOptionsFlow(OptionsFlowWithReload):
                         max=MAX_SCAN_INTERVAL_MINUTES,
                     ),
                 ),
-                vol.Required(
+                probatio.Required(
                     CONF_LANGUAGE,
                     default=current_language,
-                ): vol.In(SUPPORTED_LANGUAGES),
+                ): probatio.In(SUPPORTED_LANGUAGES),
             }
         )
         return self.async_show_form(
