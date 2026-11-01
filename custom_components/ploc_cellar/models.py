@@ -2,14 +2,15 @@
 from __future__ import annotations
 
 import math
-from dataclasses import asdict, dataclass, field
+from dataclasses import dataclass, field
 from typing import TypeAlias, cast
+
+from homeassistant.util.json import JsonObjectType, JsonValueType
 
 from .const import STORAGE_VERSION
 
-JsonScalar: TypeAlias = str | int | float | bool | None
-JsonValue: TypeAlias = JsonScalar | list["JsonValue"] | dict[str, "JsonValue"]
-JsonObject: TypeAlias = dict[str, JsonValue]
+JsonValue: TypeAlias = JsonValueType
+JsonObject: TypeAlias = JsonObjectType
 
 
 @dataclass(frozen=True, slots=True)
@@ -68,7 +69,9 @@ class Cellar:
     @property
     def total_bottles(self) -> int:
         """Return the total number of bottles currently in stock."""
-        return sum(wine.bottles for wine in self.wines.values() if wine.bottles > 0)
+        return sum(
+            wine.bottles for wine in self.wines.values() if wine.bottles > 0
+        )
 
     @property
     def stocked_wines(self) -> int:
@@ -89,21 +92,53 @@ class Cellar:
 
     def to_storage(self) -> JsonObject:
         """Serialize the snapshot to JSON-compatible data."""
-        return cast(
-            JsonObject,
-            {
-                "version": STORAGE_VERSION,
-                "cursor": self.cursor,
-                "last_sync": self.last_sync,
-                "initialized": self.initialized,
-                "wines": {key: asdict(wine) for key, wine in self.wines.items()},
-                "racks": {key: asdict(rack) for key, rack in self.racks.items()},
-                "rack_items": {
-                    key: asdict(item) for key, item in self.rack_items.items()
-                },
-                "references": self.references,
-            },
-        )
+        wines: dict[str, JsonValue] = {
+            wine_id: {
+                "id": wine.id,
+                "name": wine.name,
+                "bottles": wine.bottles,
+                "vintage": wine.vintage,
+                "appellation": wine.appellation,
+                "color": wine.color,
+                "color_rgb": (
+                    list(wine.color_rgb) if wine.color_rgb is not None else None
+                ),
+                "classification": wine.classification,
+                "region": wine.region,
+                "country": wine.country,
+                "grapes": wine.grapes,
+                "cuvee": wine.cuvee,
+                "bottle_format": wine.bottle_format,
+                "bottle_volume_l": wine.bottle_volume_l,
+                "ploud_pid": wine.ploud_pid,
+                "ploud_reference_fields": wine.ploud_reference_fields,
+            }
+            for wine_id, wine in self.wines.items()
+        }
+        racks: dict[str, JsonValue] = {
+            rack_id: {"id": rack.id, "name": rack.name}
+            for rack_id, rack in self.racks.items()
+        }
+        rack_items: dict[str, JsonValue] = {
+            item_id: {
+                "id": item.id,
+                "rack_id": item.rack_id,
+                "wine_id": item.wine_id,
+                "row": item.row,
+                "column": item.column,
+            }
+            for item_id, item in self.rack_items.items()
+        }
+        return {
+            "version": STORAGE_VERSION,
+            "cursor": self.cursor,
+            "last_sync": self.last_sync,
+            "initialized": self.initialized,
+            "wines": wines,
+            "racks": racks,
+            "rack_items": rack_items,
+            "references": self.references,
+        }
 
     @classmethod
     def from_storage(cls, data: JsonObject) -> Cellar:
@@ -179,21 +214,21 @@ def _float(value: object) -> float | None:
     return parsed if parsed is not None and math.isfinite(parsed) else None
 
 
-def _wine_from_dict(raw: dict[str, JsonValue], key: str) -> Wine:
+def _wine_from_dict(raw: JsonObject, key: str) -> Wine:
     """Restore a wine from a stored JSON object."""
-    rgb = raw.get("color_rgb")
     color_rgb = None
-    if (
-        isinstance(rgb, (list, tuple))
-        and len(rgb) == 3
-        and all(
-            isinstance(component, int)
-            and not isinstance(component, bool)
-            and 0 <= component <= 255
-            for component in rgb
-        )
-    ):
-        color_rgb = (rgb[0], rgb[1], rgb[2])
+    rgb = raw.get("color_rgb")
+    if isinstance(rgb, (list, tuple)) and len(rgb) == 3:
+        red = _int(rgb[0])
+        green = _int(rgb[1])
+        blue = _int(rgb[2])
+        if (
+            red is not None
+            and green is not None
+            and blue is not None
+            and all(0 <= component <= 255 for component in (red, green, blue))
+        ):
+            color_rgb = (red, green, blue)
 
     return Wine(
         id=_str(raw.get("id")) or key,
@@ -215,7 +250,7 @@ def _wine_from_dict(raw: dict[str, JsonValue], key: str) -> Wine:
     )
 
 
-def _rack_item_from_dict(raw: dict[str, JsonValue], key: str) -> RackItem:
+def _rack_item_from_dict(raw: JsonObject, key: str) -> RackItem:
     """Restore a rack position from a stored JSON object."""
     return RackItem(
         id=_str(raw.get("id")) or key,
