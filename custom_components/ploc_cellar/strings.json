@@ -1,0 +1,7 @@
+{
+  "config": {
+    "step": {"user": {"title": "Connect to PLOUD", "description": "Enter the existing PLOUD access token and the five-character device identifier.", "data": {"server": "PLOUD server URL", "token": "PLOUD access token", "device": "Device identifier", "language": "Language"}}},
+    "error": {"invalid_server": "The server URL must start with http:// or https://.", "invalid_device": "The device identifier must contain exactly five characters."},
+    "abort": {"already_configured": "This PLOUD device is already configured."}
+  }
+}
