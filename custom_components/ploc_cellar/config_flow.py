@@ -1,7 +1,6 @@
 """Config and options flows for Ploc Cellar."""
 from __future__ import annotations
 
-import re
 from typing import Any
 from urllib.parse import urlsplit
 
@@ -67,7 +66,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 errors["base"] = "invalid_server"
             elif not token:
                 errors["base"] = "invalid_token"
-            elif re.fullmatch(r"[A-Za-z0-9]{5}", device) is None:
+            elif len(device) != 5:
                 errors["base"] = "invalid_device"
             else:
                 await self.async_set_unique_id(device)
