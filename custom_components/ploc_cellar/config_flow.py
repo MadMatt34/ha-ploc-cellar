@@ -99,7 +99,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                             autocomplete="username",
                         )
                     ),
-                    vol.Required("password"): selector.TextSelector(
+                    vol.Required("password"): selector.TextSelector(  # pyright: ignore[reportUnknownMemberType]
                         selector.TextSelectorConfig(
                             type=selector.TextSelectorType.PASSWORD,
                             autocomplete="current-password",
@@ -165,7 +165,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                             autocomplete="username",
                         )
                     ),
-                    vol.Required("password"): selector.TextSelector(
+                    vol.Required("password"): selector.TextSelector(  # pyright: ignore[reportUnknownMemberType]
                         selector.TextSelectorConfig(
                             type=selector.TextSelectorType.PASSWORD,
                             autocomplete="current-password",
@@ -241,7 +241,7 @@ class PlocCellarOptionsFlow(OptionsFlowWithReload):
                     vol.Required(
                         CONF_LANGUAGE,
                         default=current_language,
-                    ): selector.SelectSelector(
+                    ): selector.SelectSelector(  # pyright: ignore[reportUnknownMemberType]
                         selector.SelectSelectorConfig(
                             options=[
                                 selector.SelectOptionDict(
