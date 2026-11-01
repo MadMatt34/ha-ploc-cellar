@@ -9,6 +9,7 @@ import voluptuous as vol
 from homeassistant import config_entries
 from homeassistant.config_entries import ConfigEntry, OptionsFlowWithReload
 from homeassistant.core import callback
+from homeassistant.helpers import selector
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
 from .auth import PlocAuthError, PlocConnectionError, async_authenticate
@@ -32,6 +33,15 @@ from .types import (
     ReauthFlowInput,
     ReconfigureFlowInput,
 )
+
+
+def _is_valid_email(value: str) -> bool:
+    """Validate an email address with Voluptuous."""
+    try:
+        vol.Email(value)  # pyright: ignore[reportUnknownMemberType]
+    except vol.Invalid:
+        return False
+    return True
 
 
 def _normalise_server(value: str) -> str | None:
@@ -69,10 +79,12 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         errors: dict[str, str] = {}
         if user_input is not None:
             credentials = cast(ConfigFlowUserInput, user_input)
+            if not _is_valid_email(credentials["email"]):
+                errors["email"] = "invalid_email"
             server = _normalise_server(credentials["server"])
             if server is None:
                 errors["base"] = "invalid_server"
-            else:
+            elif "email" not in errors:
                 try:
                     _, token = await async_authenticate(
                         async_get_clientsession(self.hass),
@@ -104,7 +116,12 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             Any,
             vol.Schema(
                 {
-                    vol.Required("email"): vol.Email,  # pyright: ignore[reportUnknownMemberType]
+                    vol.Required("email"): selector.TextSelector(
+                        selector.TextSelectorConfig(
+                            type=selector.TextSelectorType.EMAIL,
+                            autocomplete="username",
+                        )
+                    ),
                     vol.Required("password"): str,
                     vol.Required(
                         CONF_SERVER,
@@ -172,30 +189,38 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         if user_input is not None:
             credentials = cast(ReauthFlowInput, user_input)
             entry = self._get_reauth_entry()
-            try:
-                _, token = await async_authenticate(
+            if not _is_valid_email(credentials["email"]):
+                errors["email"] = "invalid_email"
+            else:
+                try:
+                    _, token = await async_authenticate(
                     async_get_clientsession(self.hass),
                     credentials["email"],
                     credentials["password"],
-                    entry.data.get(CONF_LANGUAGE, DEFAULT_LANGUAGE),
-                )
-            except PlocAuthError:
-                errors["base"] = "invalid_auth"
-            except PlocConnectionError:
-                errors["base"] = "cannot_connect"
-            else:
-                return self.async_update_reload_and_abort(
-                    entry,
-                    # Reauthentication renews credentials but must not
-                    # overwrite a server URL manually selected by the user.
-                    data_updates={CONF_TOKEN: token},
-                )
+                        entry.data.get(CONF_LANGUAGE, DEFAULT_LANGUAGE),
+                    )
+                except PlocAuthError:
+                    errors["base"] = "invalid_auth"
+                except PlocConnectionError:
+                    errors["base"] = "cannot_connect"
+                else:
+                    return self.async_update_reload_and_abort(
+                        entry,
+                        # Reauthentication renews credentials but must not
+                        # overwrite a server URL manually selected by the user.
+                        data_updates={CONF_TOKEN: token},
+                    )
 
         schema = cast(
             Any,
             vol.Schema(
                 {
-                    vol.Required("email"): vol.Email,  # pyright: ignore[reportUnknownMemberType]
+                    vol.Required("email"): selector.TextSelector(
+                        selector.TextSelectorConfig(
+                            type=selector.TextSelectorType.EMAIL,
+                            autocomplete="username",
+                        )
+                    ),
                     vol.Required("password"): str,
                 }
             ),
