@@ -168,7 +168,7 @@ async def async_sync(session: ClientSession, *, server: str, token: str,
     if not isinstance(objects, dict):
         raise PloudError("PLOUD response has no objects collection")
     return ({str(k): [v for v in values if isinstance(v, dict)]
-             for k, values in objects.items() if isinstance(values, list)}, timestamp * 1000)
+             for k, values in objects.items() if isinstance(values, list)}, max(timestamp * 1000, max(1, cursor)))
 
 def apply_sync(cellar: Cellar, objects: dict[str, list[dict]], next_cursor: int) -> None:
     for name in REFERENCE_COLLECTIONS:
