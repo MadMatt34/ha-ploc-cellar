@@ -120,7 +120,7 @@ def _extract_ploud_model(payload: dict[str, Any]) -> dict[str, Any]:
         _get_dict(account.get("ploud")) if account else None,
         _get_dict(payload.get("ploud")),
     )
-    return next((item for item in candidates if item), {})
+    return next((item for item in candidates if item), dict[str, Any]())
 
 
 async def _post_json(
