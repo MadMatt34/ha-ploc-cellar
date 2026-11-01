@@ -4,14 +4,14 @@ get_inventory:
   fields:
     search:
       name: Search
-      description: Match wine name, appellation, region or country.
+      description: Match wine name, appellation, region, country, grape or cuvée.
       selector:
         text: {}
     color:
       name: Color
       description: Filter by wine color.
       selector:
-        text:
+        text: {}
 sync:
   name: Synchronize
   description: Trigger an immediate read-only synchronization with PLOUD.
