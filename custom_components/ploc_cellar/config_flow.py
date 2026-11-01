@@ -33,6 +33,7 @@ from .types import (
     ReconfigureFlowInput,
 )
 
+
 def _normalise_server(value: str) -> str | None:
     """Validate and normalize the PLOUD base URL."""
     server = value.strip().rstrip("/")
