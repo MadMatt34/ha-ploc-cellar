@@ -67,12 +67,41 @@
         "color": {
           "name": "Couleur",
           "description": "Filtrer selon la couleur du vin."
+        },
+        "config_entry_id": {
+          "name": "Configuration Ploc Cellar",
+          "description": "Sélectionner la connexion PLOUD à utiliser."
         }
       }
     },
     "sync": {
       "name": "Synchroniser",
-      "description": "Déclencher immédiatement une synchronisation en lecture seule avec PLOUD."
+      "description": "Déclencher immédiatement une synchronisation en lecture seule avec PLOUD.",
+      "fields": {
+        "config_entry_id": {
+          "name": "Configuration Ploc Cellar",
+          "description": "Sélectionner la connexion PLOUD à utiliser."
+        }
+      }
+    }
+  },
+  "device": {
+    "cellar": {
+      "name": "Cave Ploc"
+    }
+  },
+  "exceptions": {
+    "config_entry_not_loaded": {
+      "message": "L'intégration Ploc Cellar sélectionnée n'est pas chargée."
+    },
+    "invalid_config_entry": {
+      "message": "La configuration Ploc Cellar est incomplète. Reconfigurez l'intégration."
+    },
+    "invalid_storage": {
+      "message": "Les données locales de la cave sont invalides. Elles n'ont pas été remplacées."
+    },
+    "sync_failed": {
+      "message": "La synchronisation PLOUD a échoué. Consultez le journal pour plus de détails."
     }
   }
 }
