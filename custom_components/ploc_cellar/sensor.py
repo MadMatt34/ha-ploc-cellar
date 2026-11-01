@@ -1,16 +1,25 @@
 """Single aggregate cellar sensor."""
 from homeassistant.components.sensor import SensorEntity, SensorStateClass
+from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .const import DOMAIN
 from .coordinator import PlocCellarCoordinator
 
+
 class PlocCellarSensor(CoordinatorEntity[PlocCellarCoordinator], SensorEntity):
+    """Expose a compact cellar summary, not one entity per wine or rack."""
+
     _attr_has_entity_name = True
-    _attr_name = "Cellar"
+    _attr_name = "Inventory"
     _attr_icon = "mdi:bottle-wine"
     _attr_native_unit_of_measurement = "bottles"
     _attr_state_class = SensorStateClass.MEASUREMENT
+    _attr_device_info = DeviceInfo(
+        identifiers={(DOMAIN, "ploc_cellar")},
+        name="Ploc Cellar",
+        manufacturer="PLOC",
+    )
 
     def __init__(self, coordinator: PlocCellarCoordinator) -> None:
         super().__init__(coordinator)
@@ -21,12 +30,17 @@ class PlocCellarSensor(CoordinatorEntity[PlocCellarCoordinator], SensorEntity):
         return self.coordinator.data.total_bottles
 
     @property
-    def extra_state_attributes(self) -> dict:
+    def extra_state_attributes(self) -> dict[str, int | str | None]:
         cellar = self.coordinator.data
         return {
             "stocked_wines": cellar.stocked_wines,
             "rack_count": len(cellar.racks),
             "occupied_positions": cellar.occupied_positions,
             "last_sync": cellar.last_sync,
-            "inventory_action": "ploc_cellar.get_inventory",
         }
+
+
+async def async_setup_entry(hass, entry, async_add_entities) -> None:
+    """Set up the one aggregate sensor."""
+    coordinator = hass.data[DOMAIN][entry.entry_id]
+    async_add_entities([PlocCellarSensor(coordinator)])
