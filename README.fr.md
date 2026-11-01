@@ -32,8 +32,8 @@ Home Assistant effectue automatiquement les opérations suivantes :
 1. Génération d'un identifiant d'appareil UUID complet propre à cette installation.
 2. Authentification au compte PLOC via `POST https://api.ploc.co/v1/signin`. La requête reproduit le chiffrement et la signature employés par l'application PLOC.
 3. Activation de PLOUD pour l'application **Home Assistant** via `POST /ploud/activate`, avec le jeton de session PLOC obtenu à l'étape précédente.
-4. Extraction de l'URL du serveur PLOUD et du jeton d'accès PLOUD retournés par l'API.
-5. Enregistrement du serveur, du jeton PLOUD et de l'identifiant d'appareil dans l'entrée de configuration Home Assistant.
+4. Récupération du jeton d'accès PLOUD retourné par l'API. L'URL du serveur saisie dans le formulaire est utilisée, même si l'API en retourne une autre.
+5. Enregistrement de l'URL choisie, du jeton PLOUD et de l'identifiant d'appareil dans l'entrée de configuration Home Assistant.
 6. Première synchronisation en lecture seule de la cave.
 
 Le mot de passe et le jeton de session PLOC ne sont pas enregistrés dans l'entrée de configuration. Seuls les éléments nécessaires aux synchronisations PLOUD ultérieures y sont conservés. Le mot de passe est utilisé uniquement pendant le processus d'authentification initial ou lors d'une réauthentification.
