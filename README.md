@@ -41,7 +41,7 @@ Open **Configure** to change the polling interval (5 to 1,440 minutes; default 1
 - `sensor.ploc_cellar_inventory`: total bottle count.
 - Attributes: stocked wines, rack count, occupied positions and a `stale` flag indicating whether the latest synchronization failed. The last synchronization time is included in the inventory action response.
 
-The full wine list is deliberately not stored in sensor attributes. It remains in persistent storage and is returned only when requested. The last successful synchronization time is included in the inventory action response.
+The full wine list is deliberately not stored in sensor attributes. It remains in persistent storage and is returned only when requested.
 
 ## Actions
 
