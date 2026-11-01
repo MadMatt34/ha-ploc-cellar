@@ -6,7 +6,7 @@ import hashlib
 import hmac
 import os
 import time
-from typing import Any
+from typing import Any, cast
 from urllib.parse import urlsplit
 
 from aiohttp import ClientError, ClientSession, ClientTimeout
@@ -48,9 +48,10 @@ def _hmac_b64(value: str) -> str:
 
 
 def _aes_encrypt(key: bytes, iv: bytes, value: str) -> str:
-    padder = sym_padding.PKCS7(algorithms.AES.block_size).padder()
+    aes = algorithms.AES(key)
+    padder = sym_padding.PKCS7(aes.block_size).padder()
     padded = padder.update(value.encode("utf-8")) + padder.finalize()
-    encryptor = Cipher(algorithms.AES(key), modes.CBC(iv)).encryptor()
+    encryptor = Cipher(aes, modes.CBC(iv)).encryptor()
     encrypted = encryptor.update(padded) + encryptor.finalize()
     return base64.b64encode(encrypted).decode("ascii")
 
@@ -99,7 +100,7 @@ def _build_signin_payload(email: str, password: str) -> dict[str, str | int]:
 
 
 def _get_dict(value: object) -> dict[str, Any] | None:
-    return value if isinstance(value, dict) else None
+    return cast(dict[str, Any], value) if isinstance(value, dict) else None
 
 
 def _extract_access_token(payload: dict[str, Any]) -> str | None:
