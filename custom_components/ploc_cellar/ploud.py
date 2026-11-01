@@ -6,7 +6,9 @@ import hashlib
 import hmac
 import math
 import time
-from typing import Any, cast
+from typing import cast
+
+from homeassistant.util.json import JsonObjectType, JsonValueType
 
 from aiohttp import ClientError, ClientSession, ClientTimeout, FormData
 
@@ -17,6 +19,7 @@ from .const import (
     PLOUD_COLLECTION_WINES,
     PLOUD_HMAC_KEY,
     PLOUD_REFERENCE_COLLECTIONS,
+    PLOUD_SUPPORTED_COLLECTIONS,
     PLOUD_SYNC_METHOD,
     PLOUD_SYNC_PATH,
     PLOUD_VERSION,
@@ -30,6 +33,19 @@ type PLOUDReferences = dict[str, dict[str, JsonObject]]
 
 class PloudError(Exception):
     """PLOUD communication or payload error."""
+
+
+def _as_json_object(value: object) -> JsonObject | None:
+    """Validate and convert an arbitrary value to a Home Assistant JSON object."""
+    if not isinstance(value, dict):
+        return None
+    raw_mapping = cast(dict[object, object], value)
+    result: JsonObject = {}
+    for key, item in raw_mapping.items():
+        if not isinstance(key, str):
+            return None
+        result[key] = cast(JsonValueType, item)
+    return result
 
 
 class PloudAuthError(PloudError):
@@ -86,7 +102,7 @@ def _float(value: object) -> float | None:
     if isinstance(value, (int, float, str)):
         try:
             parsed = float(value)
-        except ValueError:
+        except (OverflowError, ValueError):
             return None
         return parsed if math.isfinite(parsed) else None
     return None
@@ -238,41 +254,52 @@ async def async_sync(
             timeout=ClientTimeout(total=120),
         ) as response:
             try:
-                payload: Any = await response.json(content_type=None)
+                payload_raw: object = await response.json(content_type=None)
             except (ValueError, TypeError):
-                payload = None
+                payload_raw = None
 
             if response.status in (401, 403):
+                auth_payload = _as_json_object(payload_raw)
                 error_code = (
-                    payload.get("error")
-                    if isinstance(payload, dict)
-                    else None
+                    auth_payload.get("error") if auth_payload is not None else None
                 )
                 if response.status == 401 or str(error_code) == "20":
                     raise PloudAuthError("PLOUD rejected the access token")
 
             if response.status != 200:
                 raise PloudError(f"PLOUD returned HTTP {response.status}")
-            if payload is None:
+            if payload_raw is None:
                 raise PloudError("PLOUD returned invalid JSON")
     except (ClientError, TimeoutError) as err:
         raise PloudError(f"PLOUD sync request failed: {err}") from err
 
-    if not isinstance(payload, dict):
+    payload = _as_json_object(payload_raw)
+    if payload is None:
         raise PloudError("PLOUD response is not a JSON object")
-    objects = payload.get("objects", payload.get("Objects"))
-    if not isinstance(objects, dict):
+    objects_value = payload.get("objects", payload.get("Objects"))
+    objects = _as_json_object(objects_value)
+    if objects is None:
         raise PloudError("PLOUD response has no objects collection")
 
+    supported_collections = {
+        name.casefold() for name in PLOUD_SUPPORTED_COLLECTIONS
+    }
     collections: PLOUDCollections = {}
     for name, values in objects.items():
-        if isinstance(values, list):
-            collections[str(name)] = [
-                cast(JsonObject, item)
-                for item in values
-                if isinstance(item, dict)
-                and all(isinstance(key, str) for key in item)
-            ]
+        if name.casefold() not in supported_collections:
+            continue
+        if not isinstance(values, list):
+            raise PloudError(f"PLOUD collection {name} is not an array")
+
+        records: list[JsonObject] = []
+        for item in values:
+            record = _as_json_object(item)
+            if record is None:
+                raise PloudError(
+                    f"PLOUD collection {name} contains an invalid record"
+                )
+            records.append(record)
+        collections[name] = records
 
     # The protocol cursor is the sync-start Unix timestamp in milliseconds.
     # Never move it backwards if the host clock is adjusted.
