@@ -58,13 +58,13 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         errors: dict[str, str] = {}
         if user_input is not None:
             credentials = cast(ConfigFlowUserInput, user_input)
-            if not _is_valid_email(credentials["email"]):
+            if not _is_valid_email(credentials["username"]):
                 errors["email"] = "invalid_email"
             if "email" not in errors:
                 try:
                     token = await async_authenticate(
                         async_get_clientsession(self.hass),
-                        credentials["email"],
+                        credentials["username"],
                         credentials["password"],
                         DEFAULT_LANGUAGE,
                     )
@@ -93,13 +93,18 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             Any,
             vol.Schema(
                 {
-                    vol.Required("email"): selector.TextSelector(  # pyright: ignore[reportUnknownMemberType]
+                    vol.Required("username"): selector.TextSelector(  # pyright: ignore[reportUnknownMemberType]
                         selector.TextSelectorConfig(
                             type=selector.TextSelectorType.EMAIL,
                             autocomplete="username",
                         )
                     ),
-                    vol.Required("password"): str,
+                    vol.Required("password"): selector.TextSelector(
+                        selector.TextSelectorConfig(
+                            type=selector.TextSelectorType.PASSWORD,
+                            autocomplete="current-password",
+                        )
+                    ),
                 }
             ),
         )
@@ -126,13 +131,13 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         if user_input is not None:
             credentials = cast(ReauthFlowInput, user_input)
             entry = self._get_reauth_entry()
-            if not _is_valid_email(credentials["email"]):
+            if not _is_valid_email(credentials["username"]):
                 errors["email"] = "invalid_email"
             else:
                 try:
                     token = await async_authenticate(
                         async_get_clientsession(self.hass),
-                        credentials["email"],
+                        credentials["username"],
                         credentials["password"],
                         entry.data.get(CONF_LANGUAGE, DEFAULT_LANGUAGE),
                     )
@@ -154,13 +159,18 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             Any,
             vol.Schema(
                 {
-                    vol.Required("email"): selector.TextSelector(  # pyright: ignore[reportUnknownMemberType]
+                    vol.Required("username"): selector.TextSelector(  # pyright: ignore[reportUnknownMemberType]
                         selector.TextSelectorConfig(
                             type=selector.TextSelectorType.EMAIL,
                             autocomplete="username",
                         )
                     ),
-                    vol.Required("password"): str,
+                    vol.Required("password"): selector.TextSelector(
+                        selector.TextSelectorConfig(
+                            type=selector.TextSelectorType.PASSWORD,
+                            autocomplete="current-password",
+                        )
+                    ),
                 }
             ),
         )
