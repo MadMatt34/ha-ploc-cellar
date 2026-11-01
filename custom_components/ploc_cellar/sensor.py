@@ -30,7 +30,7 @@ class PlocCellarSensor(CoordinatorEntity[PlocCellarCoordinator], SensorEntity):
         self._attr_unique_id = SENSOR_UNIQUE_ID
 
     @property
-    def available(self) -> bool:
+    def available(self) -> bool:  # pyright: ignore[reportIncompatibleVariableOverride]
         """Keep the last persisted totals visible during a PLOUD outage."""
         # Setup guarantees a successful first refresh or a restored cellar snapshot.
         return True
