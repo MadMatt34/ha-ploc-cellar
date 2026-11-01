@@ -50,7 +50,7 @@ After activation with the Python client, display the value to enter in Home Assi
 jq -r '.ploud_access_token' ~/.ploc_ploud_state.json
 ```
 
-Copy that value into the integration's **PLOUD access token** field. Do not use `ploud_token` or the top-level `accessToken`: these are different fields. Do not publish or share the token.
+Copy that value into the integration's **PLOUD access token** field. Do not use `ploud_token` or the top-level `accessToken`: these are different fields. Do not publish or share the token. The `device` field in this file belongs to the Python client and must not be copied: Home Assistant generates its own device identity.
 
 If the state file already exists, the Python client normally reuses its saved credentials and does not run activation again. The `~/.ploc_ploud_cellar.json` file is only the local inventory cache; it does not contain authentication credentials.
 
@@ -60,7 +60,7 @@ If the state file already exists, the Python client normally reuses its saved cr
 
 ### Connection settings
 
-Initial setup asks for the PLOUD server URL (default `https://ploud.ploc.co/v1`), the PLOUD access token and the response language (`fr` or `en`). A new device identifier is generated for each new installation. It is derived from the first five hexadecimal characters of a random UUID, matching the short identifier used by PLOC. It is stored in the config entry and remains stable across reloads and reauthentication.
+Initial setup asks for the PLOUD server URL (default `https://ploud.ploc.co/v1`), the PLOUD access token and the response language (`fr` or `en`). A new device identifier is generated for each new installation. It is derived from the first five hexadecimal characters of a random UUID, following the five-character short format used by PLOC and validated with `sync/exec`. It is stored in the config entry and remains stable across reloads and reauthentication. Note: the first Python preparation client generated a full UUID for its own device; that separate identifier is not reused by Home Assistant.
 
 Use **Reconfigure** to change the server URL. If PLOUD rejects the token, Home Assistant starts reauthentication so it can be replaced without removing the integration.
 
