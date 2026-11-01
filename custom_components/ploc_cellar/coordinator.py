@@ -39,6 +39,7 @@ class PlocCellarCoordinator(DataUpdateCoordinator[Cellar]):
             config_entry=entry,
             name=DOMAIN,
             update_interval=scan_interval,
+            always_update=False,
         )
         self.session = session
         self.server = server
