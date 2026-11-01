@@ -7,7 +7,7 @@ from typing import Any, cast
 
 import voluptuous as vol
 from homeassistant.config_entries import ConfigEntryState
-from homeassistant.const import Platform
+from homeassistant.const import ATTR_CONFIG_ENTRY_ID, Platform
 from homeassistant.core import (
     HomeAssistant,
     ServiceCall,
@@ -46,17 +46,23 @@ CONFIG_SCHEMA: Callable[[dict[str, Any]], dict[str, Any]] = cast(
     cv.config_entry_only_config_schema(DOMAIN),
 )
 
-GET_INVENTORY_SCHEMA: VolSchemaType = cast(VolSchemaType, vol.Schema(
-    {
-        vol.Required(ATTR_CONFIG_ENTRY_ID): cv.string,
-        vol.Optional(CONF_SEARCH, default=""): cv.string,
-        probatio.Optional(CONF_COLOR, default=""): cv.string,
-    }
+GET_INVENTORY_SCHEMA: VolSchemaType = cast(
+    VolSchemaType,
+    vol.Schema(
+        {
+            vol.Required(ATTR_CONFIG_ENTRY_ID): cv.string,
+            vol.Optional(CONF_SEARCH, default=""): cv.string,
+            vol.Optional(CONF_COLOR, default=""): cv.string,
+        }
+    ),
 )
-SYNC_SCHEMA: VolSchemaType = cast(VolSchemaType, vol.Schema(
-    {
-        probatio.Required(ATTR_CONFIG_ENTRY_ID): cv.string,
-    }
+SYNC_SCHEMA: VolSchemaType = cast(
+    VolSchemaType,
+    vol.Schema(
+        {
+            vol.Required(ATTR_CONFIG_ENTRY_ID): cv.string,
+        }
+    ),
 )
 
 
