@@ -14,7 +14,7 @@ class PlocCellarSensor(CoordinatorEntity[PlocCellarCoordinator], SensorEntity):
     """Expose a compact cellar summary, not one entity per wine or rack."""
 
     _attr_has_entity_name = True
-    _attr_name = "Inventory"
+    _attr_translation_key = "inventory"
     _attr_icon = "mdi:bottle-wine"
     _attr_native_unit_of_measurement = "bottles"
     _attr_state_class = SensorStateClass.MEASUREMENT
