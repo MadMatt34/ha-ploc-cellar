@@ -3,14 +3,14 @@ from __future__ import annotations
 
 import math
 from dataclasses import dataclass, field
-from typing import TypeAlias, cast
+from typing import cast
 
 from homeassistant.util.json import JsonObjectType, JsonValueType
 
 from .const import STORAGE_VERSION
 
-JsonValue: TypeAlias = JsonValueType
-JsonObject: TypeAlias = JsonObjectType
+type JsonValue = JsonValueType
+type JsonObject = JsonObjectType
 
 
 @dataclass(frozen=True, slots=True)
