@@ -11,7 +11,7 @@ from typing import Any, cast
 
 from aiohttp import ClientError, ClientSession, ClientTimeout, FormData
 
-from .const import HMAC_KEY, PLOUD_VERSION
+from .const import PLOUD_HMAC_KEY, PLOUD_SYNC_METHOD, PLOUD_SYNC_PATH, PLOUD_VERSION
 from .models import Cellar, JsonObject, Rack, RackItem, Wine
 
 REFERENCE_COLLECTIONS = (
@@ -49,10 +49,10 @@ def _signature(token: str, device: str, timestamp: int) -> str:
             _sha_repeat(str(timestamp), 15),
             _sha_repeat(token, 20),
             _sha_repeat(device, 20),
-            _sha_repeat("sync", 20),
+            _sha_repeat(PLOUD_SYNC_METHOD, 20),
         )
     )
-    digest = hmac.new(HMAC_KEY, material.encode(), hashlib.sha256).digest()
+    digest = hmac.new(PLOUD_HMAC_KEY, material.encode(), hashlib.sha256).digest()
     return base64.b64encode(digest).decode("ascii")
 
 
@@ -220,7 +220,7 @@ async def async_sync(
         "Device": device,
         "Timestamp": str(timestamp),
         "LastSyncTime": str(max(1, cursor)),
-        "Method": "sync",
+        "Method": PLOUD_SYNC_METHOD,
         "Version": str(PLOUD_VERSION),
         "Ln": language,
         "Objects": "{}",
@@ -231,7 +231,7 @@ async def async_sync(
 
     try:
         async with session.post(
-            server.rstrip("/") + "/sync/exec",
+            server.rstrip("/") + PLOUD_SYNC_PATH,
             data=form,
             timeout=ClientTimeout(total=120),
         ) as response:
