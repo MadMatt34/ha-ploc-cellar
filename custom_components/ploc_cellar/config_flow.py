@@ -23,6 +23,7 @@ from .const import (
     DOMAIN,
     MAX_SCAN_INTERVAL_MINUTES,
     MIN_SCAN_INTERVAL_MINUTES,
+    PLOUD_DEFAULT_SERVER,
     SUPPORTED_LANGUAGES,
 )
 from .types import (
@@ -68,32 +69,36 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         errors: dict[str, str] = {}
         if user_input is not None:
             credentials = cast(ConfigFlowUserInput, user_input)
-            try:
-                server, token = await async_authenticate(
-                    async_get_clientsession(self.hass),
-                    credentials["email"],
-                    credentials["password"],
-                    DEFAULT_LANGUAGE,
-                )
-            except PlocAuthError:
-                errors["base"] = "invalid_auth"
-            except PlocConnectionError:
-                errors["base"] = "cannot_connect"
+            server = _normalise_server(credentials["server"])
+            if server is None:
+                errors["base"] = "invalid_server"
             else:
-                # The tested PLOC client creates a full UUID for every new
-                # device. Keep it stable for all subsequent PLOUD requests.
-                device = str(uuid4())
-                await self.async_set_unique_id(device)
-                self._abort_if_unique_id_configured()
-                return self.async_create_entry(
-                    title="Ploc Cellar",
-                    data={
-                        CONF_SERVER: server,
-                        CONF_TOKEN: token,
-                        CONF_DEVICE: device,
-                        CONF_LANGUAGE: DEFAULT_LANGUAGE,
-                    },
-                )
+                try:
+                    _, token = await async_authenticate(
+                        async_get_clientsession(self.hass),
+                        credentials["email"],
+                        credentials["password"],
+                        DEFAULT_LANGUAGE,
+                    )
+                except PlocAuthError:
+                    errors["base"] = "invalid_auth"
+                except PlocConnectionError:
+                    errors["base"] = "cannot_connect"
+                else:
+                    # Keep the full UUID in configuration. PLOUD requests use
+                    # the five-character short identifier derived from it.
+                    device = str(uuid4())
+                    await self.async_set_unique_id(device)
+                    self._abort_if_unique_id_configured()
+                    return self.async_create_entry(
+                        title="Ploc Cellar",
+                        data={
+                            CONF_SERVER: server,
+                            CONF_TOKEN: token,
+                            CONF_DEVICE: device,
+                            CONF_LANGUAGE: DEFAULT_LANGUAGE,
+                        },
+                    )
 
         schema = cast(
             Any,
@@ -101,6 +106,10 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 {
                     vol.Required("email"): vol.Email(),
                     vol.Required("password"): str,
+                    vol.Required(
+                        CONF_SERVER,
+                        default=PLOUD_DEFAULT_SERVER,
+                    ): str,
                 }
             ),
         )
@@ -177,10 +186,9 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             else:
                 return self.async_update_reload_and_abort(
                     entry,
-                    data_updates={
-                        CONF_SERVER: server,
-                        CONF_TOKEN: token,
-                    },
+                    # Reauthentication renews credentials but must not
+                    # overwrite a server URL manually selected by the user.
+                    data_updates={CONF_TOKEN: token},
                 )
 
         schema = cast(
