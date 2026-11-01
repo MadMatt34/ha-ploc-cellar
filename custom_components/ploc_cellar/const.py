@@ -38,5 +38,7 @@ CONF_DEVICE = "device"
 CONF_LANGUAGE = "language"
 CONF_SCAN_INTERVAL = "scan_interval"
 
+SENSOR_UNIQUE_ID = f"{DOMAIN}_summary"
+
 SERVICE_GET_INVENTORY = "get_inventory"
 SERVICE_SYNC = "sync"
