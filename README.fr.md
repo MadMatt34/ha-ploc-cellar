@@ -49,11 +49,12 @@ La liste complète des vins n'est volontairement pas placée dans les attributs 
 
 Action avec réponse. Utiliser `response_variable` dans un script ou une automatisation.
 
-Champs facultatifs : `search` (nom du vin, appellation, région, pays, cépages ou cuvée) et `color`.
+Le champ `config_entry_id` est obligatoire pour identifier la connexion PLOUD. Home Assistant propose un sélecteur de configuration limité à Ploc Cellar. Filtres facultatifs : `search` (nom du vin, appellation, région, pays, cépages ou cuvée) et `color`.
 
 ```yaml
 action: ploc_cellar.get_inventory
 data:
+  config_entry_id: IDENTIFIANT_DE_CONFIGURATION
   search: Condrieu
 response_variable: cave
 ```
@@ -66,6 +67,8 @@ Déclenche immédiatement une synchronisation :
 
 ```yaml
 action: ploc_cellar.sync
+data:
+  config_entry_id: IDENTIFIANT_DE_CONFIGURATION
 ```
 
 ## Stockage et confidentialité
@@ -76,4 +79,4 @@ L'intégration demande uniquement les données de synchronisation ; elle n'envoi
 
 ## État du développement
 
-Cette intégration est en cours de développement. Ruff et Hassfest apportent une validation statique, mais ne remplacent pas les essais avec une instance Home Assistant réelle et la cave PLOUD.
+Cette intégration est en cours de développement. La CI contrôle Ruff, Hassfest et le typage strict avec Pyright. Ces contrôles statiques ne remplacent pas les essais avec une instance Home Assistant réelle et la cave PLOUD.
