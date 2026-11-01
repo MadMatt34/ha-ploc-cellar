@@ -6,7 +6,7 @@ from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
-from .const import DOMAIN
+from .const import DOMAIN, SENSOR_UNIQUE_ID
 from .coordinator import PlocCellarCoordinator
 
 
@@ -24,7 +24,7 @@ class PlocCellarSensor(CoordinatorEntity[PlocCellarCoordinator], SensorEntity):
 
     def __init__(self, coordinator: PlocCellarCoordinator) -> None:
         super().__init__(coordinator)
-        self._attr_unique_id = f"{DOMAIN}_summary"
+        self._attr_unique_id = SENSOR_UNIQUE_ID
 
     @property
     def available(self) -> bool:
