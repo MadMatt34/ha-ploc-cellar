@@ -5,9 +5,9 @@ from collections.abc import Callable
 from datetime import timedelta
 from typing import Any, cast
 
-import probatio
+import voluptuous as vol
 from homeassistant.config_entries import ConfigEntryState
-from homeassistant.const import ATTR_CONFIG_ENTRY_ID, Platform
+from homeassistant.const import Platform
 from homeassistant.core import (
     HomeAssistant,
     ServiceCall,
@@ -16,7 +16,7 @@ from homeassistant.core import (
 from homeassistant.exceptions import HomeAssistantError, ServiceValidationError
 from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
-from homeassistant.helpers.typing import ConfigType
+from homeassistant.helpers.typing import ConfigType, VolSchemaType
 from homeassistant.util.json import JsonObjectType, JsonValueType
 
 from .const import (
@@ -46,14 +46,14 @@ CONFIG_SCHEMA: Callable[[dict[str, Any]], dict[str, Any]] = cast(
     cv.config_entry_only_config_schema(DOMAIN),
 )
 
-GET_INVENTORY_SCHEMA: probatio.Schema = probatio.Schema(
+GET_INVENTORY_SCHEMA: VolSchemaType = cast(VolSchemaType, vol.Schema(
     {
-        probatio.Required(ATTR_CONFIG_ENTRY_ID): cv.string,
-        probatio.Optional(CONF_SEARCH, default=""): cv.string,
+        vol.Required(ATTR_CONFIG_ENTRY_ID): cv.string,
+        vol.Optional(CONF_SEARCH, default=""): cv.string,
         probatio.Optional(CONF_COLOR, default=""): cv.string,
     }
 )
-SYNC_SCHEMA: probatio.Schema = probatio.Schema(
+SYNC_SCHEMA: VolSchemaType = cast(VolSchemaType, vol.Schema(
     {
         probatio.Required(ATTR_CONFIG_ENTRY_ID): cv.string,
     }
@@ -177,7 +177,7 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
         """Trigger an immediate PLOUD synchronization."""
         service_data = cast(SyncServiceData, call.data)
         coordinator = _get_coordinator(
-            hass, service_data[ATTR_CONFIG_ENTRY_ID]
+            hass, service_data["config_entry_id"]
         )
         await coordinator.async_force_sync()
 
