@@ -1,0 +1,26 @@
+name: Validate
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - name: Install Ruff
+        run: pip install ruff
+      - name: Run Ruff
+        run: ruff check custom_components/ploc_cellar
+      - name: Run Hassfest
+        uses: home-assistant/actions/hassfest@master
+      - name: Validate HACS
+        uses: hacs/action@main
+        with:
+          category: integration
