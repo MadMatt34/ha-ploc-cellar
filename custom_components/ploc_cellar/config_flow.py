@@ -1,7 +1,6 @@
 """Config and options flows for Ploc Cellar."""
 from __future__ import annotations
 
-from collections.abc import Callable
 from typing import Any, cast
 from urllib.parse import urlsplit
 from uuid import uuid4
@@ -35,9 +34,7 @@ from .types import (
 )
 
 
-_EMAIL_VALIDATOR: Callable[[object], str] = cast(
-    Callable[[object], str], vol.Email  # pyright: ignore[reportUnknownMemberType]
-)
+_EMAIL_VALIDATOR: Any = vol.Email  # pyright: ignore[reportUnknownMemberType]
 
 
 def _normalise_server(value: str) -> str | None:
