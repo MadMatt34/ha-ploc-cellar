@@ -25,7 +25,7 @@ A Home Assistant custom integration for a **read-only** view of a PLOC wine cell
 1. Copy `custom_components/ploc_cellar` into `<config>/custom_components/`.
 2. Restart Home Assistant.
 3. Go to **Settings → Devices & services → Add integration** and select **Ploc Cellar**.
-4. Enter only your PLOC account email address and password.
+4. Enter your PLOC account email address and password, then review or change the PLOUD server URL (pre-filled with `https://ploud.ploc.co/v1`).
 
 Home Assistant automatically performs the following operations:
 
@@ -42,11 +42,11 @@ If authentication fails, check the PLOC credentials and the availability of PLOC
 
 ## Device identity
 
-The Python client used to validate the protocol generated its device identifier with `str(uuid4())`, which is a full UUID. The integration follows the same mechanism: each new Home Assistant installation gets its own full UUID, stored in the config entry and reused for subsequent synchronization requests. Do not enter or copy an identifier from a phone or the Python client.
+The Python client used to validate the protocol generated its device identifier with `str(uuid4())`, which is a full UUID. The integration follows the same mechanism: each new Home Assistant installation gets its own full UUID, stored in the config entry. For PLOUD requests, only its first five characters are sent in the `Device` field and used to calculate the HMAC signature, matching the Android application's `shortIdentifier()` behavior. The full UUID remains stored locally. Do not enter or copy an identifier from a phone or the Python client.
 
 ## Synchronization options
 
-Open **Configure** to change the polling interval (5 to 1,440 minutes; default 15 minutes) and PLOUD response language (French or English). Saving options reloads the config entry. Manual synchronization remains available.
+The reconfigure flow lets you change the PLOUD server URL; the currently configured URL is pre-filled. Open **Configure** to change the polling interval (5 to 1,440 minutes; default 15 minutes) and PLOUD response language (French or English). Saving options reloads the config entry. Manual synchronization remains available.
 
 ## Entity
 
