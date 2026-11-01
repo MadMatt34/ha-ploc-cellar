@@ -205,7 +205,11 @@ async def async_authenticate(
     merged = {**initial_model, **activated_model}
     server = merged.get("server")
     access_token = merged.get("accessToken")
-    if not isinstance(server, str) or not isinstance(access_token, str) or not access_token:
+    if (
+        not isinstance(server, str)
+        or not isinstance(access_token, str)
+        or not access_token
+    ):
         raise PlocAuthError(
             "PLOUD activation did not return a valid server and access token"
         )
