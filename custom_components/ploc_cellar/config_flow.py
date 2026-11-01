@@ -8,7 +8,6 @@ import voluptuous as vol
 from homeassistant import config_entries
 from homeassistant.config_entries import ConfigEntry, OptionsFlowWithReload
 from homeassistant.core import callback
-from homeassistant.helpers.typing import VolSchemaType
 
 from .const import (
     CONF_DEVICE,
@@ -91,7 +90,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 )
 
         schema = cast(
-            VolSchemaType,
+            Any,
             vol.Schema(
                 {
                     vol.Required(
