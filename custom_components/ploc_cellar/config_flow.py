@@ -194,9 +194,9 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             else:
                 try:
                     _, token = await async_authenticate(
-                    async_get_clientsession(self.hass),
-                    credentials["email"],
-                    credentials["password"],
+                        async_get_clientsession(self.hass),
+                        credentials["email"],
+                        credentials["password"],
                         entry.data.get(CONF_LANGUAGE, DEFAULT_LANGUAGE),
                     )
                 except PlocAuthError:
