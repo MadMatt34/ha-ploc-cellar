@@ -1,7 +1,78 @@
 {
   "config": {
-    "step": {"user": {"title": "Connexion à PLOUD", "description": "Saisir le jeton PLOUD existant et l'identifiant de l'appareil (5 caractères).", "data": {"server": "URL du serveur PLOUD", "token": "Jeton d'accès PLOUD", "device": "Identifiant de l'appareil", "language": "Langue"}}},
-    "error": {"invalid_server": "L'URL doit commencer par http:// ou https://.", "invalid_device": "L'identifiant doit comporter exactement cinq caractères."},
-    "abort": {"already_configured": "Cet appareil PLOUD est déjà configuré."}
+    "step": {
+      "user": {
+        "title": "Connexion à PLOUD",
+        "description": "Saisir le jeton d'accès PLOUD existant et l'identifiant de l'appareil (5 caractères). Cette intégration ne crée ni n'active de compte PLOC/PLOUD.",
+        "data": {
+          "server": "URL du serveur PLOUD",
+          "token": "Jeton d'accès PLOUD",
+          "device": "Identifiant de l'appareil",
+          "language": "Langue des réponses PLOUD"
+        }
+      },
+      "reconfigure": {
+        "title": "Modifier le serveur PLOUD",
+        "description": "Modifier l'URL de base utilisée pour joindre PLOUD. L'identifiant de l'appareil et le jeton sont conservés.",
+        "data": {
+          "server": "URL du serveur PLOUD"
+        }
+      },
+      "reauth_confirm": {
+        "title": "Réauthentification PLOUD",
+        "description": "Le jeton d'accès PLOUD a été refusé. Saisir un jeton valide pour rétablir la synchronisation.",
+        "data": {
+          "token": "Nouveau jeton d'accès PLOUD"
+        }
+      }
+    },
+    "error": {
+      "invalid_server": "Saisir une URL de base HTTP ou HTTPS valide, sans identifiants, paramètres de requête ni fragment.",
+      "invalid_token": "Le jeton d'accès ne peut pas être vide.",
+      "invalid_device": "L'identifiant de l'appareil doit comporter exactement cinq caractères."
+    },
+    "abort": {
+      "already_configured": "Cet appareil PLOUD est déjà configuré.",
+      "reauth_successful": "Le jeton d'accès PLOUD a été mis à jour."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Paramètres de synchronisation",
+        "description": "Choisir la fréquence d'actualisation de la cave et la langue demandée à PLOUD.",
+        "data": {
+          "scan_interval": "Fréquence d'actualisation (minutes)",
+          "language": "Langue des réponses PLOUD"
+        }
+      }
+    }
+  },
+  "entity": {
+    "sensor": {
+      "inventory": {
+        "name": "Inventaire"
+      }
+    }
+  },
+  "services": {
+    "get_inventory": {
+      "name": "Obtenir l'inventaire",
+      "description": "Renvoyer les vins en stock et leurs emplacements sans créer d'entités.",
+      "fields": {
+        "search": {
+          "name": "Recherche",
+          "description": "Rechercher dans le nom du vin, l'appellation, la région, le pays, le cépage ou la cuvée."
+        },
+        "color": {
+          "name": "Couleur",
+          "description": "Filtrer selon la couleur du vin."
+        }
+      }
+    },
+    "sync": {
+      "name": "Synchroniser",
+      "description": "Déclencher immédiatement une synchronisation en lecture seule avec PLOUD."
+    }
   }
 }
