@@ -107,11 +107,47 @@ def _response_detail(value: object) -> str:
     payload = _get_dict(value)
     if payload is None:
         return ""
-    for key in ("message", "Message", "error", "Error", "status", "Status"):
-        detail = payload.get(key)
-        if isinstance(detail, (str, int)) and detail not in ("", 0):
-            return f"; {key}={str(detail)[:200]}"
+    candidates = (
+        payload,
+        _get_dict(payload.get("error")),
+        _get_dict(payload.get("errors")),
+        _get_dict(payload.get("data")),
+    )
+    for candidate in candidates:
+        if candidate is None:
+            continue
+        for key in (
+            "message",
+            "Message",
+            "error_description",
+            "description",
+            "error",
+            "Error",
+            "status",
+            "Status",
+            "code",
+        ):
+            detail = candidate.get(key)
+            if isinstance(detail, (str, int)) and detail not in ("", 0):
+                return f"; {key}={str(detail)[:200]}"
     return ""
+
+
+def _http_context(response: Any, url: str, detail: str) -> str:
+    """Build an HTTP diagnostic without including request credentials."""
+    parts = [
+        f"HTTP {response.status} {response.reason or ''}".strip(),
+        f"URL={url}",
+    ]
+    content_type = response.headers.get("Content-Type")
+    server = response.headers.get("Server")
+    if content_type:
+        parts.append(f"Content-Type={content_type}")
+    if server:
+        parts.append(f"Server={server}")
+    if detail:
+        parts.append(detail.lstrip("; "))
+    return "; ".join(parts)
 
 
 def _extract_access_token(payload: dict[str, Any]) -> str | None:
@@ -138,9 +174,10 @@ async def _post_json(
     session: ClientSession, endpoint: str, payload: dict[str, Any], operation: str
 ) -> dict[str, Any]:
     """Post a JSON request and validate the API response."""
+    url = f"{PLOC_API_BASE.rstrip('/')}/{endpoint.lstrip('/')}"
     try:
         async with session.post(
-            f"{PLOC_API_BASE}/{endpoint}",
+            url,
             json=payload,
             headers={
                 "Accept": "application/json",
@@ -153,25 +190,23 @@ async def _post_json(
             except (ValueError, TypeError):
                 data = None
             detail = _response_detail(data)
+            context = _http_context(response, url, detail)
             if response.status in (401, 403):
-                raise PlocAuthError(
-                    f"{operation} was rejected (HTTP {response.status}){detail}"
-                )
+                raise PlocAuthError(f"{operation} was rejected ({context})")
             if response.status in (408, 425, 429) or response.status >= 500:
                 raise PlocConnectionError(
-                    f"{operation} endpoint returned HTTP {response.status}{detail}"
+                    f"{operation} endpoint returned an error ({context})"
                 )
             if not 200 <= response.status < 300:
-                raise PlocAuthError(
-                    f"{operation} failed with HTTP {response.status}{detail}"
-                )
+                raise PlocAuthError(f"{operation} failed ({context})")
     except (ClientError, TimeoutError) as err:
         raise PlocConnectionError(f"{operation} endpoint is unavailable") from err
 
     result = _get_dict(data)
     if result is None:
         raise PlocAuthError(
-            f"{operation} returned an invalid JSON object (HTTP {response.status})"
+            f"{operation} returned an invalid JSON object "
+            f"({_http_context(response, url, '')})"
         )
     return result
 
