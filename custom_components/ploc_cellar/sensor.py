@@ -16,7 +16,6 @@ class PlocCellarSensor(CoordinatorEntity[PlocCellarCoordinator], SensorEntity):
     _attr_has_entity_name = True
     _attr_translation_key = "inventory"
     _attr_icon = "mdi:bottle-wine"
-    _attr_native_unit_of_measurement = "bottles"
     _attr_device_info = DeviceInfo(
         identifiers={(DOMAIN, "ploc_cellar")},
         name="Ploc Cellar",
