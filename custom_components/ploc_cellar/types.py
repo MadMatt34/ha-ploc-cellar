@@ -26,10 +26,11 @@ class SyncServiceData(TypedDict):
 
 
 class ConfigFlowUserInput(TypedDict):
-    """Validated PLOC account credentials."""
+    """Validated PLOC credentials and selected PLOUD server."""
 
     email: str
     password: str
+    server: str
 
 
 class ReconfigureFlowInput(TypedDict):
