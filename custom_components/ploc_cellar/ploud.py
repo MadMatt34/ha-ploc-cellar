@@ -20,11 +20,7 @@ REFERENCE_COLLECTIONS = (
     "classifications",
     "colors",
     "countries",
-    "grapes",
-    "globalParameters",
-    "owners",
     "regions",
-    "vendors",
 )
 
 class PloudError(Exception):
