@@ -196,7 +196,7 @@ class PlocCellarOptionsFlow(OptionsFlowWithReload):
                 ),
                 vol.Required(
                     CONF_LANGUAGE, default=current_language
-                ): vol.In(["fr", "en"]),
+                ): vol.In(SUPPORTED_LANGUAGES),
             }
         )
         return self.async_show_form(step_id="init", data_schema=schema)
