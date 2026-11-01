@@ -1,14 +1,15 @@
 """Shared integration types."""
 from __future__ import annotations
 
-from typing import NotRequired, TypedDict
+from typing import TYPE_CHECKING, NotRequired, TypedDict
 
 from homeassistant.config_entries import ConfigEntry
 
-from .coordinator import PlocCellarCoordinator
+if TYPE_CHECKING:
+    from .coordinator import PlocCellarCoordinator
 
 
-type PlocCellarConfigEntry = ConfigEntry[PlocCellarCoordinator]
+type PlocCellarConfigEntry = ConfigEntry["PlocCellarCoordinator"]
 
 
 class GetInventoryServiceData(TypedDict):
