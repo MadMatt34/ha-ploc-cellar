@@ -20,51 +20,31 @@ Intégration personnalisée Home Assistant permettant de consulter une cave PLOC
 - Actualisation manuelle avec `ploc_cellar.sync`.
 - Aucune opération d'écriture n'est envoyée à PLOUD.
 
-## Installation
+## Installation et première configuration
 
-1. Copier `custom_components/ploc_cellar` dans `<config>/custom_components/`.
+1. Copier \`custom_components/ploc_cellar\` dans \`<config>/custom_components/\`.
 2. Redémarrer Home Assistant.
 3. Aller dans **Paramètres → Appareils et services → Ajouter une intégration**, puis sélectionner **Ploc Cellar**.
-4. Saisir l'URL du serveur PLOUD, le jeton d'accès PLOUD et la langue souhaitée. L'identifiant d'appareil est généré automatiquement.
+4. Saisir uniquement l'adresse e-mail et le mot de passe du compte PLOC.
 
-## Préparer le jeton d'accès PLOUD
+Home Assistant effectue automatiquement les opérations suivantes :
 
-L'intégration a besoin du jeton technique PLOUD, pas du mot de passe PLOC, du jeton de session PLOC, ni du champ `ploud_token`.
+1. Génération d'un identifiant d'appareil UUID propre à cette installation.
+2. Authentification au compte PLOC via \`POST https://api.ploc.co/v1/signin\`. La requête reproduit le chiffrement et la signature employés par l'application PLOC.
+3. Activation de PLOUD pour l'application **Home Assistant** via \`POST /ploud/activate\`, avec le jeton de session PLOC obtenu à l'étape précédente.
+4. Extraction de l'URL du serveur PLOUD et du jeton d'accès PLOUD retournés par l'API.
+5. Enregistrement du serveur, du jeton PLOUD et de l'identifiant d'appareil dans l'entrée de configuration Home Assistant.
+6. Première synchronisation en lecture seule de la cave.
 
-Le client Python PLOC/PLOUD utilisé pour valider le protocole effectue cette préparation :
+Le mot de passe et le jeton de session PLOC ne sont pas enregistrés dans l'entrée de configuration. Seuls les éléments nécessaires aux synchronisations PLOUD ultérieures y sont conservés. Le mot de passe est utilisé uniquement pendant le processus d'authentification initial ou lors d'une réauthentification.
 
-1. Il se connecte au compte PLOC avec l'adresse e-mail et le mot de passe PLOC.
-2. Il appelle l'activation PLOUD pour ce client (`POST /ploud/activate`).
-3. La réponse contient le modèle PLOUD, dont `accessToken`. Le client l'enregistre sous la clé `ploud_access_token` dans son fichier d'état local.
-4. Le client Python de synchronisation réutilise ensuite cette valeur comme champ `Token` des requêtes `/sync/exec`.
+Si l'authentification échoue, vérifier les identifiants PLOC et la disponibilité des services PLOC/PLOUD. L'intégration ne demande pas de jeton technique à l'utilisateur et ne nécessite pas le client Python de préparation.
 
-Par défaut, le fichier d'état du client Python est :
+## Identité de l'appareil
 
-```text
-~/.ploc_ploud_state.json
-```
+Le client Python utilisé pour valider le protocole générait l'identifiant d'appareil avec \`str(uuid4())\`, soit un UUID complet. L'intégration reprend ce mécanisme : chaque nouvelle installation Home Assistant obtient son propre UUID complet, stocké dans l'entrée de configuration et réutilisé pour les synchronisations suivantes. Il ne faut ni saisir ni recopier l'identifiant d'un téléphone ou du client Python.
 
-Après avoir effectué l'activation avec le client Python, afficher localement la valeur à saisir dans Home Assistant avec :
-
-```bash
-jq -r '.ploud_access_token' ~/.ploc_ploud_state.json
-```
-
-Copier cette valeur dans le champ **Jeton d'accès PLOUD** de l'intégration. Ne pas utiliser `ploud_token` ni `accessToken` de premier niveau : ce sont des champs distincts. Ne pas publier ni transmettre le jeton. Le champ `device` de ce fichier appartient au client Python et n'est pas à recopier : Home Assistant génère sa propre identité d'appareil.
-
-Si le fichier d'état existe déjà, le client Python réutilise normalement les informations enregistrées et ne relance pas l'activation. Le fichier `~/.ploc_ploud_cellar.json` est uniquement le cache de l'inventaire local : il ne contient pas les identifiants d'authentification.
-
-> L'intégration Home Assistant ne réalise pas elle-même la connexion au compte PLOC ni l'activation PLOUD. Cette étape préalable est actuellement effectuée par le client Python de préparation.
-
-## Configuration
-
-### Paramètres de connexion
-
-La configuration initiale demande l'URL du serveur PLOUD (par défaut `https://ploud.ploc.co/v1`), le jeton d'accès PLOUD et la langue des réponses (`fr` ou `en`). Un nouvel identifiant d'appareil est créé automatiquement à chaque nouvelle installation : il est construit à partir des cinq premiers caractères hexadécimaux d'un UUID aléatoire, conformément au format court de cinq caractères utilisé par PLOC et validé avec `sync/exec`. Il est enregistré dans l'entrée de configuration et reste stable lors des rechargements et réauthentifications. À noter : la première version du client Python de préparation générait pour sa part un UUID complet pour son propre appareil ; cet identifiant distinct n'est pas réutilisé par Home Assistant.
-
-Utiliser **Reconfigurer** pour modifier l'URL du serveur. Si PLOUD refuse le jeton, Home Assistant démarre la réauthentification afin de le remplacer sans supprimer l'intégration.
-
-### Options de synchronisation
+## Options de synchronisation
 
 Ouvrir **Configurer** pour modifier la fréquence d'interrogation (de 5 à 1 440 minutes ; 15 minutes par défaut) et la langue des réponses PLOUD (français ou anglais). L'enregistrement des options recharge l'entrée de configuration. La synchronisation manuelle reste disponible.
 
