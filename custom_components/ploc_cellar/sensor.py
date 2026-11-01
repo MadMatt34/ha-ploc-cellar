@@ -1,6 +1,5 @@
 """Single aggregate cellar sensor."""
 from homeassistant.components.sensor import SensorEntity
-from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
@@ -8,6 +7,7 @@ from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .const import DOMAIN, SENSOR_UNIQUE_ID
 from .coordinator import PlocCellarCoordinator
+from .types import PlocCellarConfigEntry
 
 
 class PlocCellarSensor(CoordinatorEntity[PlocCellarCoordinator], SensorEntity):
@@ -18,21 +18,24 @@ class PlocCellarSensor(CoordinatorEntity[PlocCellarCoordinator], SensorEntity):
     _attr_icon = "mdi:bottle-wine"
     _attr_device_info = DeviceInfo(
         identifiers={(DOMAIN, "ploc_cellar")},
-        name="Ploc Cellar",
+        translation_key="cellar",
         manufacturer="PLOC",
     )
 
     def __init__(self, coordinator: PlocCellarCoordinator) -> None:
+        """Initialize the aggregate sensor."""
         super().__init__(coordinator)
         self._attr_unique_id = SENSOR_UNIQUE_ID
 
     @property
     def available(self) -> bool:
         """Keep the last persisted totals visible during a PLOUD outage."""
-        return self.coordinator.data is not None
+        # Setup guarantees a successful first refresh or a restored cellar snapshot.
+        return True
 
     @property
     def native_value(self) -> int:
+        """Return the total number of bottles."""
         return self.coordinator.data.total_bottles
 
     @property
@@ -49,7 +52,7 @@ class PlocCellarSensor(CoordinatorEntity[PlocCellarCoordinator], SensorEntity):
 
 async def async_setup_entry(
     hass: HomeAssistant,
-    entry: ConfigEntry,
+    entry: PlocCellarConfigEntry,
     async_add_entities: AddEntitiesCallback,
 ) -> None:
     """Set up the one aggregate sensor."""
