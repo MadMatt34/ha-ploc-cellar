@@ -3,11 +3,10 @@
     "step": {
       "user": {
         "title": "Connexion à PLOUD",
-        "description": "Saisir le jeton d'accès PLOUD existant et l'identifiant de l'appareil (5 caractères). Cette intégration ne crée ni n'active de compte PLOC/PLOUD.",
+        "description": "Saisir le jeton d'accès PLOUD. Un nouvel identifiant d'appareil est généré automatiquement pour cette installation.",
         "data": {
           "server": "URL du serveur PLOUD",
           "token": "Jeton d'accès PLOUD",
-          "device": "Identifiant de l'appareil",
           "language": "Langue des réponses PLOUD"
         }
       },
@@ -28,8 +27,7 @@
     },
     "error": {
       "invalid_server": "Saisir une URL de base HTTP ou HTTPS valide, sans identifiants, paramètres de requête ni fragment.",
-      "invalid_token": "Le jeton d'accès ne peut pas être vide.",
-      "invalid_device": "L'identifiant de l'appareil doit comporter exactement cinq caractères."
+      "invalid_token": "Le jeton d'accès ne peut pas être vide."
     },
     "abort": {
       "already_configured": "Cet appareil PLOUD est déjà configuré.",
