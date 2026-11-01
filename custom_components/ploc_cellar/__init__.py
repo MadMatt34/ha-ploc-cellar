@@ -5,7 +5,6 @@ from aiohttp import ClientSession
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, ServiceCall, SupportsResponse
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
-from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers.typing import ConfigType
 
 from .const import CONF_DEVICE, CONF_LANGUAGE, CONF_SERVER, CONF_TOKEN, DEFAULT_LANGUAGE, DOMAIN
