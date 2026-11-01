@@ -7,53 +7,75 @@ Intégration personnalisée Home Assistant permettant de consulter une cave PLOC
 ## Prérequis
 
 - Home Assistant 2026.10.4 ou version ultérieure.
-- Python 3.14.2 ou version ultérieure (requis par Home Assistant 2026.10.4).
+- Python 3.14.2 ou version ultérieure, conformément aux prérequis de Home Assistant 2026.10.4.
 
 ## Fonctionnalités
 
 - PLOUD reste la source de vérité.
-- Synchronisation incrémentale via l'endpoint existant PLOUD `POST /sync/exec`, avec `Objects={}`.
-- Le premier chargement utilise la valeur d'initialisation validée `LastSyncTime=1`. Les requêtes suivantes utilisent le curseur client en millisecondes Unix.
-- Modèle local complet conservé dans le stockage persistant Home Assistant (`Store`) : vins, y compris ceux sans stock, casiers, emplacements et données de référence.
-- Un seul capteur de synthèse ; aucune entité par vin, casier ou emplacement.
-- Inventaire détaillé accessible à la demande avec `ploc_cellar.get_inventory`.
-- Actualisation manuelle avec `ploc_cellar.sync`.
+- Synchronisation incrémentale en lecture seule via `POST https://ploud.ploc.co/v1/sync/exec`, avec `Objects={}`.
+- Le premier chargement utilise la valeur d'initialisation validée `LastSyncTime=1`. Les synchronisations suivantes utilisent le curseur client en millisecondes Unix.
+- Modèle local persistant : vins, y compris ceux sans stock, casiers, emplacements et données de référence.
+- Un seul capteur de synthèse ; aucune entité n'est créée pour chaque vin, casier ou emplacement.
+- Inventaire détaillé accessible à la demande avec l'action `ploc_cellar.get_inventory`.
+- Synchronisation immédiate à la demande avec l'action `ploc_cellar.sync`.
+- Une seule entrée de configuration Ploc Cellar par instance Home Assistant.
 - Aucune opération d'écriture n'est envoyée à PLOUD.
 
 ## Installation et première configuration
 
-1. Copier `custom_components/ploc_cellar` dans `<config>/custom_components/`.
+1. Copier le dossier `custom_components/ploc_cellar` dans `<config>/custom_components/`.
 2. Redémarrer Home Assistant.
 3. Aller dans **Paramètres → Appareils et services → Ajouter une intégration**, puis sélectionner **Ploc Cellar**.
-4. Saisir l'adresse e-mail et le mot de passe du compte PLOC, puis vérifier ou modifier l'URL du serveur PLOUD (préremplie avec `https://ploud.ploc.co/v1`).
+4. Saisir l'adresse e-mail et le mot de passe du compte PLOC.
+
+Aucun jeton technique, identifiant d'appareil ou serveur PLOUD n'est à saisir. Le serveur PLOUD utilisé par l'intégration est fixe.
+
+### Authentification et activation PLOUD
 
 Home Assistant effectue automatiquement les opérations suivantes :
 
-1. Génération d'un identifiant d'appareil UUID complet propre à cette installation.
-2. Authentification au compte PLOC via `POST https://api.ploc.co/v1/signin`. La requête reproduit le chiffrement et la signature employés par l'application PLOC.
-3. Activation de PLOUD pour l'application **Home Assistant** via `POST /ploud/activate`, avec le jeton de session PLOC obtenu à l'étape précédente.
-4. Récupération du jeton d'accès PLOUD retourné par l'API. L'URL du serveur saisie dans le formulaire est utilisée, même si l'API en retourne une autre.
-5. Enregistrement de l'URL choisie, du jeton PLOUD et de l'identifiant d'appareil dans l'entrée de configuration Home Assistant.
-6. Première synchronisation en lecture seule de la cave.
+1. Authentification au compte PLOC via `POST https://api.ploc.co/a/v3/signin`. La requête utilise le chiffrement et la signature employés par l'application PLOC.
+2. Activation de PLOUD pour l'application **Home Assistant** via `POST https://api.ploc.co/v1/ploud/activate`, avec le jeton de session PLOC obtenu à l'étape précédente.
+3. Récupération du jeton d'accès PLOUD retourné par l'activation.
+4. Génération d'un identifiant d'appareil UUID propre à cette installation.
+5. Enregistrement du jeton d'accès PLOUD, de l'identifiant d'appareil et de la langue initiale dans l'entrée de configuration Home Assistant.
+6. Première synchronisation en lecture seule avec le serveur PLOUD fixe.
 
-Le mot de passe et le jeton de session PLOC ne sont pas enregistrés dans l'entrée de configuration. Seuls les éléments nécessaires aux synchronisations PLOUD ultérieures y sont conservés. Le mot de passe est utilisé uniquement pendant le processus d'authentification initial ou lors d'une réauthentification.
+L'identifiant UUID complet est conservé localement. Pour les requêtes PLOUD, seul son préfixe de cinq caractères est envoyé dans le champ `Device` et utilisé pour calculer la signature, conformément au comportement du client Android.
 
-Si l'authentification échoue, vérifier les identifiants PLOC et la disponibilité des services PLOC/PLOUD. L'intégration ne demande pas de jeton technique à l'utilisateur et ne nécessite pas le client Python de préparation.
+L'adresse e-mail, le mot de passe et le jeton de session PLOC ne sont pas enregistrés dans l'entrée de configuration. Le mot de passe est utilisé uniquement pendant l'authentification initiale ou lors d'une réauthentification.
 
-## Identité de l'appareil
+### Réauthentification
 
-Le client Python utilisé pour valider le protocole générait l'identifiant d'appareil avec `str(uuid4())`, soit un UUID complet. L'intégration reprend ce mécanisme : chaque nouvelle installation Home Assistant obtient son propre UUID complet, stocké dans l'entrée de configuration. Pour les requêtes PLOUD, seul son préfixe de cinq caractères est envoyé dans le champ `Device` et utilisé pour calculer la signature HMAC, conformément au comportement de l'application Android (`shortIdentifier()`). L'UUID complet reste conservé localement. Il ne faut ni saisir ni recopier l'identifiant d'un téléphone ou du client Python.
+Si Home Assistant demande une réauthentification, saisir à nouveau l'adresse e-mail et le mot de passe du compte PLOC. L'intégration renouvelle l'activation PLOUD et remplace le jeton d'accès enregistré. L'identifiant de l'appareil reste inchangé.
 
 ## Options de synchronisation
 
-La reconfiguration permet de modifier l'URL du serveur PLOUD ; l'URL actuellement utilisée est préremplie. Dans **Configurer**, la fréquence d'interrogation (de 5 à 1 440 minutes ; 15 minutes par défaut) et la langue des réponses PLOUD (français ou anglais) restent également réglables. L'enregistrement des options recharge l'entrée de configuration. La synchronisation manuelle reste disponible.
+Dans **Paramètres → Appareils et services → Ploc Cellar → Configurer**, les options suivantes sont disponibles :
+
+- **Intervalle de synchronisation** : de 5 à 1 440 minutes ; 15 minutes par défaut.
+- **Langue des réponses PLOUD** : français ou anglais ; français par défaut.
+
+L'enregistrement des options recharge l'entrée de configuration. L'adresse du serveur PLOUD n'est pas modifiable depuis l'intégration.
 
 ## Entité
 
-- `sensor.ploc_cellar_inventory` : nombre total de bouteilles.
-- Attributs : nombre de vins en stock, nombre de casiers, positions occupées et indicateur `stale` signalant un échec de la dernière synchronisation.
+L'intégration crée un capteur de synthèse :
 
-La liste complète des vins n'est volontairement pas placée dans les attributs du capteur. Elle reste dans le stockage persistant et n'est renvoyée que sur demande. La date de dernière synchronisation réussie est incluse dans la réponse de l'action d'inventaire.
+- `sensor.ploc_cellar_inventory` : nombre total de bouteilles en stock.
+
+Ses attributs sont :
+
+| Identifiant | Description |
+|---|---|
+| `stocked_wines` | Nombre de vins ayant au moins une bouteille en stock |
+| `rack_count` | Nombre de casiers |
+| `occupied_positions` | Nombre d'emplacements occupés par des vins en stock |
+| `stale` | Indique que la dernière synchronisation a échoué |
+
+Les libellés des attributs sont traduits selon la langue de Home Assistant. En cas d'échec de synchronisation, le dernier inventaire local connu est conservé et l'attribut `stale` indique que les données peuvent être périmées. Une synchronisation réussie remet cet indicateur à `false`.
+
+La liste complète des vins n'est volontairement pas placée dans les attributs du capteur. Elle reste dans le stockage persistant et n'est renvoyée que sur demande.
 
 ## Actions
 
@@ -61,7 +83,12 @@ La liste complète des vins n'est volontairement pas placée dans les attributs 
 
 Action avec réponse. Utiliser `response_variable` dans un script ou une automatisation.
 
-Le champ `config_entry_id` est obligatoire pour identifier la connexion PLOUD. Home Assistant propose un sélecteur de configuration limité à Ploc Cellar. Filtres facultatifs : `search` (nom du vin, appellation, région, pays, cépages ou cuvée) et `color`.
+Le champ `config_entry_id` est obligatoire pour identifier la connexion Ploc Cellar. Home Assistant propose un sélecteur limité aux entrées de cette intégration. Les filtres facultatifs sont :
+
+- `search` : recherche partielle dans le nom du vin, l'appellation, la région, le pays, le cépage ou la cuvée.
+- `color` : filtre partiel sur la couleur du vin.
+
+Exemple :
 
 ```yaml
 action: ploc_cellar.get_inventory
@@ -71,11 +98,19 @@ data:
 response_variable: cave
 ```
 
-La réponse contient les totaux globaux de bouteilles et de vins en stock, le nombre de vins correspondant aux filtres, les casiers, les positions occupées, les caractéristiques des vins et la date de la dernière synchronisation réussie. Les filtres ne modifient pas les totaux globaux.
+La réponse contient :
+
+- les totaux globaux : `total_bottles`, `stocked_wines`, `rack_count` et `occupied_positions` ;
+- `matching_wines`, le nombre de vins correspondant aux filtres ;
+- `racks`, la liste des casiers ;
+- `wines`, les vins ayant au moins une bouteille en stock, avec leurs caractéristiques et leurs emplacements ;
+- `last_sync`, la date et l'heure de la dernière synchronisation réussie.
+
+Les filtres ne modifient pas les totaux globaux. Chaque emplacement associé à un vin contient le nom et l'identifiant du casier, ainsi que la rangée et la colonne lorsqu'elles sont disponibles.
 
 ### `ploc_cellar.sync`
 
-Déclenche immédiatement une synchronisation :
+Déclenche immédiatement une synchronisation en lecture seule :
 
 ```yaml
 action: ploc_cellar.sync
@@ -85,10 +120,14 @@ data:
 
 ## Stockage et confidentialité
 
-Le jeton d'accès PLOUD et l'identifiant de l'appareil sont conservés dans l'entrée de configuration Home Assistant. L'inventaire local et son curseur de synchronisation associé sont enregistrés avec le `Store` persistant de Home Assistant. Les changements reçus sont enregistrés avant de remplacer le modèle en mémoire : un échec d'écriture ne fait donc pas avancer le curseur actif.
+Le jeton d'accès PLOUD et l'identifiant UUID de l'appareil sont conservés dans l'entrée de configuration Home Assistant. Le mot de passe et le jeton de session PLOC ne sont pas stockés.
 
-L'intégration demande uniquement les données de synchronisation ; elle n'envoie pas d'objets de cave et n'effectue aucune modification de la cave.
+L'inventaire local et son curseur de synchronisation associé sont enregistrés avec le `Store` persistant de Home Assistant. Les changements reçus sont appliqués à une copie du modèle puis enregistrés avant de remplacer le modèle en mémoire : un échec d'écriture ne fait donc pas avancer le curseur actif.
 
-## État du développement
+L'intégration envoie uniquement les paramètres nécessaires à la synchronisation et un objet `Objects` vide. Elle ne transmet aucun objet de cave et n'effectue aucune modification de la cave.
 
-Cette intégration est en cours de développement. La CI exécute Ruff et Hassfest et effectue le contrôle strict du typage avec Pyright sur la dernière version stable de Home Assistant disponible sur PyPI. Les versions antérieures de Home Assistant ne font plus partie de la cible de compatibilité. Ces contrôles statiques ne remplacent pas les essais de bout en bout avec une instance Home Assistant réelle et la cave PLOUD.
+## Validation
+
+La CI vérifie le code avec Ruff et Hassfest et exécute Pyright en mode strict contre la dernière version stable de Home Assistant disponible sur PyPI.
+
+Ces contrôles statiques ne remplacent pas les essais de bout en bout avec une instance Home Assistant réelle et la cave PLOUD.
