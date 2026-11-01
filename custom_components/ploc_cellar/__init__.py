@@ -163,7 +163,7 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
         """Return the current stocked inventory on demand."""
         service_data = cast(GetInventoryServiceData, call.data)
         coordinator = _get_coordinator(
-            hass, service_data[ATTR_CONFIG_ENTRY_ID]
+            hass, service_data["config_entry_id"]
         )
         return _build_inventory_response(
             coordinator.data,
