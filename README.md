@@ -32,8 +32,8 @@ Home Assistant automatically performs the following operations:
 1. Generates a UUID device identifier dedicated to this installation.
 2. Signs in to the PLOC account through `POST https://api.ploc.co/v1/signin`. The request uses the encryption and signature scheme employed by the PLOC application.
 3. Activates PLOUD for the **Home Assistant** application through `POST /ploud/activate`, using the PLOC session token obtained in the previous step.
-4. Extracts the PLOUD server URL and PLOUD access token returned by the API.
-5. Stores the server, PLOUD token and device identifier in the Home Assistant config entry.
+4. Retrieves the PLOUD access token returned by the API. The server URL entered in the form is used, even if the API returns a different one.
+5. Stores the selected server URL, PLOUD token and device identifier in the Home Assistant config entry.
 6. Runs the first read-only cellar synchronization.
 
 The PLOC password and PLOC session token are not stored in the config entry. Only the information required for subsequent PLOUD synchronization is retained. The password is used only during initial authentication or reauthentication.
