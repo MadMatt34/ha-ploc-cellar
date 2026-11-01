@@ -3,15 +3,16 @@
     "step": {
       "user": {
         "title": "Connect to PLOC",
-        "description": "Enter your PLOC account email and password. Home Assistant will sign in to PLOC, activate PLOUD for this installation and store the required connection details automatically.",
+        "description": "Enter your PLOC account credentials and the PLOUD server URL to use. The suggested default URL can be changed.",
         "data": {
           "email": "PLOC email address",
-          "password": "PLOC password"
+          "password": "PLOC password",
+          "server": "PLOUD server URL"
         }
       },
       "reconfigure": {
         "title": "Change PLOUD server",
-        "description": "Change the base URL used to connect to PLOUD. The device identifier and token will be kept.",
+        "description": "Change the base URL used to connect to PLOUD. The currently configured URL is prefilled. The device identifier and token will be kept.",
         "data": {
           "server": "PLOUD server URL"
         }
