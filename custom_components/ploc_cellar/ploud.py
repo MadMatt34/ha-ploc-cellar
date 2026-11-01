@@ -11,17 +11,20 @@ from typing import Any, cast
 
 from aiohttp import ClientError, ClientSession, ClientTimeout, FormData
 
-from .const import PLOUD_HMAC_KEY, PLOUD_SYNC_METHOD, PLOUD_SYNC_PATH, PLOUD_VERSION
+from .const import (
+    PLOUD_COLLECTION_DELETED,
+    PLOUD_COLLECTION_RACK_ITEMS,
+    PLOUD_COLLECTION_RACKS,
+    PLOUD_COLLECTION_WINES,
+    PLOUD_HMAC_KEY,
+    PLOUD_REFERENCE_COLLECTIONS,
+    PLOUD_SYNC_METHOD,
+    PLOUD_SYNC_PATH,
+    PLOUD_VERSION,
+)
 from .models import Cellar, JsonObject, Rack, RackItem, Wine
 
-REFERENCE_COLLECTIONS = (
-    "appellations",
-    "bottleFormats",
-    "classifications",
-    "colors",
-    "countries",
-    "regions",
-)
+REFERENCE_COLLECTIONS = PLOUD_REFERENCE_COLLECTIONS
 type PLOUDCollections = dict[str, list[JsonObject]]
 type PLOUDReferences = dict[str, dict[str, JsonObject]]
 
@@ -288,12 +291,12 @@ def apply_sync(
             if isinstance(identifier, str):
                 cellar.references.setdefault(name, {})[identifier] = item
 
-    for raw in _collection(objects, "Wines"):
+    for raw in _collection(objects, PLOUD_COLLECTION_WINES):
         if isinstance(raw.get("id"), str):
             wine = _parse_wine(raw, cellar.references)
             cellar.wines[wine.id] = wine
 
-    for raw in _collection(objects, "Racks"):
+    for raw in _collection(objects, PLOUD_COLLECTION_RACKS):
         identifier = raw.get("id")
         if isinstance(identifier, str):
             rack = Rack(
@@ -302,7 +305,7 @@ def apply_sync(
             )
             cellar.racks[rack.id] = rack
 
-    for raw in _collection(objects, "RackItems"):
+    for raw in _collection(objects, PLOUD_COLLECTION_RACK_ITEMS):
         identifier = raw.get("id")
         if isinstance(identifier, str):
             item = RackItem(
@@ -319,7 +322,7 @@ def apply_sync(
     reference_changed = any(
         _collection(objects, name) for name in REFERENCE_COLLECTIONS
     )
-    for raw in _collection(objects, "DeletedObjects"):
+    for raw in _collection(objects, PLOUD_COLLECTION_DELETED):
         object_id = _deleted_id(raw)
         if object_id is None:
             continue
