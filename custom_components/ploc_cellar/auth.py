@@ -7,6 +7,7 @@ import hmac
 import os
 import time
 from typing import Any
+from urllib.parse import urlsplit
 
 from aiohttp import ClientError, ClientSession, ClientTimeout
 from cryptography.hazmat.primitives import padding as sym_padding
@@ -129,7 +130,10 @@ async def _post_json(
         async with session.post(
             f"{PLOC_API_BASE}/{endpoint}",
             json=payload,
-            headers={"User-Agent": f"PLOC/6.1 (Python; {PLOC_APPLICATION_NAME})"},
+            headers={
+                "Accept": "application/json",
+                "User-Agent": f"PLOC/6.1 (Python; {PLOC_APPLICATION_NAME})",
+            },
             timeout=ClientTimeout(total=30),
         ) as response:
             try:
@@ -138,7 +142,7 @@ async def _post_json(
                 data = None
             if response.status in (401, 403):
                 raise PlocAuthError(f"{operation} was rejected")
-            if response.status != 200:
+            if not 200 <= response.status < 300:
                 raise PlocAuthError(
                     f"{operation} failed with HTTP {response.status}"
                 )
@@ -201,13 +205,22 @@ async def async_authenticate(
     merged = {**initial_model, **activated_model}
     server = merged.get("server")
     access_token = merged.get("accessToken")
-    if (
-        not isinstance(server, str)
-        or not server.startswith(("https://", "http://"))
-        or not isinstance(access_token, str)
-        or not access_token
-    ):
+    if not isinstance(server, str) or not isinstance(access_token, str) or not access_token:
         raise PlocAuthError(
             "PLOUD activation did not return a valid server and access token"
         )
+    try:
+        parsed_server = urlsplit(server)
+        _ = parsed_server.port
+    except ValueError as err:
+        raise PlocAuthError("PLOUD activation returned an invalid server URL") from err
+    if (
+        parsed_server.scheme not in {"https", "http"}
+        or not parsed_server.hostname
+        or parsed_server.username is not None
+        or parsed_server.password is not None
+        or parsed_server.query
+        or parsed_server.fragment
+    ):
+        raise PlocAuthError("PLOUD activation returned an invalid server URL")
     return server.rstrip("/"), access_token
