@@ -53,7 +53,16 @@ def _label(refs: dict, collection: str, identifier: object) -> str | None:
     return _text(item.get("nm")) if item else None
 
 def _parse_wine(raw: dict, refs: dict) -> Wine:
-    raw_refs = {key: raw[key] for key in WINE_REFERENCE_FIELDS if key in raw}
+    stored_refs = raw.get("ploud_reference_fields")
+    raw_refs = (
+        dict(stored_refs)
+        if isinstance(stored_refs, dict)
+        else {
+            key: value
+            for key, value in raw.items()
+            if key not in {"id", "sid", "nm", "tc", "tm", "tp"}
+        }
+    )
     def ref_id(short: str, long: str) -> object:
         return raw.get(long, raw_refs.get(short))
     fmt = _lookup(refs, "bottleFormats", ref_id("vf", "bottle_format_id"))
@@ -76,7 +85,11 @@ def _parse_wine(raw: dict, refs: dict) -> Wine:
         grapes=_text(raw.get("grapes")) or _text(raw_refs.get("gr")),
         cuvee=_text(raw.get("cuvee")) or _text(raw_refs.get("cu")),
         bottle_format=_text(fmt.get("nm")) if fmt else _text(raw.get("bottle_format")),
-        bottle_volume_l=float(fmt["vo"]) if fmt and isinstance(fmt.get("vo"), (int,float)) else None,
+        bottle_volume_l=(
+            float(fmt["vo"])
+            if fmt and isinstance(fmt.get("vo"), (int, float))
+            else _float(raw.get("bottle_volume_l"))
+        ),
         ploud_pid=_text(raw.get("ploud_pid")) or _text(raw_refs.get("pid")),
         ploud_reference_fields=raw_refs,
     )
