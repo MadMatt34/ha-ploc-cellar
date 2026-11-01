@@ -1,0 +1,112 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Connexion à PLOC",
+        "description": "Connectez-vous avec l’adresse e-mail et le mot de passe de votre compte PLOC. L’intégration active ensuite l’accès PLOUD pour Home Assistant.",
+        "data": {
+          "password": "Mot de passe PLOC",
+          "username": "Adresse e-mail du compte PLOC"
+        }
+      },
+      "reauth_confirm": {
+        "title": "Renouveler l’authentification PLOC",
+        "description": "L’accès PLOUD doit être renouvelé. Saisissez à nouveau les identifiants de votre compte PLOC pour rétablir la connexion avec Home Assistant.",
+        "data": {
+          "password": "Mot de passe PLOC",
+          "username": "Adresse e-mail du compte PLOC"
+        }
+      }
+    },
+    "error": {
+      "invalid_email": "Saisir une adresse e-mail valide.",
+      "invalid_auth": "Échec de l'authentification PLOC ou de l'activation PLOUD. Consulter le journal Home Assistant pour connaître l'étape et le détail de l'erreur.",
+      "cannot_connect": "Impossible de joindre le service PLOC. Vérifier la connexion Internet et réessayer."
+    },
+    "abort": {
+      "already_configured": "Ploc Cellar est déjà configuré."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Paramètres de synchronisation",
+        "description": "Définissez l’intervalle entre deux synchronisations et la langue des réponses de PLOUD.",
+        "data": {
+          "scan_interval": "Intervalle de synchronisation (minutes)",
+          "language": "Langue des réponses PLOUD"
+        }
+      }
+    }
+  },
+  "entity": {
+    "sensor": {
+      "inventory": {
+        "name": "Inventaire",
+        "state_attributes": {
+          "stocked_wines": {
+            "name": "Vins en stock"
+          },
+          "rack_count": {
+            "name": "Nombre de casiers"
+          },
+          "occupied_positions": {
+            "name": "Emplacements occupés"
+          },
+          "stale": {
+            "name": "Données périmées"
+          }
+        }
+      }
+    }
+  },
+  "services": {
+    "get_inventory": {
+      "name": "Obtenir l'inventaire",
+      "description": "Renvoyer les vins en stock et leurs emplacements sans créer d'entités.",
+      "fields": {
+        "search": {
+          "name": "Recherche",
+          "description": "Rechercher dans le nom du vin, l'appellation, la région, le pays, le cépage ou la cuvée."
+        },
+        "color": {
+          "name": "Couleur",
+          "description": "Filtrer selon la couleur du vin."
+        },
+        "config_entry_id": {
+          "name": "Configuration Ploc Cellar",
+          "description": "Sélectionner la connexion PLOUD à utiliser."
+        }
+      }
+    },
+    "sync": {
+      "name": "Synchroniser",
+      "description": "Déclencher immédiatement une synchronisation en lecture seule avec PLOUD.",
+      "fields": {
+        "config_entry_id": {
+          "name": "Configuration Ploc Cellar",
+          "description": "Sélectionner la connexion PLOUD à utiliser."
+        }
+      }
+    }
+  },
+  "device": {
+    "cellar": {
+      "name": "Cave Ploc"
+    }
+  },
+  "exceptions": {
+    "config_entry_not_loaded": {
+      "message": "L'intégration Ploc Cellar sélectionnée n'est pas chargée."
+    },
+    "invalid_config_entry": {
+      "message": "La configuration Ploc Cellar est incomplète. Supprimez l’intégration, puis ajoutez-la de nouveau."
+    },
+    "invalid_storage": {
+      "message": "Les données locales de la cave sont invalides. Elles n'ont pas été remplacées."
+    },
+    "sync_failed": {
+      "message": "La synchronisation PLOUD a échoué. Consultez le journal pour plus de détails."
+    }
+  }
+}

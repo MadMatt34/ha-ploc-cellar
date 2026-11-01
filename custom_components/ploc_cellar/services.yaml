@@ -1,0 +1,20 @@
+get_inventory:
+  fields:
+    config_entry_id:
+      required: true
+      selector:
+        config_entry:
+          integration: ploc_cellar
+    search:
+      selector:
+        text: {}
+    color:
+      selector:
+        text: {}
+sync:
+  fields:
+    config_entry_id:
+      required: true
+      selector:
+        config_entry:
+          integration: ploc_cellar

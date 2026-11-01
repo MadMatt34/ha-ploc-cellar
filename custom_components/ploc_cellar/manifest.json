@@ -1,0 +1,11 @@
+{
+  "domain": "ploc_cellar",
+  "name": "Ploc Cellar",
+  "codeowners": ["@MadMatt34"],
+  "config_flow": true,
+  "documentation": "https://github.com/MadMatt34/ha-ploc-cellar",
+  "integration_type": "hub",
+  "iot_class": "cloud_polling",
+  "requirements": [],
+  "version": "0.1.0"
+}

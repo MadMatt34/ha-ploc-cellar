@@ -1,0 +1,56 @@
+name: Validate
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  validate:
+    name: Ruff and Hassfest
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v5
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.14"
+      - name: Install Ruff
+        run: pip install ruff
+      - name: Run Ruff
+        run: ruff check custom_components/ploc_cellar
+      - name: Run Hassfest
+        uses: home-assistant/actions/hassfest@master
+
+  type-check:
+    name: Strict typing (latest Home Assistant)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v5
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.14"
+      - name: Install latest stable Home Assistant
+        run: python -m pip install --upgrade homeassistant
+      - name: Set up Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: "24"
+      - name: Install Pyright
+        run: npm install --global pyright
+      - name: Run strict Pyright
+        run: pyright --project pyrightconfig.json
+
+  hacs:
+    name: HACS validation
+    if: ${{ !github.event.repository.private }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v5
+      - name: Validate HACS
+        uses: hacs/action@main
+        with:
+          category: integration
