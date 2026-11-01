@@ -9,7 +9,6 @@ import time
 from typing import cast
 
 from aiohttp import ClientError, ClientSession, ClientTimeout, FormData
-
 from homeassistant.util.json import JsonValueType
 
 from .const import (
