@@ -163,9 +163,7 @@ async def async_sync(session: ClientSession, *, server: str, token: str,
                 if response.status == 401 or error_code == 20:
                     raise PloudAuthError("PLOUD rejected the access token")
             if response.status != 200:
-                raise PloudError(
-                    f"PLOUD HTTP {response.status}: {body[:500]}"
-                )
+                raise PloudError(f"PLOUD returned HTTP {response.status}")
             if payload is None:
                 raise PloudError("PLOUD returned invalid JSON")
     except (ClientError, asyncio.TimeoutError) as err:
@@ -197,31 +195,42 @@ def apply_sync(cellar: Cellar, objects: dict[str, list[dict]], next_cursor: int)
                 _text(raw.get("wi", raw.get("wine_id", raw.get("wine")))) or "",
                 _int(raw.get("rw", raw.get("row"))), _int(raw.get("cl", raw.get("column"))))
             cellar.rack_items[item.id] = item
+    reference_changed = any(
+        _collection(objects, name) for name in REFERENCE_COLLECTIONS
+    )
     for raw in _collection(objects, "DeletedObjects"):
         object_id = _deleted_id(raw)
-        if not object_id: continue
-        kind = next((raw[k] for k in ("type","Type","objectType","ObjectType") if isinstance(raw.get(k), str)), "")
+        if not object_id:
+            continue
+        kind = next(
+            (
+                raw[key]
+                for key in ("type", "Type", "objectType", "ObjectType")
+                if isinstance(raw.get(key), str)
+            ),
+            "",
+        )
+        named_targets = {
+            "wine": cellar.wines,
+            "rack": cellar.racks,
+            "rackitem": cellar.rack_items,
+        }
+        if kind.casefold() in named_targets:
+            named_targets[kind.casefold()].pop(object_id, None)
+            continue
         targets: list[dict[str, Any]] = [
             cellar.wines,
             cellar.racks,
             cellar.rack_items,
             *cellar.references.values(),
         ]
-        named_targets = {
-            "Wine": cellar.wines,
-            "Rack": cellar.racks,
-            "RackItem": cellar.rack_items,
-        }
-        if kind in named_targets:
-            named_targets[kind].pop(object_id, None)
-        else:
-            matches = [
-                mapping for mapping in targets if object_id in mapping
-            ]
-            if len(matches) == 1:
-                matches[0].pop(object_id, None)
-    # Re-resolve all wines if a reference entry changed.
-    if any(_collection(objects, name) for name in REFERENCE_COLLECTIONS):
+        matches = [mapping for mapping in targets if object_id in mapping]
+        if len(matches) == 1:
+            matches[0].pop(object_id, None)
+            if any(matches[0] is refs for refs in cellar.references.values()):
+                reference_changed = True
+    # Re-resolve wines if a reference collection changed or was deleted.
+    if reference_changed:
         for wine_id, wine in tuple(cellar.wines.items()):
             cellar.wines[wine_id] = _parse_wine({**wine.ploud_reference_fields,
                 "id": wine.id, "nm": wine.name, "bo": wine.bottles, "vi": wine.vintage,
