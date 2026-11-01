@@ -6,8 +6,8 @@ Intégration personnalisée Home Assistant permettant de consulter une cave PLOC
 
 ## Prérequis
 
-- Home Assistant 2026.8.2 ou version ultérieure.
-- Python 3.14.2 ou version ultérieure (requis par Home Assistant 2026.8.2).
+- Home Assistant 2026.10.4 ou version ultérieure.
+- Python 3.14.2 ou version ultérieure (requis par Home Assistant 2026.10.4).
 
 ## Fonctionnalités
 
@@ -91,4 +91,4 @@ L'intégration demande uniquement les données de synchronisation ; elle n'envoi
 
 ## État du développement
 
-Cette intégration est en cours de développement. La CI contrôle Ruff, Hassfest et le typage strict avec Pyright sur Home Assistant 2026.8.2 et la dernière version stable. Ces contrôles statiques ne remplacent pas les essais de bout en bout avec une instance Home Assistant réelle et la cave PLOUD.
+Cette intégration est en cours de développement. La CI exécute Ruff et Hassfest et effectue le contrôle strict du typage avec Pyright sur la dernière version stable de Home Assistant disponible sur PyPI. Les versions antérieures de Home Assistant ne font plus partie de la cible de compatibilité. Ces contrôles statiques ne remplacent pas les essais de bout en bout avec une instance Home Assistant réelle et la cave PLOUD.

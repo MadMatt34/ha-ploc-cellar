@@ -6,8 +6,8 @@ A Home Assistant custom integration for a **read-only** view of a PLOC wine cell
 
 ## Requirements
 
-- Home Assistant 2026.8.2 or newer.
-- Python 3.14.2 or newer (required by Home Assistant 2026.8.2).
+- Home Assistant 2026.10.4 or newer.
+- Python 3.14.2 or newer (required by Home Assistant 2026.10.4).
 
 ## Features
 
@@ -91,4 +91,4 @@ The integration only requests synchronization data; it does not send cellar obje
 
 ## Development status
 
-This integration is under active development. CI checks Ruff, Hassfest and strict Pyright type analysis against Home Assistant 2026.8.2 and the latest stable release. These static checks do not replace end-to-end testing against a real Home Assistant instance and the PLOUD cellar.
+This integration is under active development. CI runs Ruff and Hassfest and performs strict Pyright type analysis against the latest stable Home Assistant release available from PyPI. Older Home Assistant versions are not part of the compatibility target. These static checks do not replace end-to-end testing against a real Home Assistant instance and the PLOUD cellar.
