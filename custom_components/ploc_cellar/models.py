@@ -32,7 +32,9 @@ class Wine:
     bottle_format: str | None
     bottle_volume_l: float | None
     ploud_pid: str | None
-    ploud_reference_fields: JsonObject = field(default_factory=dict)
+    ploud_reference_fields: JsonObject = field(
+        default_factory=lambda: cast(JsonObject, {})
+    )
 
 
 @dataclass(frozen=True, slots=True)
@@ -61,10 +63,14 @@ class Cellar:
     cursor: int = field(default=1, compare=False)
     last_sync: str | None = field(default=None, compare=False)
     initialized: bool = field(default=False, compare=False)
-    wines: dict[str, Wine] = field(default_factory=dict)
-    racks: dict[str, Rack] = field(default_factory=dict)
-    rack_items: dict[str, RackItem] = field(default_factory=dict)
-    references: dict[str, dict[str, JsonObject]] = field(default_factory=dict)
+    wines: dict[str, Wine] = field(default_factory=lambda: dict[str, Wine]())
+    racks: dict[str, Rack] = field(default_factory=lambda: dict[str, Rack]())
+    rack_items: dict[str, RackItem] = field(
+        default_factory=lambda: dict[str, RackItem]()
+    )
+    references: dict[str, dict[str, JsonObject]] = field(
+        default_factory=lambda: dict[str, dict[str, JsonObject]]()
+    )
 
     @property
     def total_bottles(self) -> int:
@@ -129,6 +135,10 @@ class Cellar:
             }
             for item_id, item in self.rack_items.items()
         }
+        references: dict[str, JsonValue] = {
+            collection: cast(JsonValue, records)
+            for collection, records in self.references.items()
+        }
         return {
             "version": STORAGE_VERSION,
             "cursor": self.cursor,
@@ -137,7 +147,7 @@ class Cellar:
             "wines": wines,
             "racks": racks,
             "rack_items": rack_items,
-            "references": self.references,
+            "references": references,
         }
 
     @classmethod
@@ -177,9 +187,15 @@ class Cellar:
 
 def _as_dict(value: object) -> JsonObject:
     """Return a JSON object or an empty object."""
-    if isinstance(value, dict) and all(isinstance(key, str) for key in value):
-        return cast(JsonObject, value)
-    return {}
+    if not isinstance(value, dict):
+        return {}
+    raw_mapping = cast(dict[object, object], value)
+    result: JsonObject = {}
+    for key, item in raw_mapping.items():
+        if not isinstance(key, str):
+            return {}
+        result[key] = cast(JsonValue, item)
+    return result
 
 
 def _str(value: object) -> str | None:
@@ -209,7 +225,7 @@ def _float(value: object) -> float | None:
         return None
     try:
         parsed = float(value) if isinstance(value, (int, float, str)) else None
-    except ValueError:
+    except (OverflowError, ValueError):
         return None
     return parsed if parsed is not None and math.isfinite(parsed) else None
 
