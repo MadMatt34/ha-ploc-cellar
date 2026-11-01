@@ -43,6 +43,19 @@ def _int(value: object) -> int | None:
 def _text(value: object) -> str | None:
     return value if isinstance(value, str) else None
 
+
+def _float(value: object) -> float | None:
+    if isinstance(value, bool):
+        return None
+    if isinstance(value, (int, float)):
+        return float(value)
+    if isinstance(value, str):
+        try:
+            return float(value)
+        except ValueError:
+            return None
+    return None
+
 def _lookup(refs: dict, collection: str, identifier: object) -> dict | None:
     if identifier is None: return None
     values = refs.get(collection, {})
@@ -67,12 +80,16 @@ def _parse_wine(raw: dict, refs: dict) -> Wine:
         return raw.get(long, raw_refs.get(short))
     fmt = _lookup(refs, "bottleFormats", ref_id("vf", "bottle_format_id"))
     color_ref = _lookup(refs, "colors", ref_id("co", "color_id"))
-    rgb_raw = color_ref.get("rgb") if color_ref else None
     rgb = None
-    if isinstance(rgb_raw, (list, tuple)) and len(rgb_raw) == 3:
-        parts = [_int(x) for x in rgb_raw]
-        if all(x is not None and 0 <= x <= 255 for x in parts):
-            rgb = (parts[0], parts[1], parts[2])
+    if color_ref is not None:
+        red, green, blue = (
+            _int(color_ref.get(channel)) for channel in ("r", "g", "b")
+        )
+        if all(
+            value is not None and 0 <= value <= 255
+            for value in (red, green, blue)
+        ):
+            rgb = (red, green, blue)
     return Wine(
         id=str(raw["id"]), name=_text(raw.get("nm", raw.get("name"))) or "",
         bottles=_int(raw.get("bo", raw.get("bottles"))) or 0,
