@@ -20,51 +20,31 @@ A Home Assistant custom integration for a **read-only** view of a PLOC wine cell
 - Manual refresh through `ploc_cellar.sync`.
 - No write operations are sent to PLOUD.
 
-## Installation
+## Installation and first-time setup
 
-1. Copy `custom_components/ploc_cellar` into `<config>/custom_components/`.
+1. Copy \`custom_components/ploc_cellar\` into \`<config>/custom_components/\`.
 2. Restart Home Assistant.
 3. Go to **Settings → Devices & services → Add integration** and select **Ploc Cellar**.
-4. Enter the PLOUD server URL, PLOUD access token and preferred language. The device identifier is generated automatically.
+4. Enter only your PLOC account email address and password.
 
-## Preparing the PLOUD access token
+Home Assistant automatically performs the following operations:
 
-The integration requires the technical PLOUD access token. This is not the PLOC password, the PLOC session token, or the `ploud_token` field.
+1. Generates a UUID device identifier dedicated to this installation.
+2. Signs in to the PLOC account through \`POST https://api.ploc.co/v1/signin\`. The request uses the encryption and signature scheme employed by the PLOC application.
+3. Activates PLOUD for the **Home Assistant** application through \`POST /ploud/activate\`, using the PLOC session token obtained in the previous step.
+4. Extracts the PLOUD server URL and PLOUD access token returned by the API.
+5. Stores the server, PLOUD token and device identifier in the Home Assistant config entry.
+6. Runs the first read-only cellar synchronization.
 
-The Python PLOC/PLOUD client used to validate the protocol performs the preparation:
+The PLOC password and PLOC session token are not stored in the config entry. Only the information required for subsequent PLOUD synchronization is retained. The password is used only during initial authentication or reauthentication.
 
-1. It signs in to the PLOC account using the PLOC email address and password.
-2. It activates PLOUD for this client (`POST /ploud/activate`).
-3. The response contains the PLOUD model, including `accessToken`. The client stores this value under `ploud_access_token` in its local state file.
-4. The Python synchronization client then reuses that value as the `Token` field in `/sync/exec` requests.
+If authentication fails, check the PLOC credentials and the availability of PLOC/PLOUD services. The integration does not ask the user for a technical token and does not require the Python preparation client.
 
-The Python client's default state file is:
+## Device identity
 
-```text
-~/.ploc_ploud_state.json
-```
+The Python client used to validate the protocol generated its device identifier with \`str(uuid4())\`, which is a full UUID. The integration follows the same mechanism: each new Home Assistant installation gets its own full UUID, stored in the config entry and reused for subsequent synchronization requests. Do not enter or copy an identifier from a phone or the Python client.
 
-After activation with the Python client, display the value to enter in Home Assistant locally:
-
-```bash
-jq -r '.ploud_access_token' ~/.ploc_ploud_state.json
-```
-
-Copy that value into the integration's **PLOUD access token** field. Do not use `ploud_token` or the top-level `accessToken`: these are different fields. Do not publish or share the token. The `device` field in this file belongs to the Python client and must not be copied: Home Assistant generates its own device identity.
-
-If the state file already exists, the Python client normally reuses its saved credentials and does not run activation again. The `~/.ploc_ploud_cellar.json` file is only the local inventory cache; it does not contain authentication credentials.
-
-> The Home Assistant integration does not currently sign in to the PLOC account or activate PLOUD itself. This prerequisite is performed by the Python preparation client.
-
-## Configuration
-
-### Connection settings
-
-Initial setup asks for the PLOUD server URL (default `https://ploud.ploc.co/v1`), the PLOUD access token and the response language (`fr` or `en`). A new device identifier is generated for each new installation. It is derived from the first five hexadecimal characters of a random UUID, following the five-character short format used by PLOC and validated with `sync/exec`. It is stored in the config entry and remains stable across reloads and reauthentication. Note: the first Python preparation client generated a full UUID for its own device; that separate identifier is not reused by Home Assistant.
-
-Use **Reconfigure** to change the server URL. If PLOUD rejects the token, Home Assistant starts reauthentication so it can be replaced without removing the integration.
-
-### Synchronization options
+## Synchronization options
 
 Open **Configure** to change the polling interval (5 to 1,440 minutes; default 15 minutes) and PLOUD response language (French or English). Saving options reloads the config entry. Manual synchronization remains available.
 
