@@ -59,8 +59,8 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         if user_input is not None:
             credentials = cast(ConfigFlowUserInput, user_input)
             if not _is_valid_email(credentials["username"]):
-                errors["email"] = "invalid_email"
-            if "email" not in errors:
+                errors["username"] = "invalid_email"
+            if "username" not in errors:
                 try:
                     token = await async_authenticate(
                         async_get_clientsession(self.hass),
@@ -132,7 +132,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             credentials = cast(ReauthFlowInput, user_input)
             entry = self._get_reauth_entry()
             if not _is_valid_email(credentials["username"]):
-                errors["email"] = "invalid_email"
+                errors["username"] = "invalid_email"
             else:
                 try:
                     token = await async_authenticate(
@@ -241,7 +241,21 @@ class PlocCellarOptionsFlow(OptionsFlowWithReload):
                     vol.Required(
                         CONF_LANGUAGE,
                         default=current_language,
-                    ): vol.In(SUPPORTED_LANGUAGES),
+                    ): selector.SelectSelector(
+                        selector.SelectSelectorConfig(
+                            options=[
+                                selector.SelectOptionDict(
+                                    value="fr",
+                                    label="Français",
+                                ),
+                                selector.SelectOptionDict(
+                                    value="en",
+                                    label="English",
+                                ),
+                            ],
+                            mode=selector.SelectSelectorMode.DROPDOWN,
+                        )
+                    ),
                 }
             ),
         )
