@@ -25,11 +25,11 @@ Intégration personnalisée Home Assistant permettant de consulter une cave PLOC
 1. Copier `custom_components/ploc_cellar` dans `<config>/custom_components/`.
 2. Redémarrer Home Assistant.
 3. Aller dans **Paramètres → Appareils et services → Ajouter une intégration**, puis sélectionner **Ploc Cellar**.
-4. Saisir uniquement l'adresse e-mail et le mot de passe du compte PLOC.
+4. Saisir l'adresse e-mail et le mot de passe du compte PLOC, puis vérifier ou modifier l'URL du serveur PLOUD (préremplie avec `https://ploud.ploc.co/v1`).
 
 Home Assistant effectue automatiquement les opérations suivantes :
 
-1. Génération d'un identifiant d'appareil UUID propre à cette installation.
+1. Génération d'un identifiant d'appareil UUID complet propre à cette installation.
 2. Authentification au compte PLOC via `POST https://api.ploc.co/v1/signin`. La requête reproduit le chiffrement et la signature employés par l'application PLOC.
 3. Activation de PLOUD pour l'application **Home Assistant** via `POST /ploud/activate`, avec le jeton de session PLOC obtenu à l'étape précédente.
 4. Extraction de l'URL du serveur PLOUD et du jeton d'accès PLOUD retournés par l'API.
@@ -42,11 +42,11 @@ Si l'authentification échoue, vérifier les identifiants PLOC et la disponibili
 
 ## Identité de l'appareil
 
-Le client Python utilisé pour valider le protocole générait l'identifiant d'appareil avec `str(uuid4())`, soit un UUID complet. L'intégration reprend ce mécanisme : chaque nouvelle installation Home Assistant obtient son propre UUID complet, stocké dans l'entrée de configuration et réutilisé pour les synchronisations suivantes. Il ne faut ni saisir ni recopier l'identifiant d'un téléphone ou du client Python.
+Le client Python utilisé pour valider le protocole générait l'identifiant d'appareil avec `str(uuid4())`, soit un UUID complet. L'intégration reprend ce mécanisme : chaque nouvelle installation Home Assistant obtient son propre UUID complet, stocké dans l'entrée de configuration. Pour les requêtes PLOUD, seul son préfixe de cinq caractères est envoyé dans le champ `Device` et utilisé pour calculer la signature HMAC, conformément au comportement de l'application Android (`shortIdentifier()`). L'UUID complet reste conservé localement. Il ne faut ni saisir ni recopier l'identifiant d'un téléphone ou du client Python.
 
 ## Options de synchronisation
 
-Ouvrir **Configurer** pour modifier la fréquence d'interrogation (de 5 à 1 440 minutes ; 15 minutes par défaut) et la langue des réponses PLOUD (français ou anglais). L'enregistrement des options recharge l'entrée de configuration. La synchronisation manuelle reste disponible.
+La reconfiguration permet de modifier l'URL du serveur PLOUD ; l'URL actuellement utilisée est préremplie. Dans **Configurer**, la fréquence d'interrogation (de 5 à 1 440 minutes ; 15 minutes par défaut) et la langue des réponses PLOUD (français ou anglais) restent également réglables. L'enregistrement des options recharge l'entrée de configuration. La synchronisation manuelle reste disponible.
 
 ## Entité
 
