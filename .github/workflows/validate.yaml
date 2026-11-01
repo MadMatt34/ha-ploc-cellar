@@ -21,6 +21,7 @@ jobs:
       - name: Run Hassfest
         uses: home-assistant/actions/hassfest@master
       - name: Validate HACS
+        if: ${{ !github.event.repository.private }}
         uses: hacs/action@main
         with:
           category: integration
