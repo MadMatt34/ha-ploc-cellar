@@ -29,7 +29,7 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - python-version: "3.14.2"
+          - python-version: "3.14"
             ha-version: "2026.8.2"
           - python-version: "3.14"
             ha-version: latest
