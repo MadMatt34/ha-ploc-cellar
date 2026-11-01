@@ -1,6 +1,7 @@
 """Config and options flows for Ploc Cellar."""
 from __future__ import annotations
 
+from collections.abc import Callable
 from typing import Any, cast
 from urllib.parse import urlsplit
 from uuid import uuid4
@@ -10,6 +11,10 @@ from homeassistant import config_entries
 from homeassistant.config_entries import ConfigEntry, OptionsFlowWithReload
 from homeassistant.core import callback
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
+
+_EMAIL_VALIDATOR: Callable[[object], str] = cast(
+    Callable[[object], str], getattr(vol, "Email")
+)
 
 from .auth import PlocAuthError, PlocConnectionError, async_authenticate
 from .const import (
@@ -104,7 +109,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             Any,
             vol.Schema(
                 {
-                    vol.Required("email"): cast(Any, vol.Email),
+                    vol.Required("email"): _EMAIL_VALIDATOR,
                     vol.Required("password"): str,
                     vol.Required(
                         CONF_SERVER,
@@ -195,7 +200,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             Any,
             vol.Schema(
                 {
-                    vol.Required("email"): vol.Email(),
+                    vol.Required("email"): _EMAIL_VALIDATOR,
                     vol.Required("password"): str,
                 }
             ),
