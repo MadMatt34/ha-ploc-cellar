@@ -116,7 +116,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             Any,
             vol.Schema(
                 {
-                    vol.Required("email"): selector.TextSelector(
+                    vol.Required("email"): selector.TextSelector(  # pyright: ignore[reportUnknownMemberType]
                         selector.TextSelectorConfig(
                             type=selector.TextSelectorType.EMAIL,
                             autocomplete="username",
@@ -215,7 +215,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             Any,
             vol.Schema(
                 {
-                    vol.Required("email"): selector.TextSelector(
+                    vol.Required("email"): selector.TextSelector(  # pyright: ignore[reportUnknownMemberType]
                         selector.TextSelectorConfig(
                             type=selector.TextSelectorType.EMAIL,
                             autocomplete="username",
