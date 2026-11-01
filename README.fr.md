@@ -39,7 +39,7 @@ Ouvrir **Configurer** pour modifier la fréquence d'interrogation (de 5 à 1 440
 ## Entité
 
 - `sensor.ploc_cellar_inventory` : nombre total de bouteilles.
-- Attributs : nombre de vins en stock, nombre de casiers, positions occupées et date de la dernière synchronisation réussie.
+- Attributs : nombre de vins en stock, nombre de casiers, positions occupées
 
 La liste complète des vins n'est volontairement pas placée dans les attributs du capteur. Elle reste dans le stockage persistant et n'est renvoyée que sur demande.
 
