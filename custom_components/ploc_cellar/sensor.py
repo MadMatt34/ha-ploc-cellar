@@ -29,17 +29,23 @@ class PlocCellarSensor(CoordinatorEntity[PlocCellarCoordinator], SensorEntity):
         self._attr_unique_id = f"{DOMAIN}_summary"
 
     @property
+    def available(self) -> bool:
+        """Keep the last persisted totals visible during a PLOUD outage."""
+        return self.coordinator.data is not None
+
+    @property
     def native_value(self) -> int:
         return self.coordinator.data.total_bottles
 
     @property
-    def extra_state_attributes(self) -> dict[str, int]:
-        """Expose only stable aggregate attributes."""
+    def extra_state_attributes(self) -> dict[str, int | bool]:
+        """Expose stable aggregate attributes and a stale-data indicator."""
         cellar = self.coordinator.data
         return {
             "stocked_wines": cellar.stocked_wines,
             "rack_count": len(cellar.racks),
             "occupied_positions": cellar.occupied_positions,
+            "stale": not self.coordinator.last_update_success,
         }
 
 
