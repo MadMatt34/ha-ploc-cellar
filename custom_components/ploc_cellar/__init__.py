@@ -105,7 +105,7 @@ async def async_setup_entry(
                     "vintage": wine.vintage,
                     "appellation": wine.appellation,
                     "color": wine.color,
-                    "color_rgb": wine.color_rgb,
+                    "color_rgb": list(wine.color_rgb) if wine.color_rgb else None,
                     "classification": wine.classification,
                     "region": wine.region,
                     "country": wine.country,
