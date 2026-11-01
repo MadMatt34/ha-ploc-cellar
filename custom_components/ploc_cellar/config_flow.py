@@ -104,7 +104,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             Any,
             vol.Schema(
                 {
-                    vol.Required("email"): vol.Email(),
+                    vol.Required("email"): cast(Any, vol.Email),
                     vol.Required("password"): str,
                     vol.Required(
                         CONF_SERVER,
