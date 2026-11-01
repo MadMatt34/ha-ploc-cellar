@@ -1,5 +1,5 @@
 """Single aggregate cellar sensor."""
-from homeassistant.components.sensor import SensorEntity, SensorStateClass
+from homeassistant.components.sensor import SensorEntity
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.device_registry import DeviceInfo
@@ -17,7 +17,6 @@ class PlocCellarSensor(CoordinatorEntity[PlocCellarCoordinator], SensorEntity):
     _attr_translation_key = "inventory"
     _attr_icon = "mdi:bottle-wine"
     _attr_native_unit_of_measurement = "bottles"
-    _attr_state_class = SensorStateClass.MEASUREMENT
     _attr_device_info = DeviceInfo(
         identifiers={(DOMAIN, "ploc_cellar")},
         name="Ploc Cellar",
