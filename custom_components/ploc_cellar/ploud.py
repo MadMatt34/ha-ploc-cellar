@@ -126,7 +126,7 @@ async def async_sync(session: ClientSession, *, server: str, token: str,
     fields = {
         "Token": token, "Signature": _signature(token, device, timestamp),
         "Device": device, "Timestamp": str(timestamp), "LastSyncTime": str(max(1,cursor)),
-        "Method": "sync", "Version": str(PLAUD_VERSION), "Ln": language, "Objects": "{}",
+        "Method": "sync", "Version": str(PLOUD_VERSION), "Ln": language, "Objects": "{}",
     }
     form = FormData()
     for key, value in fields.items():
