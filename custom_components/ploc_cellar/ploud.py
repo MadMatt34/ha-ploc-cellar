@@ -10,8 +10,8 @@ from typing import Any
 
 from aiohttp import ClientError, ClientSession, ClientTimeout, FormData
 
-from .const import HMAC_KEY, PLAUD_VERSION
-from .models import Cellar, JsonValue, Rack, RackItem, Wine
+from .const import HMAC_KEY, PLOUD_VERSION
+from .models import Cellar, Rack, RackItem, Wine
 
 REFERENCE_COLLECTIONS = ("appellations", "bottleFormats", "classifications", "colors", "countries", "regions")
 WINE_REFERENCE_FIELDS = ("ap", "cl", "cn", "co", "rn", "vf", "pid", "cs", "cu", "tg", "re", "gr", "de", "ep", "it", "af", "at", "cf", "ct", "ti", "to", "lt", "lg", "ac", "no", "ps", "ml")
