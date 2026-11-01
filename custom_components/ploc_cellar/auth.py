@@ -188,7 +188,11 @@ async def async_authenticate(
     )
     account_token = _extract_access_token(account)
     if not account_token:
-        raise PlocAuthError("PLOC sign-in response has no account access token")
+        response_keys = ", ".join(sorted(account)) or "(none)"
+        raise PlocAuthError(
+            "PLOC sign-in response has no account access token "
+            f"(response fields: {response_keys})"
+        )
 
     initial_model = _extract_ploud_model(account)
     current_ploud_token = initial_model.get("token")
@@ -226,11 +230,15 @@ async def async_authenticate(
     merged = {**initial_model, **activated_model}
     access_token = merged.get("accessToken")
     if not isinstance(access_token, str) or not access_token:
+        sign_in_keys = ", ".join(sorted(account)) or "(none)"
+        activation_keys = ", ".join(sorted(activation)) or "(none)"
         initial_keys = ", ".join(sorted(initial_model)) or "(none)"
         activated_keys = ", ".join(sorted(activated_model)) or "(none)"
         raise PlocAuthError(
             "PLOUD activation succeeded but no accessToken was found "
-            f"(sign-in PLOUD fields: {initial_keys}; "
+            f"(sign-in response fields: {sign_in_keys}; "
+            f"sign-in PLOUD fields: {initial_keys}; "
+            f"activation response fields: {activation_keys}; "
             f"activation PLOUD fields: {activated_keys})"
         )
     # The server URL is intentionally supplied by the user in the config flow.
