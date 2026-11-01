@@ -130,6 +130,9 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         self, entry_data: dict[str, Any]
     ) -> config_entries.ConfigFlowResult:
         """Start token renewal."""
+        entry = self._get_reauth_entry()
+        await self.async_set_unique_id(entry.unique_id)
+        self._abort_if_unique_id_mismatch()
         return await self.async_step_reauth_confirm()
 
     async def async_step_reauth_confirm(
