@@ -6,12 +6,13 @@ on:
 
 jobs:
   validate:
+    name: Ruff and Hassfest
     runs-on: ubuntu-latest
     steps:
       - name: Check out repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: "3.13"
       - name: Install Ruff
@@ -20,8 +21,15 @@ jobs:
         run: ruff check custom_components/ploc_cellar
       - name: Run Hassfest
         uses: home-assistant/actions/hassfest@master
+
+  hacs:
+    name: HACS validation
+    if: ${{ !github.event.repository.private }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v5
       - name: Validate HACS
-        if: ${{ !github.event.repository.private }}
         uses: hacs/action@main
         with:
           category: integration
