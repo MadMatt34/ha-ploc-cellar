@@ -57,7 +57,7 @@ class PlocCellarCoordinator(DataUpdateCoordinator[Cellar]):
             stored = await self.store.async_load()
             if stored is not None:
                 self.cellar = Cellar.from_storage(stored)
-        except (OSError, ValueError, TypeError) as err:
+        except (HomeAssistantError, OSError, ValueError, TypeError) as err:
             raise HomeAssistantError(
                 translation_domain=DOMAIN,
                 translation_key="invalid_storage",
@@ -97,7 +97,7 @@ class PlocCellarCoordinator(DataUpdateCoordinator[Cellar]):
     async def async_force_sync(self) -> Cellar:
         """Request an immediate refresh and report failure to the caller."""
         await self.async_refresh()
-        if not self.last_update_success or self.data is None:
+        if not self.last_update_success:
             raise HomeAssistantError(
                 translation_domain=DOMAIN,
                 translation_key="sync_failed",
