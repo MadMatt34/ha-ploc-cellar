@@ -100,7 +100,7 @@
       "message": "L'intégration Ploc Cellar sélectionnée n'est pas chargée."
     },
     "invalid_config_entry": {
-      "message": "La configuration Ploc Cellar est incomplète. Reconfigurez l'intégration."
+      "message": "La configuration Ploc Cellar est incomplète. Supprimez l’intégration, puis ajoutez-la de nouveau."
     },
     "invalid_storage": {
       "message": "Les données locales de la cave sont invalides. Elles n'ont pas été remplacées."
