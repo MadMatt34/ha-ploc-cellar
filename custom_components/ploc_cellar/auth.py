@@ -151,38 +151,38 @@ def _http_context(response: Any, url: str, detail: str) -> str:
     return "; ".join(parts)
 
 
-def _extract_access_token(payload: dict[str, Any]) -> str | None:
-    """Extract the PLOC account token from camelCase or PascalCase responses."""
-    token = payload.get("accessToken", payload.get("AccessToken"))
-    if isinstance(token, str) and token:
-        return token
-
-    account = _get_dict(payload.get("account")) or _get_dict(
-        payload.get("Account")
-    )
-    if account is None:
-        return None
-
-    token = account.get("accessToken", account.get("AccessToken"))
+def _extract_account_access_token(payload: dict[str, Any]) -> str | None:
+    """Extract the PLOC token from the documented signin response."""
+    account = _get_dict(payload.get("account"))
+    token = account.get("accessToken") if account else None
     return token if isinstance(token, str) and token else None
 
 
-def _extract_ploud_model(payload: dict[str, Any]) -> dict[str, Any]:
-    """Extract the initial PLOUD model from either API JSON naming style."""
-    account = _get_dict(payload.get("account")) or _get_dict(
-        payload.get("Account")
-    )
-    candidates = (
-        _get_dict(account.get("ploudModel")) if account else None,
-        _get_dict(account.get("PloudModel")) if account else None,
-        _get_dict(payload.get("ploudModel")),
-        _get_dict(payload.get("PloudModel")),
-        _get_dict(account.get("ploud")) if account else None,
-        _get_dict(account.get("Ploud")) if account else None,
-        _get_dict(payload.get("ploud")),
-        _get_dict(payload.get("Ploud")),
-    )
-    return next((item for item in candidates if item), dict[str, Any]())
+def _extract_initial_ploud_model(payload: dict[str, Any]) -> dict[str, Any]:
+    """Extract the optional PLOUD model returned by PLOC signin."""
+    account = _get_dict(payload.get("account"))
+    model = _get_dict(account.get("ploudModel")) if account else None
+    if model is not None:
+        return model
+    return _get_dict(payload.get("ploudModel")) or {}
+
+
+def _extract_activated_ploud_access_token(
+    payload: dict[str, Any],
+) -> str | None:
+    """Extract the token from the documented /ploud/activate response."""
+    account = _get_dict(payload.get("Account"))
+    ploud = _get_dict(account.get("Ploud")) if account else None
+    token = ploud.get("AccessToken") if ploud else None
+    return token if isinstance(token, str) and token else None
+
+
+def _format_keys(value: object) -> str:
+    """Format object keys only, never response values, for safe diagnostics."""
+    mapping = _get_dict(value)
+    if mapping is None:
+        return "(not an object)"
+    return ", ".join(sorted(mapping)) or "(none)"
 
 
 async def _post_json(
@@ -241,15 +241,17 @@ async def async_authenticate(
         _build_signin_payload(email.strip(), password),
         "PLOC sign-in",
     )
-    account_token = _extract_access_token(account)
+    account_token = _extract_account_access_token(account)
     if not account_token:
-        response_keys = ", ".join(sorted(account)) or "(none)"
         raise PlocAuthError(
             "PLOC sign-in response has no account access token "
-            f"(response fields: {response_keys})"
+            "(expected account.accessToken; "
+            f"response fields: {_format_keys(account)}; "
+            f"account fields: {_format_keys(account.get('account'))}; "
+            f"Account fields: {_format_keys(account.get('Account'))})"
         )
 
-    initial_model = _extract_ploud_model(account)
+    initial_model = _extract_initial_ploud_model(account)
     current_ploud_token = initial_model.get("token")
     ploud_token = (
         current_ploud_token
@@ -282,22 +284,20 @@ async def async_authenticate(
         "PLOUD activation",
     )
 
-    activated_model = _extract_ploud_model(activation)
-    merged = {**initial_model, **activated_model}
-    access_token = merged.get("accessToken")
-    if not isinstance(access_token, str) or not access_token:
-        sign_in_keys = ", ".join(sorted(account)) or "(none)"
-        activation_keys = ", ".join(sorted(activation)) or "(none)"
-        initial_keys = ", ".join(sorted(initial_model)) or "(none)"
-        activated_keys = ", ".join(sorted(activated_model)) or "(none)"
-        raise PlocAuthError(
-            "PLOUD activation succeeded but no accessToken was found "
-            f"(sign-in response fields: {sign_in_keys}; "
-            f"sign-in PLOUD fields: {initial_keys}; "
-            f"activation response fields: {activation_keys}; "
-            f"activation PLOUD fields: {activated_keys})"
+    access_token = _extract_activated_ploud_access_token(activation)
+    if not access_token:
+        activation_account = _get_dict(activation.get("Account"))
+        activation_ploud = (
+            _get_dict(activation_account.get("Ploud"))
+            if activation_account
+            else None
         )
-    # The server URL is intentionally supplied by the user in the config flow.
-    # It must not be required from the API response or silently replace the
-    # explicitly selected server.
+        raise PlocAuthError(
+            "PLOUD activation succeeded but Account.Ploud.AccessToken "
+            "was not found "
+            f"(activation response fields: {_format_keys(activation)}; "
+            f"Account fields: {_format_keys(activation.get('Account'))}; "
+            f"Account.Ploud fields: {_format_keys(activation_ploud)})"
+        )
+    # Synchronization uses the integration's fixed PLOUD server endpoint.
     return access_token
