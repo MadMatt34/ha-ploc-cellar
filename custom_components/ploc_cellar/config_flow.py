@@ -26,6 +26,7 @@ from .const import (
     SUPPORTED_LANGUAGES,
 )
 from .types import (
+    ConfigFlowUserInput,
     OptionsFlowInput,
     ReauthFlowInput,
 )
@@ -40,7 +41,6 @@ def _is_valid_email(value: str) -> bool:
     except vol.Invalid:
         return False
     return True
-
 
 
 
@@ -146,8 +146,8 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 else:
                     return self.async_update_reload_and_abort(
                         entry,
-                        # Reauthentication renews credentials but must not
-                        # overwrite a server URL manually selected by the user.
+                                        # Reauthentication renews credentials without changing
+                        # the fixed PLOUD endpoint.
                         data_updates={CONF_TOKEN: token},
                     )
 
