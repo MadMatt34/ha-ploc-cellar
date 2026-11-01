@@ -48,12 +48,12 @@ GET_INVENTORY_SCHEMA: VolSchemaType = probatio.Schema(
     {
         probatio.Required(ATTR_CONFIG_ENTRY_ID): cv.string,
         probatio.Optional(CONF_SEARCH, default=""): cv.string,
-        vol.Optional(CONF_COLOR, default=""): cv.string,
+        probatio.Optional(CONF_COLOR, default=""): cv.string,
     }
 )
 SYNC_SCHEMA: VolSchemaType = probatio.Schema(
     {
-        vol.Required(ATTR_CONFIG_ENTRY_ID): cv.string,
+        probatio.Required(ATTR_CONFIG_ENTRY_ID): cv.string,
     }
 )
 
