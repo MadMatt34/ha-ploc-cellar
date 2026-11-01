@@ -5,6 +5,7 @@ import asyncio
 import base64
 import hashlib
 import hmac
+import math
 import time
 from typing import Any
 
@@ -25,7 +26,6 @@ REFERENCE_COLLECTIONS = (
     "regions",
     "vendors",
 )
-WINE_REFERENCE_FIELDS = ("ap", "cl", "cn", "co", "rn", "vf", "pid", "cs", "cu", "tg", "re", "gr", "de", "ep", "it", "af", "at", "cf", "ct", "ti", "to", "lt", "lg", "ac", "no", "ps", "ml")
 
 class PloudError(Exception):
     """PLOUD communication or payload error."""
@@ -62,13 +62,12 @@ def _text(value: object) -> str | None:
 def _float(value: object) -> float | None:
     if isinstance(value, bool):
         return None
-    if isinstance(value, (int, float)):
-        return float(value)
-    if isinstance(value, str):
+    if isinstance(value, (int, float, str)):
         try:
-            return float(value)
+            parsed = float(value)
         except ValueError:
             return None
+        return parsed if math.isfinite(parsed) else None
     return None
 
 def _lookup(refs: dict, collection: str, identifier: object) -> dict | None:
@@ -159,7 +158,7 @@ async def async_sync(session: ClientSession, *, server: str, token: str,
                     if isinstance(payload, dict)
                     else None
                 )
-                if response.status == 401 or error_code == 20:
+                if response.status == 401 or str(error_code) == "20":
                     raise PloudAuthError("PLOUD rejected the access token")
             if response.status != 200:
                 raise PloudError(f"PLOUD returned HTTP {response.status}")
