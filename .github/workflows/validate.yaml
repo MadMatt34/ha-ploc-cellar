@@ -14,7 +14,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v6
         with:
-          python-version: "3.14"
+          python-version: "3.13"
       - name: Install Ruff
         run: pip install ruff
       - name: Run Ruff
@@ -23,17 +23,32 @@ jobs:
         uses: home-assistant/actions/hassfest@master
 
   type-check:
-    name: Strict typing
+    name: Strict typing (HA ${{ matrix.ha-version }})
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - python-version: "3.13"
+            ha-version: "2026.8.2"
+          - python-version: "3.14"
+            ha-version: latest
     steps:
       - name: Check out repository
         uses: actions/checkout@v5
       - name: Set up Python
         uses: actions/setup-python@v6
         with:
-          python-version: "3.14"
-      - name: Install Home Assistant and Ruff dependencies
-        run: pip install homeassistant
+          python-version: ${{ matrix.python-version }}
+      - name: Install Home Assistant
+        env:
+          HA_VERSION: ${{ matrix.ha-version }}
+        run: |
+          if [ "$HA_VERSION" = "latest" ]; then
+            pip install homeassistant
+          else
+            pip install "homeassistant==$HA_VERSION"
+          fi
       - name: Set up Node.js
         uses: actions/setup-node@v5
         with:
