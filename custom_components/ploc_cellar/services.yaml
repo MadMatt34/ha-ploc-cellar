@@ -6,7 +6,7 @@ get_inventory:
       name: Search
       description: Match wine name, appellation, region or country.
       selector:
-        text:
+        text: {}
     color:
       name: Color
       description: Filter by wine color.
