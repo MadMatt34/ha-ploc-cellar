@@ -27,6 +27,7 @@
       }
     },
     "error": {
+      "invalid_email": "Enter a valid email address.",
       "invalid_auth": "PLOC authentication was rejected or the PLOUD activation response was invalid. Check the credentials and PLOUD service status.",
       "cannot_connect": "Unable to reach the PLOC service. Check the Internet connection and try again.",
       "invalid_server": "Enter a valid HTTP or HTTPS base URL without credentials, query parameters or a fragment."
