@@ -50,7 +50,7 @@ Après avoir effectué l'activation avec le client Python, afficher localement l
 jq -r '.ploud_access_token' ~/.ploc_ploud_state.json
 ```
 
-Copier cette valeur dans le champ **Jeton d'accès PLOUD** de l'intégration. Ne pas utiliser `ploud_token` ni `accessToken` de premier niveau : ce sont des champs distincts. Ne pas publier ni transmettre le jeton.
+Copier cette valeur dans le champ **Jeton d'accès PLOUD** de l'intégration. Ne pas utiliser `ploud_token` ni `accessToken` de premier niveau : ce sont des champs distincts. Ne pas publier ni transmettre le jeton. Le champ `device` de ce fichier appartient au client Python et n'est pas à recopier : Home Assistant génère sa propre identité d'appareil.
 
 Si le fichier d'état existe déjà, le client Python réutilise normalement les informations enregistrées et ne relance pas l'activation. Le fichier `~/.ploc_ploud_cellar.json` est uniquement le cache de l'inventaire local : il ne contient pas les identifiants d'authentification.
 
@@ -60,7 +60,7 @@ Si le fichier d'état existe déjà, le client Python réutilise normalement les
 
 ### Paramètres de connexion
 
-La configuration initiale demande l'URL du serveur PLOUD (par défaut `https://ploud.ploc.co/v1`), le jeton d'accès PLOUD et la langue des réponses (`fr` ou `en`). Un nouvel identifiant d'appareil est créé automatiquement à chaque nouvelle installation : il est construit à partir des cinq premiers caractères hexadécimaux d'un UUID aléatoire, comme l'identifiant court employé par PLOC. Il est enregistré dans l'entrée de configuration et reste stable lors des rechargements et réauthentifications.
+La configuration initiale demande l'URL du serveur PLOUD (par défaut `https://ploud.ploc.co/v1`), le jeton d'accès PLOUD et la langue des réponses (`fr` ou `en`). Un nouvel identifiant d'appareil est créé automatiquement à chaque nouvelle installation : il est construit à partir des cinq premiers caractères hexadécimaux d'un UUID aléatoire, conformément au format court de cinq caractères utilisé par PLOC et validé avec `sync/exec`. Il est enregistré dans l'entrée de configuration et reste stable lors des rechargements et réauthentifications. À noter : la première version du client Python de préparation générait pour sa part un UUID complet pour son propre appareil ; cet identifiant distinct n'est pas réutilisé par Home Assistant.
 
 Utiliser **Reconfigurer** pour modifier l'URL du serveur. Si PLOUD refuse le jeton, Home Assistant démarre la réauthentification afin de le remplacer sans supprimer l'intégration.
 
