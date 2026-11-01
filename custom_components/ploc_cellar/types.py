@@ -31,7 +31,6 @@ class ConfigFlowUserInput(TypedDict):
 
     server: str
     token: str
-    device: str
     language: str
 
 
