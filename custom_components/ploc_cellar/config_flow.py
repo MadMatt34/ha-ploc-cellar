@@ -34,6 +34,7 @@ def _normalise_server(value: str) -> str | None:
     server = value.strip().rstrip("/")
     try:
         parsed = urlsplit(server)
+        _ = parsed.port
     except ValueError:
         return None
     if (
@@ -69,7 +70,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 errors["base"] = "invalid_server"
             elif not token:
                 errors["base"] = "invalid_token"
-            elif len(device) != 5:
+            elif len(device) != DEVICE_ID_LENGTH:
                 errors["base"] = "invalid_device"
             else:
                 await self.async_set_unique_id(device)
@@ -87,13 +88,13 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         schema = vol.Schema(
             {
                 vol.Required(
-                    CONF_SERVER, default="https://ploud.ploc.co/v1"
+                    CONF_SERVER, default=PLOUD_DEFAULT_SERVER
                 ): str,
                 vol.Required(CONF_TOKEN): str,
                 vol.Required(CONF_DEVICE): str,
                 vol.Required(
                     CONF_LANGUAGE, default=DEFAULT_LANGUAGE
-                ): vol.In(["fr", "en"]),
+                ): vol.In(SUPPORTED_LANGUAGES),
             }
         )
         return self.async_show_form(
