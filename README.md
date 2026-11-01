@@ -22,7 +22,7 @@ A Home Assistant custom integration for a **read-only** view of a PLOC wine cell
 
 ## Installation and first-time setup
 
-1. Copy \`custom_components/ploc_cellar\` into \`<config>/custom_components/\`.
+1. Copy `custom_components/ploc_cellar` into `<config>/custom_components/`.
 2. Restart Home Assistant.
 3. Go to **Settings → Devices & services → Add integration** and select **Ploc Cellar**.
 4. Enter only your PLOC account email address and password.
@@ -30,8 +30,8 @@ A Home Assistant custom integration for a **read-only** view of a PLOC wine cell
 Home Assistant automatically performs the following operations:
 
 1. Generates a UUID device identifier dedicated to this installation.
-2. Signs in to the PLOC account through \`POST https://api.ploc.co/v1/signin\`. The request uses the encryption and signature scheme employed by the PLOC application.
-3. Activates PLOUD for the **Home Assistant** application through \`POST /ploud/activate\`, using the PLOC session token obtained in the previous step.
+2. Signs in to the PLOC account through `POST https://api.ploc.co/v1/signin`. The request uses the encryption and signature scheme employed by the PLOC application.
+3. Activates PLOUD for the **Home Assistant** application through `POST /ploud/activate`, using the PLOC session token obtained in the previous step.
 4. Extracts the PLOUD server URL and PLOUD access token returned by the API.
 5. Stores the server, PLOUD token and device identifier in the Home Assistant config entry.
 6. Runs the first read-only cellar synchronization.
@@ -42,7 +42,7 @@ If authentication fails, check the PLOC credentials and the availability of PLOC
 
 ## Device identity
 
-The Python client used to validate the protocol generated its device identifier with \`str(uuid4())\`, which is a full UUID. The integration follows the same mechanism: each new Home Assistant installation gets its own full UUID, stored in the config entry and reused for subsequent synchronization requests. Do not enter or copy an identifier from a phone or the Python client.
+The Python client used to validate the protocol generated its device identifier with `str(uuid4())`, which is a full UUID. The integration follows the same mechanism: each new Home Assistant installation gets its own full UUID, stored in the config entry and reused for subsequent synchronization requests. Do not enter or copy an identifier from a phone or the Python client.
 
 ## Synchronization options
 
