@@ -86,12 +86,15 @@ class PlocCellarCoordinator(DataUpdateCoordinator[Cellar]):
             updated_cellar = deepcopy(self.cellar)
             apply_sync(updated_cellar, objects, next_cursor)
             updated_cellar.last_sync = datetime.now(UTC).isoformat()
+            updated_cellar.stale = False
             await self.store.async_save(updated_cellar.to_storage())
             self.cellar = updated_cellar
             return updated_cellar
         except PloudAuthError as err:
+            self.cellar.stale = True
             raise ConfigEntryAuthFailed from err
         except (PloudError, HomeAssistantError, OSError) as err:
+            self.cellar.stale = True
             raise UpdateFailed(str(err)) from err
 
     async def async_force_sync(self) -> Cellar:
