@@ -7,7 +7,7 @@ A Home Assistant custom integration for a **read-only** view of a PLOC wine cell
 ## Requirements
 
 - Home Assistant 2026.8 or newer.
-- Python 3.13 or newer (provided by supported Home Assistant releases).
+- Python 3.14.2 or newer (required by Home Assistant 2026.8.2).
 
 ## Features
 
