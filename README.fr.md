@@ -4,6 +4,11 @@ Intégration personnalisée Home Assistant permettant de consulter une cave PLOC
 
 [English version](README.md)
 
+## Prérequis
+
+- Home Assistant 2026.8 ou version ultérieure.
+- Python 3.13 ou version ultérieure (fourni par les versions Home Assistant prises en charge).
+
 ## Fonctionnalités
 
 - PLOUD reste la source de vérité.
