@@ -1,15 +1,12 @@
 """Config and options flows for Ploc Cellar."""
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, cast
 from urllib.parse import urlsplit
 
 import voluptuous as vol
 from homeassistant import config_entries
-from homeassistant.config_entries import (
-    ConfigEntry,
-    OptionsFlowWithReload,
-)
+from homeassistant.config_entries import ConfigEntry, OptionsFlowWithReload
 from homeassistant.core import callback
 
 from .const import (
@@ -22,10 +19,16 @@ from .const import (
     DEFAULT_SCAN_INTERVAL,
     DEVICE_ID_LENGTH,
     DOMAIN,
-    PLOUD_DEFAULT_SERVER,
-    SUPPORTED_LANGUAGES,
     MAX_SCAN_INTERVAL_MINUTES,
     MIN_SCAN_INTERVAL_MINUTES,
+    PLOUD_DEFAULT_SERVER,
+    SUPPORTED_LANGUAGES,
+)
+from .types import (
+    ConfigFlowUserInput,
+    OptionsFlowInput,
+    ReauthFlowInput,
+    ReconfigureFlowInput,
 )
 
 
@@ -63,9 +66,10 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
         errors: dict[str, str] = {}
         if user_input is not None:
-            server = _normalise_server(user_input[CONF_SERVER])
-            token = user_input[CONF_TOKEN].strip()
-            device = user_input[CONF_DEVICE].strip()
+            validated_input = cast(ConfigFlowUserInput, user_input)
+            server = _normalise_server(validated_input[CONF_SERVER])
+            token = validated_input[CONF_TOKEN].strip()
+            device = validated_input[CONF_DEVICE].strip()
             if server is None:
                 errors["base"] = "invalid_server"
             elif not token:
@@ -81,24 +85,28 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                         CONF_SERVER: server,
                         CONF_TOKEN: token,
                         CONF_DEVICE: device,
-                        CONF_LANGUAGE: user_input[CONF_LANGUAGE],
+                        CONF_LANGUAGE: validated_input[CONF_LANGUAGE],
                     },
                 )
 
         schema = vol.Schema(
             {
                 vol.Required(
-                    CONF_SERVER, default=PLOUD_DEFAULT_SERVER
+                    CONF_SERVER,
+                    default=PLOUD_DEFAULT_SERVER,
                 ): str,
                 vol.Required(CONF_TOKEN): str,
                 vol.Required(CONF_DEVICE): str,
                 vol.Required(
-                    CONF_LANGUAGE, default=DEFAULT_LANGUAGE
+                    CONF_LANGUAGE,
+                    default=DEFAULT_LANGUAGE,
                 ): vol.In(SUPPORTED_LANGUAGES),
             }
         )
         return self.async_show_form(
-            step_id="user", data_schema=schema, errors=errors
+            step_id="user",
+            data_schema=schema,
+            errors=errors,
         )
 
     async def async_step_reconfigure(
@@ -108,14 +116,16 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         entry = self._get_reconfigure_entry()
         errors: dict[str, str] = {}
         if user_input is not None:
-            server = _normalise_server(user_input[CONF_SERVER])
+            validated_input = cast(ReconfigureFlowInput, user_input)
+            server = _normalise_server(validated_input[CONF_SERVER])
             if server is None:
                 errors["base"] = "invalid_server"
             else:
                 await self.async_set_unique_id(entry.unique_id)
                 self._abort_if_unique_id_mismatch()
                 return self.async_update_reload_and_abort(
-                    entry, data_updates={CONF_SERVER: server}
+                    entry,
+                    data_updates={CONF_SERVER: server},
                 )
 
         return self.async_show_form(
@@ -123,7 +133,8 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             data_schema=vol.Schema(
                 {
                     vol.Required(
-                        CONF_SERVER, default=entry.data[CONF_SERVER]
+                        CONF_SERVER,
+                        default=entry.data[CONF_SERVER],
                     ): str
                 }
             ),
@@ -143,18 +154,21 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         self, user_input: dict[str, Any] | None = None
     ) -> config_entries.ConfigFlowResult:
         """Replace an invalid PLOUD token."""
-        entry = self._get_reauth_entry()
         if user_input is not None:
-            token = user_input[CONF_TOKEN].strip()
+            validated_input = cast(ReauthFlowInput, user_input)
+            token = validated_input[CONF_TOKEN].strip()
             if not token:
                 return self.async_show_form(
                     step_id="reauth_confirm",
                     data_schema=vol.Schema({vol.Required(CONF_TOKEN): str}),
                     errors={"base": "invalid_token"},
                 )
+            entry = self._get_reauth_entry()
             return self.async_update_reload_and_abort(
-                entry, data_updates={CONF_TOKEN: token}
+                entry,
+                data_updates={CONF_TOKEN: token},
             )
+
         return self.async_show_form(
             step_id="reauth_confirm",
             data_schema=vol.Schema({vol.Required(CONF_TOKEN): str}),
@@ -175,18 +189,40 @@ class PlocCellarOptionsFlow(OptionsFlowWithReload):
     ) -> config_entries.ConfigFlowResult:
         """Update the integration options."""
         if user_input is not None:
-            return self.async_create_entry(title="", data=user_input)
+            validated_input = cast(OptionsFlowInput, user_input)
+            return self.async_create_entry(title="", data=validated_input)
 
-        current_interval = self.config_entry.options.get(
-            CONF_SCAN_INTERVAL, int(DEFAULT_SCAN_INTERVAL.total_seconds() // 60)
+        default_interval = int(DEFAULT_SCAN_INTERVAL.total_seconds() // 60)
+        raw_interval = self.config_entry.options.get(
+            CONF_SCAN_INTERVAL,
+            default_interval,
         )
-        current_language = self.config_entry.options.get(
-            CONF_LANGUAGE, self.config_entry.data.get(CONF_LANGUAGE, DEFAULT_LANGUAGE)
+        current_interval = (
+            raw_interval
+            if isinstance(raw_interval, int)
+            and not isinstance(raw_interval, bool)
+            and MIN_SCAN_INTERVAL_MINUTES
+            <= raw_interval
+            <= MAX_SCAN_INTERVAL_MINUTES
+            else default_interval
         )
+
+        raw_language = self.config_entry.options.get(
+            CONF_LANGUAGE,
+            self.config_entry.data.get(CONF_LANGUAGE, DEFAULT_LANGUAGE),
+        )
+        current_language = (
+            raw_language
+            if isinstance(raw_language, str)
+            and raw_language in SUPPORTED_LANGUAGES
+            else DEFAULT_LANGUAGE
+        )
+
         schema = vol.Schema(
             {
                 vol.Required(
-                    CONF_SCAN_INTERVAL, default=current_interval
+                    CONF_SCAN_INTERVAL,
+                    default=current_interval,
                 ): vol.All(
                     vol.Coerce(int),
                     vol.Range(
@@ -195,8 +231,12 @@ class PlocCellarOptionsFlow(OptionsFlowWithReload):
                     ),
                 ),
                 vol.Required(
-                    CONF_LANGUAGE, default=current_language
+                    CONF_LANGUAGE,
+                    default=current_language,
                 ): vol.In(SUPPORTED_LANGUAGES),
             }
         )
-        return self.async_show_form(step_id="init", data_schema=schema)
+        return self.async_show_form(
+            step_id="init",
+            data_schema=schema,
+        )
