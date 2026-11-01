@@ -152,21 +152,35 @@ def _http_context(response: Any, url: str, detail: str) -> str:
 
 
 def _extract_access_token(payload: dict[str, Any]) -> str | None:
-    token = payload.get("accessToken")
+    """Extract the PLOC account token from camelCase or PascalCase responses."""
+    token = payload.get("accessToken", payload.get("AccessToken"))
     if isinstance(token, str) and token:
         return token
-    account = _get_dict(payload.get("account"))
-    token = account.get("accessToken") if account else None
+
+    account = _get_dict(payload.get("account")) or _get_dict(
+        payload.get("Account")
+    )
+    if account is None:
+        return None
+
+    token = account.get("accessToken", account.get("AccessToken"))
     return token if isinstance(token, str) and token else None
 
 
 def _extract_ploud_model(payload: dict[str, Any]) -> dict[str, Any]:
-    account = _get_dict(payload.get("account"))
+    """Extract the initial PLOUD model from either API JSON naming style."""
+    account = _get_dict(payload.get("account")) or _get_dict(
+        payload.get("Account")
+    )
     candidates = (
         _get_dict(account.get("ploudModel")) if account else None,
+        _get_dict(account.get("PloudModel")) if account else None,
         _get_dict(payload.get("ploudModel")),
+        _get_dict(payload.get("PloudModel")),
         _get_dict(account.get("ploud")) if account else None,
+        _get_dict(account.get("Ploud")) if account else None,
         _get_dict(payload.get("ploud")),
+        _get_dict(payload.get("Ploud")),
     )
     return next((item for item in candidates if item), dict[str, Any]())
 
