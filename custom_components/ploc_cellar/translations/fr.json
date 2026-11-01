@@ -3,18 +3,18 @@
     "step": {
       "user": {
         "title": "Connexion à PLOC",
-        "description": "Saisir les identifiants du compte PLOC. Les serveurs PLOC et PLOUD sont définis par l'intégration.",
+        "description": "Connectez-vous avec l’adresse e-mail et le mot de passe de votre compte PLOC. L’intégration active ensuite l’accès PLOUD pour Home Assistant.",
         "data": {
-          "email": "Adresse e-mail PLOC",
-          "password": "Mot de passe PLOC"
+          "password": "Mot de passe PLOC",
+          "username": "Adresse e-mail du compte PLOC"
         }
       },
       "reauth_confirm": {
-        "title": "Réauthentification PLOC",
-        "description": "La connexion PLOUD doit être renouvelée. Saisir les identifiants du compte PLOC pour effectuer une nouvelle authentification et réactiver PLOUD.",
+        "title": "Renouveler l’authentification PLOC",
+        "description": "L’accès PLOUD doit être renouvelé. Saisissez à nouveau les identifiants de votre compte PLOC pour rétablir la connexion avec Home Assistant.",
         "data": {
-          "email": "Adresse e-mail PLOC",
-          "password": "Mot de passe PLOC"
+          "password": "Mot de passe PLOC",
+          "username": "Adresse e-mail du compte PLOC"
         }
       }
     },
@@ -31,9 +31,9 @@
     "step": {
       "init": {
         "title": "Paramètres de synchronisation",
-        "description": "Choisir la fréquence d'actualisation de la cave et la langue demandée à PLOUD.",
+        "description": "Définissez l’intervalle entre deux synchronisations et la langue des réponses de PLOUD.",
         "data": {
-          "scan_interval": "Fréquence d'actualisation (minutes)",
+          "scan_interval": "Intervalle de synchronisation (minutes)",
           "language": "Langue des réponses PLOUD"
         }
       }
@@ -42,7 +42,21 @@
   "entity": {
     "sensor": {
       "inventory": {
-        "name": "Inventaire"
+        "name": "Inventaire",
+        "state_attributes": {
+          "stocked_wines": {
+            "name": "Vins en stock"
+          },
+          "rack_count": {
+            "name": "Nombre de casiers"
+          },
+          "occupied_positions": {
+            "name": "Emplacements occupés"
+          },
+          "stale": {
+            "name": "Données périmées"
+          }
+        }
       }
     }
   },
