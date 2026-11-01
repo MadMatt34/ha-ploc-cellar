@@ -4,7 +4,7 @@ from __future__ import annotations
 from typing import Any, cast
 from urllib.parse import urlsplit
 
-import voluptuous as vol
+import probatio
 from homeassistant import config_entries
 from homeassistant.config_entries import ConfigEntry, OptionsFlowWithReload
 from homeassistant.core import callback
@@ -89,9 +89,9 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     },
                 )
 
-        schema = vol.Schema(
+        schema = probatio.Schema(
             {
-                vol.Required(
+                probatio.Required(
                     CONF_SERVER,
                     default=PLOUD_DEFAULT_SERVER,
                 ): str,
@@ -100,7 +100,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 vol.Required(
                     CONF_LANGUAGE,
                     default=DEFAULT_LANGUAGE,
-                ): vol.In(SUPPORTED_LANGUAGES),
+                ): probatio.In(SUPPORTED_LANGUAGES),
             }
         )
         return self.async_show_form(
@@ -223,9 +223,9 @@ class PlocCellarOptionsFlow(OptionsFlowWithReload):
                 vol.Required(
                     CONF_SCAN_INTERVAL,
                     default=current_interval,
-                ): vol.All(
-                    vol.Coerce(int),
-                    vol.Range(
+                ): probatio.All(
+                    probatio.Coerce(int),
+                    probatio.Range(
                         min=MIN_SCAN_INTERVAL_MINUTES,
                         max=MAX_SCAN_INTERVAL_MINUTES,
                     ),
