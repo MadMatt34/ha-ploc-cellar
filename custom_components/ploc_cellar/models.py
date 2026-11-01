@@ -64,7 +64,7 @@ class Cellar:
     last_sync: str | None = field(default=None, compare=False)
     initialized: bool = field(default=False, compare=False)
     stale: bool = field(default=False)
-    wines: dict[str, Wine> = field(default_factory=lambda: dict[str, Wine]())
+    wines: dict[str, Wine] = field(default_factory=lambda: dict[str, Wine]())
     racks: dict[str, Rack] = field(default_factory=lambda: dict[str, Rack]())
     rack_items: dict[str, RackItem] = field(
         default_factory=lambda: dict[str, RackItem]()
