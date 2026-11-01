@@ -7,6 +7,18 @@ PLOUD_DEFAULT_SERVER = "https://ploud.ploc.co/v1"
 PLOUD_VERSION = 611
 PLOUD_SYNC_METHOD = "sync"
 PLOUD_SYNC_PATH = "/sync/exec"
+PLOUD_COLLECTION_WINES = "Wines"
+PLOUD_COLLECTION_RACKS = "Racks"
+PLOUD_COLLECTION_RACK_ITEMS = "RackItems"
+PLOUD_COLLECTION_DELETED = "DeletedObjects"
+PLOUD_REFERENCE_COLLECTIONS = (
+    "appellations",
+    "bottleFormats",
+    "classifications",
+    "colors",
+    "countries",
+    "regions",
+)
 PLOUD_HMAC_KEY = b"PLOC.co.20@16"
 
 DEVICE_ID_LENGTH = 5
