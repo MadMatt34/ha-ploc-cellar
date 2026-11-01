@@ -20,6 +20,8 @@ from .const import (
     DEFAULT_LANGUAGE,
     DEFAULT_SCAN_INTERVAL,
     DOMAIN,
+    SERVICE_GET_INVENTORY,
+    SERVICE_SYNC,
 )
 from .coordinator import PlocCellarCoordinator
 
@@ -148,11 +150,11 @@ async def async_setup_entry(
 
     hass.services.async_register(
         DOMAIN,
-        "get_inventory",
+        SERVICE_GET_INVENTORY,
         get_inventory,
         supports_response=SupportsResponse.ONLY,
     )
-    hass.services.async_register(DOMAIN, "sync", sync_service)
+    hass.services.async_register(DOMAIN, SERVICE_SYNC, sync_service)
     return True
 
 
