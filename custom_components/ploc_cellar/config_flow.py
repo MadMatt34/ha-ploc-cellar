@@ -173,7 +173,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             credentials = cast(ReauthFlowInput, user_input)
             entry = self._get_reauth_entry()
             try:
-                server, token = await async_authenticate(
+                _, token = await async_authenticate(
                     async_get_clientsession(self.hass),
                     credentials["email"],
                     credentials["password"],
