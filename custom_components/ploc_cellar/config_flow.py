@@ -43,7 +43,6 @@ def _is_valid_email(value: str) -> bool:
     return True
 
 
-
 class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     """Configure a PLOC account and activate PLOUD for Home Assistant."""
 
@@ -146,7 +145,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 else:
                     return self.async_update_reload_and_abort(
                         entry,
-                                        # Reauthentication renews credentials without changing
+                        # Reauthentication renews credentials without changing
                         # the fixed PLOUD endpoint.
                         data_updates={CONF_TOKEN: token},
                     )
