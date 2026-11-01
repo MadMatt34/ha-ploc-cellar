@@ -1,7 +1,6 @@
 """Asynchronous, strictly read-only PLOUD sync client."""
 from __future__ import annotations
 
-import asyncio
 import base64
 import hashlib
 import hmac
@@ -256,7 +255,7 @@ async def async_sync(
                 raise PloudError(f"PLOUD returned HTTP {response.status}")
             if payload is None:
                 raise PloudError("PLOUD returned invalid JSON")
-    except (ClientError, asyncio.TimeoutError) as err:
+    except (ClientError, TimeoutError) as err:
         raise PloudError(f"PLOUD sync request failed: {err}") from err
 
     if not isinstance(payload, dict):
