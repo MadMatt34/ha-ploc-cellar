@@ -231,10 +231,11 @@ async def async_sync(
 ) -> tuple[PLOUDCollections, int]:
     """Fetch one read-only incremental PLOUD synchronization."""
     timestamp = int(time.time())
+    short_device = device[:5]
     fields = {
         "Token": token,
-        "Signature": _signature(token, device, timestamp),
-        "Device": device,
+        "Signature": _signature(token, short_device, timestamp),
+        "Device": short_device,
         "Timestamp": str(timestamp),
         "LastSyncTime": str(max(1, cursor)),
         "Method": PLOUD_SYNC_METHOD,
