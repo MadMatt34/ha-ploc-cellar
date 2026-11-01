@@ -4,10 +4,11 @@ from __future__ import annotations
 from typing import Any, cast
 from urllib.parse import urlsplit
 
-import probatio
+import voluptuous as vol
 from homeassistant import config_entries
 from homeassistant.config_entries import ConfigEntry, OptionsFlowWithReload
 from homeassistant.core import callback
+from homeassistant.helpers.typing import VolSchemaType
 
 from .const import (
     CONF_DEVICE,
@@ -89,20 +90,20 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     },
                 )
 
-        schema = probatio.Schema(
+        schema = cast(VolSchemaType, vol.Schema(
             {
-                probatio.Required(
+                vol.Required(
                     CONF_SERVER,
                     default=PLOUD_DEFAULT_SERVER,
                 ): str,
-                probatio.Required(CONF_TOKEN): str,
-                probatio.Required(CONF_DEVICE): str,
-                probatio.Required(
+                vol.Required(CONF_TOKEN): str,
+                vol.Required(CONF_DEVICE): str,
+                vol.Required(
                     CONF_LANGUAGE,
                     default=DEFAULT_LANGUAGE,
-                ): probatio.In(SUPPORTED_LANGUAGES),
+                ): vol.In(SUPPORTED_LANGUAGES),
             }
-        )
+        ))
         return self.async_show_form(
             step_id="user",
             data_schema=schema,
@@ -130,14 +131,14 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
         return self.async_show_form(
             step_id="reconfigure",
-            data_schema=probatio.Schema(
+            data_schema=cast(VolSchemaType, vol.Schema(
                 {
-                    probatio.Required(
+                    vol.Required(
                         CONF_SERVER,
                         default=entry.data[CONF_SERVER],
                     ): str
                 }
-            ),
+            )),
             errors=errors,
         )
 
@@ -160,7 +161,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             if not token:
                 return self.async_show_form(
                     step_id="reauth_confirm",
-                    data_schema=probatio.Schema({probatio.Required(CONF_TOKEN): str}),
+                    data_schema=vol.Schema({vol.Required(CONF_TOKEN): str}),
                     errors={"base": "invalid_token"},
                 )
             entry = self._get_reauth_entry()
@@ -171,7 +172,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
         return self.async_show_form(
             step_id="reauth_confirm",
-            data_schema=probatio.Schema({probatio.Required(CONF_TOKEN): str}),
+            data_schema=vol.Schema({vol.Required(CONF_TOKEN): str}),
         )
 
     @staticmethod
@@ -218,24 +219,24 @@ class PlocCellarOptionsFlow(OptionsFlowWithReload):
             else DEFAULT_LANGUAGE
         )
 
-        schema = probatio.Schema(
+        schema = vol.Schema(
             {
-                probatio.Required(
+                vol.Required(
                     CONF_SCAN_INTERVAL,
                     default=current_interval,
-                ): probatio.All(
-                    probatio.Coerce(int),
-                    probatio.Range(
+                ): vol.All(
+                    vol.Coerce(int),
+                    vol.Range(
                         min=MIN_SCAN_INTERVAL_MINUTES,
                         max=MAX_SCAN_INTERVAL_MINUTES,
                     ),
                 ),
-                probatio.Required(
+                vol.Required(
                     CONF_LANGUAGE,
                     default=current_language,
-                ): probatio.In(SUPPORTED_LANGUAGES),
+                ): vol.In(SUPPORTED_LANGUAGES),
             }
-        )
+        ))
         return self.async_show_form(
             step_id="init",
             data_schema=schema,
