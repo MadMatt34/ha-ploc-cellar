@@ -90,20 +90,23 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     },
                 )
 
-        schema = cast(VolSchemaType, vol.Schema(
-            {
-                vol.Required(
-                    CONF_SERVER,
-                    default=PLOUD_DEFAULT_SERVER,
-                ): str,
-                vol.Required(CONF_TOKEN): str,
-                vol.Required(CONF_DEVICE): str,
-                vol.Required(
-                    CONF_LANGUAGE,
-                    default=DEFAULT_LANGUAGE,
-                ): vol.In(SUPPORTED_LANGUAGES),
-            }
-        ))
+        schema = cast(
+            VolSchemaType,
+            vol.Schema(
+                {
+                    vol.Required(
+                        CONF_SERVER,
+                        default=PLOUD_DEFAULT_SERVER,
+                    ): str,
+                    vol.Required(CONF_TOKEN): str,
+                    vol.Required(CONF_DEVICE): str,
+                    vol.Required(
+                        CONF_LANGUAGE,
+                        default=DEFAULT_LANGUAGE,
+                    ): vol.In(SUPPORTED_LANGUAGES),
+                }
+            ),
+        )
         return self.async_show_form(
             step_id="user",
             data_schema=schema,
@@ -129,16 +132,20 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     data_updates={CONF_SERVER: server},
                 )
 
-        return self.async_show_form(
-            step_id="reconfigure",
-            data_schema=cast(VolSchemaType, vol.Schema(
+        schema = cast(
+            VolSchemaType,
+            vol.Schema(
                 {
                     vol.Required(
                         CONF_SERVER,
                         default=entry.data[CONF_SERVER],
                     ): str
                 }
-            )),
+            ),
+        )
+        return self.async_show_form(
+            step_id="reconfigure",
+            data_schema=schema,
             errors=errors,
         )
 
@@ -159,9 +166,13 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             validated_input = cast(ReauthFlowInput, user_input)
             token = validated_input[CONF_TOKEN].strip()
             if not token:
+                schema = cast(
+                    VolSchemaType,
+                    vol.Schema({vol.Required(CONF_TOKEN): str}),
+                )
                 return self.async_show_form(
                     step_id="reauth_confirm",
-                    data_schema=vol.Schema({vol.Required(CONF_TOKEN): str}),
+                    data_schema=schema,
                     errors={"base": "invalid_token"},
                 )
             entry = self._get_reauth_entry()
@@ -170,9 +181,13 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 data_updates={CONF_TOKEN: token},
             )
 
+        schema = cast(
+            VolSchemaType,
+            vol.Schema({vol.Required(CONF_TOKEN): str}),
+        )
         return self.async_show_form(
             step_id="reauth_confirm",
-            data_schema=vol.Schema({vol.Required(CONF_TOKEN): str}),
+            data_schema=schema,
         )
 
     @staticmethod
@@ -219,24 +234,27 @@ class PlocCellarOptionsFlow(OptionsFlowWithReload):
             else DEFAULT_LANGUAGE
         )
 
-        schema = vol.Schema(
-            {
-                vol.Required(
-                    CONF_SCAN_INTERVAL,
-                    default=current_interval,
-                ): vol.All(
-                    vol.Coerce(int),
-                    vol.Range(
-                        min=MIN_SCAN_INTERVAL_MINUTES,
-                        max=MAX_SCAN_INTERVAL_MINUTES,
+        schema = cast(
+            VolSchemaType,
+            vol.Schema(
+                {
+                    vol.Required(
+                        CONF_SCAN_INTERVAL,
+                        default=current_interval,
+                    ): vol.All(
+                        vol.Coerce(int),
+                        vol.Range(
+                            min=MIN_SCAN_INTERVAL_MINUTES,
+                            max=MAX_SCAN_INTERVAL_MINUTES,
+                        ),
                     ),
-                ),
-                vol.Required(
-                    CONF_LANGUAGE,
-                    default=current_language,
-                ): vol.In(SUPPORTED_LANGUAGES),
-            }
-        ))
+                    vol.Required(
+                        CONF_LANGUAGE,
+                        default=current_language,
+                    ): vol.In(SUPPORTED_LANGUAGES),
+                }
+            ),
+        )
         return self.async_show_form(
             step_id="init",
             data_schema=schema,
