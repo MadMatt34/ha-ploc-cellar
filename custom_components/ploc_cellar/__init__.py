@@ -16,7 +16,7 @@ from homeassistant.core import (
 from homeassistant.exceptions import HomeAssistantError, ServiceValidationError
 from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
-from homeassistant.helpers.typing import ConfigType, VolSchemaType
+from homeassistant.helpers.typing import ConfigType
 from homeassistant.util.json import JsonObjectType, JsonValueType
 
 from .const import (
@@ -43,7 +43,7 @@ from .types import GetInventoryServiceData, PlocCellarConfigEntry, SyncServiceDa
 PLATFORMS: list[Platform] = [Platform.SENSOR]
 CONFIG_SCHEMA: Callable[[dict[str, Any]], dict[str, Any]] = cast(
     Callable[[dict[str, Any]], dict[str, Any]],
-    cv.config_entry_only_config_schema(DOMAIN),
+    cv.config_entry_only_config_schema(DOMAIN),  # pyright: ignore[reportUnknownMemberType]
 )
 
 GET_INVENTORY_SCHEMA: VolSchemaType = cast(
@@ -187,14 +187,14 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
         )
         await coordinator.async_force_sync()
 
-    hass.services.async_register(
+    hass.services.async_register(  # pyright: ignore[reportUnknownMemberType]
         DOMAIN,
         SERVICE_GET_INVENTORY,
         get_inventory,
         schema=GET_INVENTORY_SCHEMA,
         supports_response=SupportsResponse.ONLY,
     )
-    hass.services.async_register(
+    hass.services.async_register(  # pyright: ignore[reportUnknownMemberType]
         DOMAIN,
         SERVICE_SYNC,
         sync_service,
