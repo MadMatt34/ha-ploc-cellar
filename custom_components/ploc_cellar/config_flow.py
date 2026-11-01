@@ -132,7 +132,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 )
 
         schema = cast(
-            VolSchemaType,
+            Any,
             vol.Schema(
                 {
                     vol.Required(
@@ -166,7 +166,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             token = validated_input[CONF_TOKEN].strip()
             if not token:
                 schema = cast(
-                    VolSchemaType,
+                    Any,
                     vol.Schema({vol.Required(CONF_TOKEN): str}),
                 )
                 return self.async_show_form(
@@ -181,7 +181,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             )
 
         schema = cast(
-            VolSchemaType,
+            Any,
             vol.Schema({vol.Required(CONF_TOKEN): str}),
         )
         return self.async_show_form(
@@ -234,7 +234,7 @@ class PlocCellarOptionsFlow(OptionsFlowWithReload):
         )
 
         schema = cast(
-            VolSchemaType,
+            Any,
             vol.Schema(
                 {
                     vol.Required(
