@@ -100,7 +100,7 @@
       "message": "The selected Ploc Cellar configuration is not loaded."
     },
     "invalid_config_entry": {
-      "message": "The Ploc Cellar configuration is incomplete. Reconfigure the integration."
+      "message": "The Ploc Cellar configuration is incomplete. Remove the integration and set it up again."
     },
     "invalid_storage": {
       "message": "The stored Ploc Cellar inventory is invalid. The local data was not overwritten."
