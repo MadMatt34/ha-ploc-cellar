@@ -3,6 +3,7 @@ from __future__ import annotations
 
 from aiohttp import ClientSession
 from homeassistant.config_entries import ConfigEntry
+from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant, ServiceCall, SupportsResponse
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.typing import ConfigType
@@ -10,7 +11,7 @@ from homeassistant.helpers.typing import ConfigType
 from .const import CONF_DEVICE, CONF_LANGUAGE, CONF_SERVER, CONF_TOKEN, DEFAULT_LANGUAGE, DOMAIN
 from .coordinator import PlocCellarCoordinator
 
-PLATFORMS = ["sensor"]
+PLATFORMS: list[Platform] = [Platform.SENSOR]
 
 async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
     return True
