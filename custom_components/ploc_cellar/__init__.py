@@ -164,6 +164,6 @@ async def async_unload_entry(
     """Unload platforms and remove integration actions."""
     if not await hass.config_entries.async_unload_platforms(entry, PLATFORMS):
         return False
-    hass.services.async_remove(DOMAIN, "get_inventory")
-    hass.services.async_remove(DOMAIN, "sync")
+    hass.services.async_remove(DOMAIN, SERVICE_GET_INVENTORY)
+    hass.services.async_remove(DOMAIN, SERVICE_SYNC)
     return True
