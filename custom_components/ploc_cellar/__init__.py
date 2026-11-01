@@ -55,7 +55,12 @@ async def async_setup_entry(
         scan_interval=timedelta(minutes=interval_minutes),
     )
     await coordinator.async_load()
-    await coordinator.async_config_entry_first_refresh()
+    if coordinator.cellar.initialized:
+        # Keep the last persisted inventory usable while PLOUD is unavailable.
+        coordinator.async_set_updated_data(coordinator.cellar)
+        await coordinator.async_refresh()
+    else:
+        await coordinator.async_config_entry_first_refresh()
     entry.runtime_data = coordinator
 
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
