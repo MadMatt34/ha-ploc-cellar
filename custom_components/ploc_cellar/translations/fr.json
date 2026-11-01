@@ -3,15 +3,16 @@
     "step": {
       "user": {
         "title": "Connexion à PLOC",
-        "description": "Saisir l'adresse e-mail et le mot de passe du compte PLOC. Home Assistant se connectera à PLOC, activera PLOUD pour cette installation et enregistrera automatiquement les informations nécessaires.",
+        "description": "Saisir les identifiants du compte PLOC et l'URL du serveur PLOUD à utiliser. L'URL proposée par défaut peut être modifiée.",
         "data": {
           "email": "Adresse e-mail PLOC",
-          "password": "Mot de passe PLOC"
+          "password": "Mot de passe PLOC",
+          "server": "URL du serveur PLOUD"
         }
       },
       "reconfigure": {
         "title": "Modifier le serveur PLOUD",
-        "description": "Modifier l'URL de base utilisée pour joindre PLOUD. L'identifiant de l'appareil et le jeton sont conservés.",
+        "description": "Modifier l'URL de base utilisée pour joindre PLOUD. L'URL actuellement configurée est proposée par défaut. L'identifiant de l'appareil et le jeton sont conservés.",
         "data": {
           "server": "URL du serveur PLOUD"
         }
