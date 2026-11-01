@@ -6,7 +6,6 @@ from copy import deepcopy
 from datetime import datetime, timedelta, timezone
 
 from aiohttp import ClientSession
-from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ConfigEntryAuthFailed, HomeAssistantError
 from homeassistant.helpers.storage import Store
@@ -15,6 +14,7 @@ from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, Upda
 from .const import DOMAIN, STORAGE_KEY, STORAGE_VERSION
 from .models import Cellar, JsonValue
 from .ploud import PloudAuthError, PloudError, apply_sync, async_sync
+from .types import PlocCellarConfigEntry
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -25,7 +25,7 @@ class PlocCellarCoordinator(DataUpdateCoordinator[Cellar]):
     def __init__(
         self,
         hass: HomeAssistant,
-        entry: ConfigEntry,
+        entry: PlocCellarConfigEntry,
         session: ClientSession,
         server: str,
         token: str,
@@ -59,7 +59,8 @@ class PlocCellarCoordinator(DataUpdateCoordinator[Cellar]):
                 self.cellar = Cellar.from_storage(stored)
         except (OSError, ValueError, TypeError) as err:
             raise HomeAssistantError(
-                "The stored Ploc Cellar data is invalid; refusing to discard it"
+                translation_domain=DOMAIN,
+                translation_key="invalid_storage",
             ) from err
 
     async def _async_update_data(self) -> Cellar:
@@ -97,5 +98,8 @@ class PlocCellarCoordinator(DataUpdateCoordinator[Cellar]):
         """Request an immediate refresh and report failure to the caller."""
         await self.async_refresh()
         if not self.last_update_success or self.data is None:
-            raise HomeAssistantError("PLOUD synchronization failed") from self.last_exception
+            raise HomeAssistantError(
+                translation_domain=DOMAIN,
+                translation_key="sync_failed",
+            ) from self.last_exception
         return self.data
