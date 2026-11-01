@@ -49,11 +49,12 @@ The full wine list is deliberately not stored in sensor attributes. It remains i
 
 A response action. Use `response_variable` in a script or automation.
 
-Optional fields: `search` (wine name, appellation, region, country, grapes or cuvée) and `color`.
+A `config_entry_id` is required to identify the PLOUD connection. Home Assistant provides a config-entry selector restricted to Ploc Cellar. Optional filters are `search` (wine name, appellation, region, country, grapes or cuvée) and `color`.
 
 ```yaml
 action: ploc_cellar.get_inventory
 data:
+  config_entry_id: YOUR_CONFIG_ENTRY_ID
   search: Condrieu
 response_variable: cellar
 ```
@@ -66,6 +67,8 @@ Triggers an immediate synchronization:
 
 ```yaml
 action: ploc_cellar.sync
+data:
+  config_entry_id: YOUR_CONFIG_ENTRY_ID
 ```
 
 ## Storage and privacy
@@ -76,4 +79,4 @@ The integration only requests synchronization data; it does not send cellar obje
 
 ## Development status
 
-This integration is under active development. Ruff and Hassfest are static checks; they do not replace testing against a real Home Assistant instance and the PLOUD cellar.
+This integration is under active development. CI checks Ruff, Hassfest and strict Pyright type analysis. These static checks do not replace testing against a real Home Assistant instance and the PLOUD cellar.
