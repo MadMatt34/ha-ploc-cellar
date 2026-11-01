@@ -2,12 +2,11 @@
   "config": {
     "step": {
       "user": {
-        "title": "Connexion à PLOUD",
-        "description": "Saisir le jeton d'accès PLOUD. Un nouvel identifiant d'appareil est généré automatiquement pour cette installation.",
+        "title": "Connexion à PLOC",
+        "description": "Saisir l'adresse e-mail et le mot de passe du compte PLOC. Home Assistant se connectera à PLOC, activera PLOUD pour cette installation et enregistrera automatiquement les informations nécessaires.",
         "data": {
-          "server": "URL du serveur PLOUD",
-          "token": "Jeton d'accès PLOUD",
-          "language": "Langue des réponses PLOUD"
+          "email": "Adresse e-mail PLOC",
+          "password": "Mot de passe PLOC"
         }
       },
       "reconfigure": {
@@ -18,20 +17,21 @@
         }
       },
       "reauth_confirm": {
-        "title": "Réauthentification PLOUD",
-        "description": "Le jeton d'accès PLOUD a été refusé. Saisir un jeton valide pour rétablir la synchronisation.",
+        "title": "Réauthentification PLOC",
+        "description": "La connexion PLOUD doit être renouvelée. Saisir les identifiants du compte PLOC pour effectuer une nouvelle authentification et réactiver PLOUD.",
         "data": {
-          "token": "Nouveau jeton d'accès PLOUD"
+          "email": "Adresse e-mail PLOC",
+          "password": "Mot de passe PLOC"
         }
       }
     },
     "error": {
-      "invalid_server": "Saisir une URL de base HTTP ou HTTPS valide, sans identifiants, paramètres de requête ni fragment.",
-      "invalid_token": "Le jeton d'accès ne peut pas être vide."
+      "invalid_auth": "Authentification PLOC refusée ou réponse d'activation PLOUD invalide. Vérifier les identifiants et l'état du service PLOUD.",
+      "cannot_connect": "Impossible de joindre le service PLOC. Vérifier la connexion Internet et réessayer.",
+      "invalid_server": "Saisir une URL de base HTTP ou HTTPS valide, sans identifiants, paramètres de requête ni fragment."
     },
     "abort": {
-      "already_configured": "Cet appareil PLOUD est déjà configuré.",
-      "reauth_successful": "Le jeton d'accès PLOUD a été mis à jour."
+      "already_configured": "Ploc Cellar est déjà configuré."
     }
   },
   "options": {
