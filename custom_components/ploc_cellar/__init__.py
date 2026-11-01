@@ -2,57 +2,240 @@
 from __future__ import annotations
 
 from datetime import timedelta
-from typing import Any
+from typing import cast
 
-from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import Platform
-from homeassistant.core import HomeAssistant, ServiceCall, SupportsResponse
+import voluptuous as vol
+from homeassistant.config_entries import ConfigEntryState
+from homeassistant.const import ATTR_CONFIG_ENTRY_ID, Platform
+from homeassistant.core import (
+    HomeAssistant,
+    ServiceCall,
+    SupportsResponse,
+)
+from homeassistant.exceptions import HomeAssistantError, ServiceValidationError
 from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.typing import ConfigType
+from homeassistant.util.json import JsonObjectType
 
 from .const import (
+    CONF_COLOR,
     CONF_DEVICE,
     CONF_LANGUAGE,
     CONF_SCAN_INTERVAL,
+    CONF_SEARCH,
     CONF_SERVER,
     CONF_TOKEN,
     DEFAULT_LANGUAGE,
     DEFAULT_SCAN_INTERVAL,
     DOMAIN,
+    MAX_SCAN_INTERVAL_MINUTES,
+    MIN_SCAN_INTERVAL_MINUTES,
     SERVICE_GET_INVENTORY,
     SERVICE_SYNC,
+    SUPPORTED_LANGUAGES,
 )
 from .coordinator import PlocCellarCoordinator
+from .models import Cellar
+from .types import GetInventoryServiceData, PlocCellarConfigEntry, SyncServiceData
 
 PLATFORMS: list[Platform] = [Platform.SENSOR]
 CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
 
-type PlocCellarConfigEntry = ConfigEntry[PlocCellarCoordinator]
+GET_INVENTORY_SCHEMA = vol.Schema(
+    {
+        vol.Required(ATTR_CONFIG_ENTRY_ID): cv.string,
+        vol.Optional(CONF_SEARCH, default=""): cv.string,
+        vol.Optional(CONF_COLOR, default=""): cv.string,
+    }
+)
+SYNC_SCHEMA = vol.Schema(
+    {
+        vol.Required(ATTR_CONFIG_ENTRY_ID): cv.string,
+    }
+)
+
+
+def _get_coordinator(
+    hass: HomeAssistant,
+    config_entry_id: str,
+) -> PlocCellarCoordinator:
+    """Return the loaded coordinator selected by the config entry ID."""
+    entry = hass.config_entries.async_get_entry(config_entry_id)
+    if (
+        entry is None
+        or entry.domain != DOMAIN
+        or entry.state is not ConfigEntryState.LOADED
+    ):
+        raise ServiceValidationError(
+            translation_domain=DOMAIN,
+            translation_key="config_entry_not_loaded",
+        )
+    return cast(PlocCellarConfigEntry, entry).runtime_data
+
+
+def _build_inventory_response(
+    cellar: Cellar,
+    *,
+    search: str,
+    color: str,
+) -> JsonObjectType:
+    """Build a JSON-safe inventory response without exposing sensor attributes."""
+    normalized_search = search.casefold().strip()
+    normalized_color = color.casefold().strip()
+    inventory: list[JsonObjectType] = []
+
+    stocked_wines = sorted(
+        (wine for wine in cellar.wines.values() if wine.bottles > 0),
+        key=lambda wine: (wine.name.casefold(), wine.vintage or 0),
+    )
+    for wine in stocked_wines:
+        searchable = " ".join(
+            (
+                wine.name,
+                wine.appellation or "",
+                wine.region or "",
+                wine.country or "",
+                wine.grapes or "",
+                wine.cuvee or "",
+            )
+        ).casefold()
+        if normalized_search and normalized_search not in searchable:
+            continue
+        if normalized_color and normalized_color not in (wine.color or "").casefold():
+            continue
+
+        locations: list[JsonObjectType] = [
+            {
+                "rack": cellar.racks[item.rack_id].name,
+                "rack_id": item.rack_id,
+                "row": item.row,
+                "column": item.column,
+            }
+            for item in cellar.rack_items.values()
+            if item.wine_id == wine.id and item.rack_id in cellar.racks
+        ]
+        inventory.append(
+            {
+                "id": wine.id,
+                "name": wine.name,
+                "bottles": wine.bottles,
+                "vintage": wine.vintage,
+                "appellation": wine.appellation,
+                "color": wine.color,
+                "color_rgb": list(wine.color_rgb) if wine.color_rgb else None,
+                "classification": wine.classification,
+                "region": wine.region,
+                "country": wine.country,
+                "grapes": wine.grapes,
+                "cuvee": wine.cuvee,
+                "bottle_format": wine.bottle_format,
+                "bottle_volume_l": wine.bottle_volume_l,
+                "ploud_pid": wine.ploud_pid,
+                "locations": locations,
+            }
+        )
+
+    racks: list[JsonObjectType] = [
+        {"id": rack.id, "name": rack.name} for rack in cellar.racks.values()
+    ]
+    return {
+        "total_bottles": cellar.total_bottles,
+        "stocked_wines": cellar.stocked_wines,
+        "matching_wines": len(inventory),
+        "rack_count": len(cellar.racks),
+        "occupied_positions": cellar.occupied_positions,
+        "racks": racks,
+        "wines": inventory,
+        "last_sync": cellar.last_sync,
+    }
 
 
 async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
-    """Set up the integration from config entries only."""
+    """Register integration actions independently of config entry setup."""
+
+    async def get_inventory(call: ServiceCall) -> JsonObjectType:
+        """Return the current stocked inventory on demand."""
+        service_data = cast(GetInventoryServiceData, call.data)
+        coordinator = _get_coordinator(
+            hass, service_data[ATTR_CONFIG_ENTRY_ID]
+        )
+        return _build_inventory_response(
+            coordinator.data,
+            search=service_data.get(CONF_SEARCH, ""),
+            color=service_data.get(CONF_COLOR, ""),
+        )
+
+    async def sync_service(call: ServiceCall) -> None:
+        """Trigger an immediate PLOUD synchronization."""
+        service_data = cast(SyncServiceData, call.data)
+        coordinator = _get_coordinator(
+            hass, service_data[ATTR_CONFIG_ENTRY_ID]
+        )
+        await coordinator.async_force_sync()
+
+    hass.services.async_register(
+        DOMAIN,
+        SERVICE_GET_INVENTORY,
+        get_inventory,
+        schema=GET_INVENTORY_SCHEMA,
+        supports_response=SupportsResponse.ONLY,
+    )
+    hass.services.async_register(
+        DOMAIN,
+        SERVICE_SYNC,
+        sync_service,
+        schema=SYNC_SCHEMA,
+    )
     return True
 
 
 async def async_setup_entry(
-    hass: HomeAssistant, entry: PlocCellarConfigEntry
+    hass: HomeAssistant,
+    entry: PlocCellarConfigEntry,
 ) -> bool:
-    """Set up the PLOUD connection, coordinator, entities and actions."""
-    interval_minutes = entry.options.get(
-        CONF_SCAN_INTERVAL, int(DEFAULT_SCAN_INTERVAL.total_seconds() // 60)
+    """Set up the PLOUD connection, coordinator and sensor platform."""
+    raw_interval = entry.options.get(
+        CONF_SCAN_INTERVAL,
+        int(DEFAULT_SCAN_INTERVAL.total_seconds() // 60),
     )
-    language = entry.options.get(
-        CONF_LANGUAGE, entry.data.get(CONF_LANGUAGE, DEFAULT_LANGUAGE)
+    interval_minutes = (
+        raw_interval
+        if isinstance(raw_interval, int)
+        and not isinstance(raw_interval, bool)
+        and MIN_SCAN_INTERVAL_MINUTES <= raw_interval <= MAX_SCAN_INTERVAL_MINUTES
+        else int(DEFAULT_SCAN_INTERVAL.total_seconds() // 60)
     )
+
+    raw_language = entry.options.get(
+        CONF_LANGUAGE,
+        entry.data.get(CONF_LANGUAGE, DEFAULT_LANGUAGE),
+    )
+    language = (
+        raw_language
+        if isinstance(raw_language, str) and raw_language in SUPPORTED_LANGUAGES
+        else DEFAULT_LANGUAGE
+    )
+
+    server = entry.data.get(CONF_SERVER)
+    token = entry.data.get(CONF_TOKEN)
+    device = entry.data.get(CONF_DEVICE)
+    if not all(
+        isinstance(value, str) and value
+        for value in (server, token, device)
+    ):
+        raise HomeAssistantError(
+            translation_domain=DOMAIN,
+            translation_key="invalid_config_entry",
+        )
+
     coordinator = PlocCellarCoordinator(
         hass,
         entry,
         async_get_clientsession(hass),
-        entry.data[CONF_SERVER],
-        entry.data[CONF_TOKEN],
-        entry.data[CONF_DEVICE],
+        server,
+        token,
+        device,
         language,
         scan_interval=timedelta(minutes=interval_minutes),
     )
@@ -66,104 +249,12 @@ async def async_setup_entry(
     entry.runtime_data = coordinator
 
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
-
-    async def get_inventory(call: ServiceCall) -> dict[str, Any]:
-        """Return the current stocked inventory on demand."""
-        cellar = coordinator.data
-        search = str(call.data.get("search", "")).casefold().strip()
-        color = str(call.data.get("color", "")).casefold().strip()
-        wines: list[dict[str, Any]] = []
-        for wine in cellar.wines.values():
-            if wine.bottles <= 0:
-                continue
-            searchable = " ".join(
-                (
-                    wine.name,
-                    wine.appellation or "",
-                    wine.region or "",
-                    wine.country or "",
-                    wine.grapes or "",
-                    wine.cuvee or "",
-                )
-            ).casefold()
-            if search and search not in searchable:
-                continue
-            if color and color not in (wine.color or "").casefold():
-                continue
-            locations = [
-                {
-                    "rack": (
-                        cellar.racks[item.rack_id].name
-                        if item.rack_id in cellar.racks
-                        else item.rack_id
-                    ),
-                    "rack_id": item.rack_id,
-                    "row": item.row,
-                    "column": item.column,
-                }
-                for item in cellar.rack_items.values()
-                if item.wine_id == wine.id and item.rack_id in cellar.racks
-            ]
-            wines.append(
-                {
-                    "id": wine.id,
-                    "name": wine.name,
-                    "bottles": wine.bottles,
-                    "vintage": wine.vintage,
-                    "appellation": wine.appellation,
-                    "color": wine.color,
-                    "color_rgb": list(wine.color_rgb) if wine.color_rgb else None,
-                    "classification": wine.classification,
-                    "region": wine.region,
-                    "country": wine.country,
-                    "grapes": wine.grapes,
-                    "cuvee": wine.cuvee,
-                    "bottle_format": wine.bottle_format,
-                    "bottle_volume_l": wine.bottle_volume_l,
-                    "ploud_pid": wine.ploud_pid,
-                    "locations": locations,
-                }
-            )
-        wines.sort(
-            key=lambda item: (
-                str(item["name"]).casefold(),
-                item["vintage"] or 0,
-            )
-        )
-        return {
-            "total_bottles": cellar.total_bottles,
-            "stocked_wines": cellar.stocked_wines,
-            "matching_wines": len(wines),
-            "rack_count": len(cellar.racks),
-            "occupied_positions": cellar.occupied_positions,
-            "racks": [
-                {"id": rack.id, "name": rack.name}
-                for rack in cellar.racks.values()
-            ],
-            "wines": wines,
-            "last_sync": cellar.last_sync,
-        }
-
-    async def sync_service(call: ServiceCall) -> None:
-        """Trigger an immediate PLOUD synchronization."""
-        await coordinator.async_force_sync()
-
-    hass.services.async_register(
-        DOMAIN,
-        SERVICE_GET_INVENTORY,
-        get_inventory,
-        supports_response=SupportsResponse.ONLY,
-    )
-    hass.services.async_register(DOMAIN, SERVICE_SYNC, sync_service)
     return True
 
 
 async def async_unload_entry(
-    hass: HomeAssistant, entry: PlocCellarConfigEntry
+    hass: HomeAssistant,
+    entry: PlocCellarConfigEntry,
 ) -> bool:
-    """Unload platforms and remove integration actions."""
-    if not await hass.config_entries.async_unload_platforms(entry, PLATFORMS):
-        return False
-    hass.services.async_remove(DOMAIN, SERVICE_GET_INVENTORY)
-    hass.services.async_remove(DOMAIN, SERVICE_SYNC)
-    return True
+    """Unload platforms; the config-entry-bound coordinator shuts down automatically."""
+    return await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
