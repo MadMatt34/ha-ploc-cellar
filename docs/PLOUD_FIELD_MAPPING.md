@@ -196,14 +196,11 @@ labels are used instead. They are not persisted as separate model attributes.
 - A deleted wine also frees its assigned positions without deleting the slots.
 - Deleting a rack removes its rack positions.
 - Empty rack slots (rack items with an empty `wine_id`) are retained.
-- The persistent cellar payload is migrated from schema versions 1, 2 and 3 to
-  version 4 when loaded. Versions 1 and 2 reset the cursor to `1` once so a full
-  synchronization can populate wine-level domains. Version 3 already contains
-  the resolved `Wine.domain` and keeps its incremental cursor; its obsolete
-  `owner_names` lookup is discarded. The migrated payload is saved immediately
-  when possible; if that save fails, the migrated in-memory model remains usable
-  and the next successful sync retries persistence.
-  Existing wine characteristics, rack data and the last successful
-  synchronization timestamp are retained. Legacy zero-stock wines are removed
-  and their assigned rack positions are retained as empty slots during migration.
+- The persistent cellar payload uses schema version 6. Earlier supported
+  schemas are migrated when loaded. Version 6 persists normalized Order
+  movements, which are populated from the next full PLOUD synchronization.
+  The migration retains existing wine characteristics, rack data and the last
+  successful synchronization timestamp. The migrated payload is saved
+  immediately when possible; if that save fails, the migrated in-memory model
+  remains usable and the next successful sync retries persistence.
 - The synchronization remains read-only and continues to send `Objects={}`.
