@@ -78,7 +78,13 @@
             "name": "Vins avec anomalie d’inventaire"
           },
           "inventory_error_count": {
-            "name": "Nombre d’anomalies d’inventaire"
+            "name": "Nombre de références avec bouteilles non placées"
+          },
+          "movement_warning_wines": {
+            "name": "Vins avec anomalie de mouvements"
+          },
+          "movement_warning_bottles": {
+            "name": "Bouteilles en anomalie de mouvements"
           }
         }
       }
@@ -87,7 +93,7 @@
   "services": {
     "get_inventory": {
       "name": "Obtenir l'inventaire",
-      "description": "Renvoyer les vins avec un stock déclaré ou des emplacements occupés, leurs quantités en cave et non placées, leurs mouvements et les anomalies d’inventaire, sans créer d’entités.",
+      "description": "Renvoyer les vins en stock, les bouteilles non placées et les anomalies de mouvements, sans créer d’entités.",
       "fields": {
         "search": {
           "name": "Recherche",
