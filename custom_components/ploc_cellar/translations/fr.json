@@ -55,6 +55,9 @@
           },
           "stale": {
             "name": "Données périmées"
+          },
+          "last_successful_sync": {
+            "name": "Dernière synchronisation réussie"
           }
         }
       }
