@@ -14,7 +14,7 @@ Intégration personnalisée Home Assistant permettant de consulter une cave PLOC
 - PLOUD reste la source de vérité.
 - Synchronisation incrémentale en lecture seule via `POST https://ploud.ploc.co/v1/sync/exec`, avec `Objects={}`.
 - Le premier chargement utilise la valeur d'initialisation validée `LastSyncTime=1`. Les synchronisations suivantes utilisent le curseur client en millisecondes Unix.
-- Modèle local persistant : uniquement les vins en stock, les casiers et leurs emplacements. Les caractéristiques, dont le domaine viticole, sont directement enregistrées dans chaque fiche vin. La collection `Owners` sert à résoudre les UUID des propriétaires ; seule une table compacte UUID → nom est conservée, pas les fiches Owner complètes.
+- Modèle local persistant : uniquement les vins en stock, les casiers et leurs emplacements. Les caractéristiques, dont le domaine viticole, sont directement enregistrées dans chaque fiche vin. La collection `Owners` est utilisée temporairement pour résoudre les UUID des propriétaires ; aucune table de correspondance n'est conservée. Si un vin reçu dans un delta référence un propriétaire absent de ce delta, une synchronisation complète ponctuelle est déclenchée pour résoudre son nom.
 - Un seul capteur de synthèse ; aucune entité n'est créée pour chaque vin, casier ou emplacement.
 - Inventaire détaillé accessible à la demande avec l'action `ploc_cellar.get_inventory`.
 - Synchronisation immédiate à la demande avec l'action `ploc_cellar.sync`.
@@ -125,7 +125,7 @@ Le jeton d'accès PLOUD et l'identifiant UUID de l'appareil sont conservés dans
 
 L'inventaire local et son curseur de synchronisation associé sont enregistrés avec le `Store` persistant de Home Assistant. Les changements reçus sont appliqués à une copie du modèle puis enregistrés avant de remplacer le modèle en mémoire : un échec d'écriture ne fait donc pas avancer le curseur actif.
 
-L'intégration envoie uniquement les paramètres nécessaires à la synchronisation et un objet `Objects` vide. Elle ne transmet aucun objet de cave et n'effectue aucune modification de la cave.
+L'intégration envoie uniquement les paramètres nécessaires à la synchronisation et un objet `Objects` vide. Elle ne transmet aucun objet de cave et n'effectue aucune modification de la cave. La collection `Owners` est traitée uniquement en mémoire pour renseigner `Wine.domain`. Si un propriétaire référencé par un nouveau vin manque dans le delta, le coordinateur effectue une seule synchronisation complète pour résoudre son nom.
 
 ## Validation
 
