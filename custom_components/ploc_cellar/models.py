@@ -122,16 +122,12 @@ class Cellar:
 
     def stock_for(self, wine: Wine) -> WineStock:
         """Calculate movement stock, unplaced bottles and inventory anomalies."""
-        wine_orders = (
-            order for order in self.orders.values() if order.wine_id == wine.id
-        )
-        purchased = sum(order.incoming for order in wine_orders)
-        # Use a fresh iterator because the first generator has been consumed.
-        consumed = sum(
-            order.outgoing
-            for order in self.orders.values()
-            if order.wine_id == wine.id
-        )
+        purchased = 0
+        consumed = 0
+        for order in self.orders.values():
+            if order.wine_id == wine.id:
+                purchased += order.incoming
+                consumed += order.outgoing
         movement_balance = purchased - consumed
         calculated_stock = max(0, movement_balance)
 
