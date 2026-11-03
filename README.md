@@ -72,6 +72,7 @@ Its attributes are:
 | `rack_count` | Number of racks |
 | `occupied_positions` | Number of positions occupied by stocked wines |
 | `stale` | Indicates that the latest synchronization failed |
+| `last_successful_sync` | Date and time of the last successful synchronization (ISO 8601) |
 
 Attribute labels are translated using the Home Assistant language. If synchronization fails, the last known local inventory is retained and `stale` indicates that the data may be outdated. A successful synchronization resets this flag to `false`.
 
