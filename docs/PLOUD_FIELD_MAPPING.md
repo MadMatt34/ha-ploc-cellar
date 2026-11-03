@@ -1,8 +1,9 @@
 # PLOUD field mapping
 
-This document records the field mappings observed in the complete local cellar
-snapshot supplied for the Ploc Cellar integration (116 wine records, 23 racks,
-144 rack items, sync cursor and six reference collections).
+This document records the field mappings observed in the supplied local cellar
+snapshot (116 wine records, 23 racks, 144 rack items, sync cursor and six stored
+reference collections) and in the full PLOUD synchronization response, which
+also returned 59 `Owners` records.
 
 It distinguishes confirmed mappings from interpretations and fields that remain
 unknown. Unknown fields are deliberately not exposed in the integration's
@@ -31,6 +32,7 @@ business model.
 | `bottle_format` | `bottle_format` | Bottle format label | Expanded label used directly; reference ID `vf` is not stored |
 | `bottle_volume_l` | `bottle_volume_l` | Bottle volume in litres | Expanded value used directly |
 | `pid` / `ploud_pid` | `ploud_pid` | PLOC product identifier | Confirmed by matching the compact and expanded fields; empty text becomes `None` |
+| `ow` / `Owners.id` → `fullname` | `domain` | Winery / estate name | Owner UUID resolved through the `Owners` collection; the PLOC `Owner` model inherits the `Contact.fullname` display field; empty or unresolved names become `None` |
 
 The legacy `ploud_reference_fields` dictionary is no longer part of the
 `Wine` model or newly persisted data. Its confirmed values are extracted during
@@ -49,10 +51,13 @@ The supplied snapshot contained these reference collections:
 | `countries` | 50 | `cn` | `country` |
 | `regions` | 406 | `rn` | `region` |
 
-The integration now consumes the expanded wine fields and does not parse or
-retain these reference collections. The sync request remains `Objects={}`, so
-the server may still include reference records in its response; network traffic
-is not guaranteed to decrease.
+The integration consumes the expanded wine fields and does not parse or retain
+the six general reference collections. It additionally processes the `Owners`
+collection to resolve each wine `ow` UUID to its winery name. The resolved name
+is stored directly in the `Wine` record; a compact UUID-to-name lookup is kept
+locally for incremental Wine changes, but the full Owner records are not retained.
+The sync request remains `Objects={}`, so other reference records may still be
+included in the response; network traffic is not guaranteed to decrease.
 
 The local RGB map reproduces all nine records from the supplied `colors`
 reference collection and is keyed by the wine's `co` color identifier:
@@ -80,7 +85,6 @@ local map is extended.
 
 | PLOUD key | Observed content | Decision |
 |---|---|---|
-| `ow` | Owner UUID | Excluded; owner information is not part of the integration model |
 | `tg` | Examples include `moelleux,`, `vin doux`, `foie gras` | Tags; excluded by design |
 | `ln` | `fr` on all 116 records | Language metadata; excluded |
 | `im` | UUID-like image identifier | Image metadata; excluded |
@@ -116,11 +120,14 @@ labels are used instead. They are not persisted as separate model attributes.
 - A deleted wine also frees its assigned positions without deleting the slots.
 - Deleting a rack removes its rack positions.
 - Empty rack slots (rack items with an empty `wine_id`) are retained.
-- The persistent cellar payload is migrated from schema version 1 to version 2
-  when loaded. The migrated payload is saved immediately when possible; if
-  that save fails, the migrated in-memory model remains usable and the next
-  successful sync retries persistence. Existing wine characteristics, rack
-  data, the incremental cursor and the last successful synchronization
-  timestamp are retained. Legacy zero-stock wines are removed and their
-  assigned rack positions are retained as empty slots during migration.
+- The persistent cellar payload is migrated from schema versions 1 and 2 to
+  version 3 when loaded. The migration resets the cursor to `1` once so the next
+  synchronization receives all `Owners` records and resolves existing wine
+  domains. The compact Owner UUID-to-name lookup is retained for incremental
+  Wine updates, but raw Owner records are not stored. The migrated payload is
+  saved immediately when possible; if that save fails, the migrated in-memory
+  model remains usable and the next successful sync retries persistence.
+  Existing wine characteristics, rack data and the last successful
+  synchronization timestamp are retained. Legacy zero-stock wines are removed
+  and their assigned rack positions are retained as empty slots during migration.
 - The synchronization remains read-only and continues to send `Objects={}`.
