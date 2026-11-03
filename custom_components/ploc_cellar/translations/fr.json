@@ -58,6 +58,18 @@
           },
           "last_successful_sync": {
             "name": "Dernière synchronisation réussie"
+          },
+          "total_stock_bottles": {
+            "name": "Bouteilles en stock total"
+          },
+          "bottles_to_store": {
+            "name": "Bouteilles non placées"
+          },
+          "inventory_error_wines": {
+            "name": "Vins avec anomalie d’inventaire"
+          },
+          "inventory_error_count": {
+            "name": "Nombre d’anomalies d’inventaire"
           }
         }
       }
