@@ -91,6 +91,16 @@
           "description": "Sélectionner la connexion PLOUD à utiliser."
         }
       }
+    },
+    "sync_full": {
+      "name": "Synchronisation complète",
+      "description": "Récupérer et reconstruire l’inventaire complet de la cave depuis PLOUD.",
+      "fields": {
+        "config_entry_id": {
+          "name": "Configuration Ploc Cellar",
+          "description": "Sélectionner la connexion PLOUD à utiliser."
+        }
+      }
     }
   },
   "device": {
