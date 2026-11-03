@@ -18,13 +18,13 @@ from .const import (
     CONF_LANGUAGE,
     CONF_SCAN_INTERVAL,
     CONF_TOKEN,
-    DEFAULT_LANGUAGE,
     DEFAULT_SCAN_INTERVAL,
     DOMAIN,
     MAX_SCAN_INTERVAL_MINUTES,
     MIN_SCAN_INTERVAL_MINUTES,
     SUPPORTED_LANGUAGES,
 )
+from .language import get_default_ploud_language, get_ploud_language
 from .types import (
     ConfigFlowUserInput,
     OptionsFlowInput,
@@ -66,7 +66,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                         async_get_clientsession(self.hass),
                         credentials["username"],
                         credentials["password"],
-                        DEFAULT_LANGUAGE,
+                        get_default_ploud_language(self.hass),
                     )
                 except PlocAuthError as err:
                     _LOGGER.warning("PLOC/PLOUD authentication failed: %s", err)
@@ -85,7 +85,6 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                         data={
                             CONF_TOKEN: token,
                             CONF_DEVICE: device,
-                            CONF_LANGUAGE: DEFAULT_LANGUAGE,
                         },
                     )
 
@@ -139,7 +138,9 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                         async_get_clientsession(self.hass),
                         credentials["username"],
                         credentials["password"],
-                        entry.data.get(CONF_LANGUAGE, DEFAULT_LANGUAGE),
+                        get_ploud_language(
+                            self.hass, entry.options.get(CONF_LANGUAGE)
+                        ),
                     )
                 except PlocAuthError as err:
                     _LOGGER.warning("PLOC/PLOUD reauthentication failed: %s", err)
@@ -215,13 +216,13 @@ class PlocCellarOptionsFlow(OptionsFlowWithReload):
 
         raw_language = self.config_entry.options.get(
             CONF_LANGUAGE,
-            self.config_entry.data.get(CONF_LANGUAGE, DEFAULT_LANGUAGE),
+            "auto",
         )
         current_language = (
             raw_language
             if isinstance(raw_language, str)
-            and raw_language in SUPPORTED_LANGUAGES
-            else DEFAULT_LANGUAGE
+            and raw_language in (*SUPPORTED_LANGUAGES, "auto")
+            else "auto"
         )
 
         schema = cast(
@@ -244,6 +245,10 @@ class PlocCellarOptionsFlow(OptionsFlowWithReload):
                     ): selector.SelectSelector(  # pyright: ignore[reportUnknownMemberType]
                         selector.SelectSelectorConfig(
                             options=[
+                                selector.SelectOptionDict(
+                                    value="auto",
+                                    label="Automatic (Home Assistant country)",
+                                ),
                                 selector.SelectOptionDict(
                                     value="fr",
                                     label="Français",
