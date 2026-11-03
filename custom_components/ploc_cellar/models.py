@@ -36,6 +36,8 @@ class Wine:
     bottle_format: str | None
     bottle_volume_l: float | None
     ploud_pid: str | None
+    domain: str | None
+    owner_id: str | None
 
 
 @dataclass(frozen=True, slots=True)
@@ -117,6 +119,8 @@ class Cellar:
                 "bottle_format": wine.bottle_format,
                 "bottle_volume_l": wine.bottle_volume_l,
                 "ploud_pid": wine.ploud_pid,
+                "domain": wine.domain,
+                "owner_id": wine.owner_id,
             }
             for wine_id, wine in self.wines.items()
         }
@@ -148,11 +152,14 @@ class Cellar:
     def from_storage(cls, data: JsonObject) -> Cellar:
         """Restore and migrate a persisted cellar snapshot."""
         data_version = _int(data.get("version"))
-        if data_version not in (1, CELLAR_DATA_VERSION):
+        if data_version not in (1, 2, CELLAR_DATA_VERSION):
             raise ValueError("Unsupported Ploc Cellar storage version")
 
+        stored_cursor = max(1, _int(data.get("cursor")) or 1)
         cellar = cls(
-            cursor=max(1, _int(data.get("cursor")) or 1),
+            # v1/v2 snapshots predate owner-name resolution. Reset the cursor
+            # once so the next sync receives the complete Owners collection.
+            cursor=1 if data_version < CELLAR_DATA_VERSION else stored_cursor,
             last_sync=_str(data.get("last_sync")),
             initialized=data.get("initialized") is True,
         )
@@ -317,6 +324,8 @@ def _wine_from_dict(raw: JsonObject, key: str) -> Wine:
         bottle_format=_optional_str(value("bottle_format", "bottle_format")),
         bottle_volume_l=_positive_float(value("bottle_volume_l", "bottle_volume_l")),
         ploud_pid=_optional_str(value("ploud_pid", "pid")),
+        domain=_optional_str(value("domain", "domain")),
+        owner_id=_optional_str(value("owner_id", "ow")),
     )
 
 
