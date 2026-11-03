@@ -28,14 +28,14 @@ class SyncServiceData(TypedDict):
 class ConfigFlowUserInput(TypedDict):
     """Validated PLOC account credentials for initial setup."""
 
-    username: str
+    email: str
     password: str
 
 
 class ReauthFlowInput(TypedDict):
     """Validated PLOC account credentials for reauthentication."""
 
-    username: str
+    email: str
     password: str
 
 
