@@ -125,14 +125,6 @@ class Cellar:
         return sum(wine.bottles_in_cellar > 0 for wine in self.wines.values())
 
     @property
-    def total_stocked_wines(self) -> int:
-        """Return the number of wine references with reconstructed stock."""
-        return sum(
-            self.stock_for(wine).effective_stock > 0
-            for wine in self.wines.values()
-        )
-
-    @property
     def total_positions(self) -> int:
         """Return the number of physical rack positions, occupied or empty."""
         return len(self.rack_items)
