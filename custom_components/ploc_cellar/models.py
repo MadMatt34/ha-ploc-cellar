@@ -73,9 +73,6 @@ class Cellar:
     rack_items: dict[str, RackItem] = field(
         default_factory=lambda: dict[str, RackItem]()
     )
-    owner_names: dict[str, str | None] = field(
-        default_factory=lambda: dict[str, str | None]()
-    )
 
     @property
     def total_bottles(self) -> int:
@@ -149,26 +146,24 @@ class Cellar:
             "wines": wines,
             "racks": racks,
             "rack_items": rack_items,
-            "owner_names": cast(JsonValue, self.owner_names),
         }
 
     @classmethod
     def from_storage(cls, data: JsonObject) -> Cellar:
         """Restore and migrate a persisted cellar snapshot."""
         data_version = _int(data.get("version"))
-        if data_version not in (1, 2, CELLAR_DATA_VERSION):
+        if data_version not in (1, 2, 3, CELLAR_DATA_VERSION):
             raise ValueError("Unsupported Ploc Cellar storage version")
 
         stored_cursor = max(1, _int(data.get("cursor")) or 1)
         cellar = cls(
-            # v1/v2 snapshots predate owner-name resolution. Reset the cursor
-            # once so the next sync receives the complete Owners collection.
-            cursor=1 if data_version < CELLAR_DATA_VERSION else stored_cursor,
+            # v1/v2 snapshots predate wine-level owner resolution. Reset the
+            # cursor once so the next full sync can populate Wine.domain.
+            # v3 already stores Wine.domain and can keep its incremental cursor.
+            cursor=1 if data_version < 3 else stored_cursor,
             last_sync=_str(data.get("last_sync")),
             initialized=data.get("initialized") is True,
         )
-        for owner_id, owner_name in _as_dict(data.get("owner_names")).items():
-            cellar.owner_names[owner_id.casefold()] = _optional_str(owner_name)
 
         removed_wine_ids: set[str] = set()
         for key, raw in _as_dict(data.get("wines")).items():
