@@ -247,7 +247,7 @@ class PlocCellarOptionsFlow(OptionsFlowWithReload):
                             options=[
                                 selector.SelectOptionDict(
                                     value="auto",
-                                    label="Automatic (Home Assistant country)",
+                                    label="Auto",
                                 ),
                                 selector.SelectOptionDict(
                                     value="fr",
