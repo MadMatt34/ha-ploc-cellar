@@ -41,14 +41,15 @@ class PlocCellarSensor(CoordinatorEntity[PlocCellarCoordinator], SensorEntity):
         return self.coordinator.data.total_bottles
 
     @cached_property
-    def extra_state_attributes(self) -> dict[str, int | bool]:
-        """Expose stable aggregate attributes and a stale-data indicator."""
+    def extra_state_attributes(self) -> dict[str, int | bool | str | None]:
+        """Expose aggregate attributes and the last successful synchronization."""
         cellar = self.coordinator.data
         return {
             "stocked_wines": cellar.stocked_wines,
             "rack_count": len(cellar.racks),
             "occupied_positions": cellar.occupied_positions,
             "stale": cellar.stale,
+            "last_successful_sync": cellar.last_sync,
         }
 
 
