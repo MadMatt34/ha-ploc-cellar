@@ -73,6 +73,9 @@ class Cellar:
     rack_items: dict[str, RackItem] = field(
         default_factory=lambda: dict[str, RackItem]()
     )
+    owner_names: dict[str, str | None] = field(
+        default_factory=lambda: dict[str, str | None]()
+    )
 
     @property
     def total_bottles(self) -> int:
@@ -146,6 +149,7 @@ class Cellar:
             "wines": wines,
             "racks": racks,
             "rack_items": rack_items,
+            "owner_names": self.owner_names,
         }
 
     @classmethod
@@ -163,6 +167,9 @@ class Cellar:
             last_sync=_str(data.get("last_sync")),
             initialized=data.get("initialized") is True,
         )
+        for owner_id, owner_name in _as_dict(data.get("owner_names")).items():
+            cellar.owner_names[owner_id.casefold()] = _optional_str(owner_name)
+
         removed_wine_ids: set[str] = set()
         for key, raw in _as_dict(data.get("wines")).items():
             if not isinstance(raw, dict):
