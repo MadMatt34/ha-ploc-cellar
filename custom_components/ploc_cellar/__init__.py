@@ -33,6 +33,7 @@ from .const import (
     PLOUD_DEFAULT_SERVER,
     SERVICE_GET_INVENTORY,
     SERVICE_SYNC,
+    SERVICE_SYNC_FULL,
 )
 from .coordinator import PlocCellarCoordinator
 from .language import get_ploud_language
@@ -204,6 +205,21 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
         DOMAIN,
         SERVICE_SYNC,
         sync_service,
+        schema=SYNC_SCHEMA,
+    )
+
+    async def sync_full_service(call: ServiceCall) -> None:
+        """Trigger a complete PLOUD synchronization."""
+        service_data = cast(SyncServiceData, call.data)
+        coordinator = _get_coordinator(
+            hass, service_data["config_entry_id"]
+        )
+        await coordinator.async_force_full_sync()
+
+    hass.services.async_register(  # pyright: ignore[reportUnknownMemberType]
+        DOMAIN,
+        SERVICE_SYNC_FULL,
+        sync_full_service,
         schema=SYNC_SCHEMA,
     )
     return True
