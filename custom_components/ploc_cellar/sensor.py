@@ -49,6 +49,8 @@ class PlocCellarSensor(CoordinatorEntity[PlocCellarCoordinator], SensorEntity):
             "bottles_to_store": cellar.total_bottles_to_store,
             "inventory_error_wines": cellar.inventory_error_wines,
             "inventory_error_count": cellar.inventory_error_count,
+            "movement_warning_wines": cellar.movement_warning_wines,
+            "movement_warning_bottles": cellar.movement_warning_bottles,
             "rack_count": len(cellar.racks),
             "total_positions": cellar.total_positions,
             "empty_positions": cellar.empty_positions,
