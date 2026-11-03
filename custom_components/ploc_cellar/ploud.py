@@ -129,6 +129,16 @@ def _source_value(
     return None
 
 
+def _reference_id(value: object) -> str | None:
+    """Normalize a PLOUD reference ID without accepting booleans."""
+    if isinstance(value, bool) or value is None:
+        return None
+    if isinstance(value, str):
+        return value.strip() or None
+    if isinstance(value, int):
+        return str(value)
+    return None
+
 def _parse_color_rgb(value: object) -> tuple[int, int, int] | None:
     """Parse a validated RGB triplet."""
     if not isinstance(value, (list, tuple)):
@@ -161,17 +171,6 @@ _COLOR_RGB_BY_ID: dict[str, tuple[int, int, int]] = {
     "721a2c41-cdcb-4629-a7fb-7c30ea2fbd87": (34, 199, 129),  # Sirop
 }
 
-_COLOR_RGB_BY_LABEL: dict[str, tuple[int, int, int]] = {
-    "autre": (153, 115, 85),
-    "blanc": (255, 211, 116),
-    "effervescent": (237, 214, 182),
-    "liquoreux": (158, 195, 199),
-    "muté": (65, 101, 138),
-    "orange": (240, 142, 68),
-    "rosé": (225, 136, 145),
-    "rouge": (201, 25, 58),
-    "sirop": (34, 199, 129),
-}
 
 
 def _parse_wine(raw: JsonObject) -> Wine:
@@ -182,16 +181,14 @@ def _parse_wine(raw: JsonObject) -> Wine:
     )
 
     color = _optional_text(_source_value(raw, fields, "color"))
-    color_id = _source_value(raw, fields, "color_id", "co")
+    color_id = _reference_id(_source_value(raw, fields, "color_id", "co"))
     color_rgb = (
-        _parse_color_rgb(_source_value(raw, fields, "color_rgb"))
-        or _COLOR_RGB_BY_ID.get(str(color_id))
-        or (
-            _COLOR_RGB_BY_LABEL.get(color.casefold())
-            if color is not None
-            else None
-        )
+        _COLOR_RGB_BY_ID.get(color_id) if color_id is not None else None
     )
+    if color_rgb is None:
+        # Prefer the PLOUD identifier mapping. Accept an explicit RGB value
+        # only as a fallback for payloads that omit a recognized color ID.
+        color_rgb = _parse_color_rgb(_source_value(raw, fields, "color_rgb"))
 
     wine_id = raw.get("id")
     if not isinstance(wine_id, str) or not wine_id.strip():
