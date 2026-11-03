@@ -99,7 +99,10 @@ def _build_inventory_response(
         (
             wine
             for wine in cellar.wines.values()
-            if cellar.stock_for(wine).effective_stock > 0 or wine.bottles_in_cellar > 0
+            if (
+                cellar.stock_for(wine).effective_stock > 0
+                or wine.bottles_in_cellar > 0
+            )
         ),
         key=lambda wine: (wine.name.casefold(), wine.vintage or 0),
     )
