@@ -53,7 +53,7 @@ When Home Assistant requests reauthentication, enter the PLOC account email addr
 
 Open **Settings → Devices & services → Ploc Cellar → Configure** to change:
 
-- **Synchronization interval**: 5 to 1,440 minutes; 15 minutes by default.
+- **Synchronization interval**: 5 to 1,440 minutes; 240 minutes by default.
 - **PLOUD response language**: `Automatic`, `Français` or `English`. In automatic mode (the default), francophone countries use `fr` and all other countries use `en`. When no country is configured in Home Assistant, its general language is used as a fallback (`fr` for French, `en` otherwise). The manual `Français` and `English` choices remain in force until `Automatic` is selected.
 
 Saving the options reloads the config entry. The PLOUD server endpoint cannot be changed through the integration.
