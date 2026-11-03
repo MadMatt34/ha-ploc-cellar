@@ -87,7 +87,7 @@ class PlocCellarCoordinator(DataUpdateCoordinator[Cellar]):
             )
             if not self.cellar.initialized:
                 collection_names = {name.casefold() for name in objects}
-                required = {"wines", "racks", "rackitems"}
+                required = {"wines", "racks", "rackitems", "owners"}
                 if not required.issubset(collection_names):
                     raise PloudError(
                         "Initial PLOUD sync is missing one or more cellar collections"
