@@ -78,7 +78,7 @@
   "services": {
     "get_inventory": {
       "name": "Get inventory",
-      "description": "Return wines with at least one occupied rack position, their in-cellar quantity, total PLOUD stock and rack positions, without creating entities.",
+      "description": "Return wines with declared stock or occupied rack positions, their in-cellar and unplaced quantities, stock movements and inventory anomalies, without creating entities.",
       "fields": {
         "search": {
           "name": "Search",
