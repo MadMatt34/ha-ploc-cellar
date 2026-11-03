@@ -43,12 +43,16 @@ class PlocCellarSensor(CoordinatorEntity[PlocCellarCoordinator], SensorEntity):
         """Expose aggregate attributes and the last successful synchronization."""
         cellar = self.coordinator.data
         return {
+            "wine_references": cellar.wine_references,
             "stocked_wines": cellar.stocked_wines,
             "total_stock_bottles": cellar.total_stock_bottles,
+            "total_stocked_wines": cellar.total_stocked_wines,
             "bottles_to_store": cellar.total_bottles_to_store,
             "inventory_error_wines": cellar.inventory_error_wines,
             "inventory_error_count": cellar.inventory_error_count,
             "rack_count": len(cellar.racks),
+            "total_positions": cellar.total_positions,
+            "empty_positions": cellar.empty_positions,
             "occupied_positions": cellar.occupied_positions,
             "stale": cellar.stale,
             "last_successful_sync": cellar.last_sync,
