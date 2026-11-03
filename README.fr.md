@@ -38,7 +38,7 @@ Home Assistant effectue automatiquement les opérations suivantes :
 2. Activation de PLOUD pour l'application **Home Assistant** via `POST https://api.ploc.co/v1/ploud/activate`, avec le jeton de session PLOC obtenu à l'étape précédente.
 3. Récupération du jeton d'accès PLOUD retourné par l'activation.
 4. Génération d'un identifiant d'appareil UUID propre à cette installation.
-5. Enregistrement du jeton d'accès PLOUD, de l'identifiant d'appareil et de la langue initiale dans l'entrée de configuration Home Assistant.
+5. Enregistrement du jeton d'accès PLOUD et de l'identifiant d'appareil dans l'entrée de configuration Home Assistant. La langue n'est pas figée dans cette entrée : elle est déterminée automatiquement à partir du pays configuré dans Home Assistant.
 6. Première synchronisation en lecture seule avec le serveur PLOUD fixe.
 
 L'identifiant UUID complet est conservé localement. Pour les requêtes PLOUD, seul son préfixe de cinq caractères est envoyé dans le champ `Device` et utilisé pour calculer la signature, conformément au comportement du client Android.
@@ -54,7 +54,7 @@ Si Home Assistant demande une réauthentification, saisir à nouveau l'adresse e
 Dans **Paramètres → Appareils et services → Ploc Cellar → Configurer**, les options suivantes sont disponibles :
 
 - **Intervalle de synchronisation** : de 5 à 1 440 minutes ; 15 minutes par défaut.
-- **Langue des réponses PLOUD** : français ou anglais ; français par défaut.
+- **Langue des réponses PLOUD** : `Automatique`, `Français` ou `English`. En mode automatique (par défaut), les pays francophones utilisent `fr` et les autres pays `en`. Si aucun pays n'est défini dans Home Assistant, la langue générale de Home Assistant sert de repli (`fr` si elle est française, `en` sinon). Les choix manuels `Français` et `English` restent prioritaires jusqu'à ce que `Automatique` soit sélectionné.
 
 L'enregistrement des options recharge l'entrée de configuration. L'adresse du serveur PLOUD n'est pas modifiable depuis l'intégration.
 
