@@ -1,11 +1,18 @@
 {
   "domain": "ploc_cellar",
   "name": "Ploc Cellar",
-  "codeowners": ["@MadMatt34"],
+  "categories": [
+    "health_wellbeing",
+    "productivity_information"
+  ],
+  "codeowners": [
+    "@MadMatt34"
+  ],
   "config_flow": true,
-  "documentation": "https://github.com/MadMatt34/ha-ploc-cellar",
+  "documentation": "https://github.com/MadMatt34/ha-ploc-cellar/blob/main/README.md",
   "integration_type": "hub",
   "iot_class": "cloud_polling",
+  "issue_tracker": "https://github.com/MadMatt34/ha-ploc-cellar/issues",
   "requirements": [],
   "version": "0.6.9"
 }
