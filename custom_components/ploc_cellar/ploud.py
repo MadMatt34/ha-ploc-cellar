@@ -141,6 +141,19 @@ def _reference_id(value: object) -> str | None:
         return str(value)
     return None
 
+
+def _source_reference_id(
+    raw: JsonObject,
+    fields: JsonObject,
+    *names: str,
+) -> tuple[bool, str | None]:
+    """Read a reference while distinguishing an explicit empty value."""
+    for source in (raw, fields):
+        for name in names:
+            if name in source:
+                return True, _reference_id(source[name])
+    return False, None
+
 def _parse_color_rgb(value: object) -> tuple[int, int, int] | None:
     """Parse a validated RGB triplet."""
     if not isinstance(value, (list, tuple)):
