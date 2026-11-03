@@ -183,14 +183,14 @@ class Cellar:
 
     @property
     def total_bottles_to_store(self) -> int:
-        """Return the number of declared bottles not assigned to a rack."""
+        """Return the number of reconstructed bottles not assigned to a rack."""
         return sum(
             self.stock_for(wine).bottles_to_store for wine in self.wines.values()
         )
 
     @property
     def inventory_error_wines(self) -> int:
-        """Return the number of wines with at least one inventory anomaly."""
+        """Return the number of references with bottles not placed in a rack."""
         return sum(
             bool(self.stock_for(wine).inventory_errors)
             for wine in self.wines.values()
@@ -198,7 +198,7 @@ class Cellar:
 
     @property
     def inventory_error_count(self) -> int:
-        """Return the number of inventory anomaly flags across all wines."""
+        """Return the number of references affected by unplaced bottles."""
         return sum(
             len(self.stock_for(wine).inventory_errors)
             for wine in self.wines.values()
