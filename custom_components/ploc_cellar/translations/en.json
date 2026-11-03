@@ -78,7 +78,13 @@
             "name": "Wines with inventory anomalies"
           },
           "inventory_error_count": {
-            "name": "Inventory anomaly count"
+            "name": "References with unplaced bottles"
+          },
+          "movement_warning_wines": {
+            "name": "Wines with movement anomalies"
+          },
+          "movement_warning_bottles": {
+            "name": "Bottles with movement discrepancies"
           }
         }
       }
@@ -87,7 +93,7 @@
   "services": {
     "get_inventory": {
       "name": "Get inventory",
-      "description": "Return wines with declared stock or occupied rack positions, their in-cellar and unplaced quantities, stock movements and inventory anomalies, without creating entities.",
+      "description": "Return wines in stock, unplaced bottles and movement anomalies, without creating entities.",
       "fields": {
         "search": {
           "name": "Search",
