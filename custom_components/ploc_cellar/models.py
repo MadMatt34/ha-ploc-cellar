@@ -149,7 +149,7 @@ class Cellar:
             "wines": wines,
             "racks": racks,
             "rack_items": rack_items,
-            "owner_names": self.owner_names,
+            "owner_names": cast(JsonValue, self.owner_names),
         }
 
     @classmethod
