@@ -7,6 +7,8 @@ from typing import cast
 
 from homeassistant.util.json import JsonObjectType, JsonValueType
 
+from .const import CELLAR_DATA_VERSION
+
 type JsonValue = JsonValueType
 type JsonObject = JsonObjectType
 
