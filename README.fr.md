@@ -105,13 +105,13 @@ response_variable: cave
 La réponse contient :
 
 - les totaux globaux : `total_bottles` et `stocked_wines` décrivent le contenu physique des casiers ; `total_stock_bottles` et `total_stocked_wines` décrivent le stock effectif reconstitué ; `bottles_to_store`, `inventory_error_wines` et `inventory_error_count` donnent les quantités non placées et les anomalies ;
-- `rack_count` et `occupied_positions`, le nombre de casiers et d'emplacements occupés ;
+- `rack_count`, `total_positions`, `occupied_positions` et `empty_positions`, le nombre de casiers et le détail des emplacements ;
 - `matching_wines`, le nombre de vins correspondant aux filtres ;
 - `racks`, la liste des casiers ;
-- `wines`, les vins ayant un stock déclaré ou au moins un emplacement occupé, avec `bottles` (stock effectif reconstitué), `ploud_bottles` (valeur brute `Wine.bo`), `bottles_in_cellar` (en cave), `bottles_to_store` (non placées), `purchased`, `consumed`, `movement_balance`, `calculated_stock`, `inventory_errors` (bouteilles non placées) et `movement_warnings` (écarts avec le stock brut PLOUD) ;
+- `wines`, les vins ayant un stock effectif ou au moins un emplacement occupé, avec `bottles` (stock effectif reconstitué), `ploud_bottles` (valeur brute `Wine.bo`), `bottles_in_cellar` (en cave), `bottles_to_store` (non placées), `purchased`, `consumed`, `movement_balance`, `calculated_stock`, `inventory_errors` (bouteilles non placées) et `movement_warnings` (écarts avec le stock brut PLOUD) ;
 - `last_sync`, la date et l'heure de la dernière synchronisation réussie.
 
-Les valeurs de `inventory_errors` peuvent contenir `negative_movement_balance`, `declared_stock_above_movements`, `declared_stock_below_movements` ou `cellar_stock_above_total`. Un écart avec les mouvements est un signal à vérifier, pas une correction automatique. Les filtres ne modifient pas les totaux globaux. Chaque emplacement associé à un vin contient le nom et l'identifiant du casier, ainsi que la rangée et la colonne lorsqu'elles sont disponibles.
+Dans `inventory_errors`, la valeur `unplaced_bottles` signale une référence avec des bouteilles non placées. Les écarts entre `Wine.bo` et le stock reconstitué sont séparés dans `movement_warnings` (`negative_movement_balance`, `ploud_stock_above_reconstructed_stock` ou `ploud_stock_below_reconstructed_stock`) ; ils sont informatifs et ne déclenchent aucune correction. Les filtres ne modifient pas les totaux globaux. Chaque emplacement associé à un vin contient le nom et l'identifiant du casier, ainsi que la rangée et la colonne lorsqu'elles sont disponibles.
 
 ### `ploc_cellar.sync`
 
