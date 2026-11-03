@@ -91,6 +91,16 @@
           "description": "Select the PLOUD connection to use."
         }
       }
+    },
+    "sync_full": {
+      "name": "Full synchronization",
+      "description": "Fetch and rebuild the complete cellar inventory from PLOUD.",
+      "fields": {
+        "config_entry_id": {
+          "name": "Ploc Cellar configuration",
+          "description": "Select the PLOUD connection to use."
+        }
+      }
     }
   },
   "device": {
