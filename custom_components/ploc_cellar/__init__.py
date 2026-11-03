@@ -94,15 +94,33 @@ def _build_inventory_response(
     normalized_search = search.casefold().strip()
     normalized_color = color.casefold().strip()
     inventory: list[JsonValueType] = []
+    movement_anomalies: list[JsonValueType] = []
+
+    for wine in sorted(
+        cellar.wines.values(),
+        key=lambda item: (item.name.casefold(), item.vintage or 0),
+    ):
+        stock = cellar.stock_for(wine)
+        if not stock.movement_warnings:
+            continue
+        movement_anomalies.append(
+            {
+                "id": wine.id,
+                "name": wine.name,
+                "domain": wine.domain,
+                "vintage": wine.vintage,
+                "effective_stock": stock.effective_stock,
+                "movement_balance": stock.movement_balance,
+                "movement_difference_bottles": stock.movement_difference_bottles,
+                "movement_warnings": list(stock.movement_warnings),
+            }
+        )
 
     stocked_wines = sorted(
         (
             wine
             for wine in cellar.wines.values()
-            if (
-                cellar.stock_for(wine).effective_stock > 0
-                or wine.bottles_in_cellar > 0
-            )
+            if cellar.stock_for(wine).effective_stock > 0
         ),
         key=lambda wine: (wine.name.casefold(), wine.vintage or 0),
     )
@@ -149,6 +167,7 @@ def _build_inventory_response(
                 "consumed": stock.consumed,
                 "movement_balance": stock.movement_balance,
                 "calculated_stock": stock.calculated_stock,
+                "movement_difference_bottles": stock.movement_difference_bottles,
                 "inventory_errors": list(stock.inventory_errors),
                 "movement_warnings": list(stock.movement_warnings),
                 "vintage": wine.vintage,
@@ -187,6 +206,9 @@ def _build_inventory_response(
         "bottles_to_store": cellar.total_bottles_to_store,
         "inventory_error_wines": cellar.inventory_error_wines,
         "inventory_error_count": cellar.inventory_error_count,
+        "movement_warning_wines": cellar.movement_warning_wines,
+        "movement_warning_bottles": cellar.movement_warning_bottles,
+        "movement_anomalies": movement_anomalies,
         "matching_wines": len(inventory),
         "rack_count": len(cellar.racks),
         "occupied_positions": cellar.occupied_positions,
