@@ -174,8 +174,14 @@ class Cellar:
         for key, raw in _as_dict(data.get("rack_items")).items():
             if isinstance(raw, dict):
                 item = _rack_item_from_dict(raw, key)
-                if item.wine_id not in removed_wine_ids:
-                    cellar.rack_items[key] = item
+                if item.wine_id in removed_wine_ids or (
+                    item.wine_id and item.wine_id not in cellar.wines
+                ):
+                    # Keep the physical rack slot but clear its wine assignment.
+                    item = RackItem(
+                        item.id, item.rack_id, "", item.row, item.column
+                    )
+                cellar.rack_items[key] = item
 
         return cellar
 
