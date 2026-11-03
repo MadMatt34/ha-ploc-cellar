@@ -121,8 +121,11 @@ def _source_value(
     """Read a display-ready field from a PLOUD record or its expanded fields."""
     for source in (raw, fields):
         for name in names:
-            if name in source:
-                return source[name]
+            value = source.get(name)
+            if value is not None and not (
+                isinstance(value, str) and not value.strip()
+            ):
+                return value
     return None
 
 
@@ -171,16 +174,25 @@ def _parse_wine(raw: JsonObject) -> Wine:
         _source_value(raw, fields, "color_rgb")
     ) or (_COLOR_RGB.get(color.casefold()) if color is not None else None)
 
+    wine_id = raw.get("id")
+    if not isinstance(wine_id, str) or not wine_id.strip():
+        raise PloudError("PLOUD returned a wine without a valid ID")
+
+    raw_bottles = _source_value(raw, fields, "bottles", "bo")
+    bottles = _int(raw_bottles)
+    if bottles is None or bottles < 0:
+        raise PloudError(
+            f"PLOUD returned an invalid bottle count for wine {wine_id}"
+        )
+
     vintage = _int(_source_value(raw, fields, "vintage", "vi"))
     if vintage is not None and vintage <= 0:
         vintage = None
 
     return Wine(
-        id=str(raw["id"]),
+        id=wine_id,
         name=_optional_text(_source_value(raw, fields, "name", "nm")) or "",
-        bottles=max(
-            0, _int(_source_value(raw, fields, "bottles", "bo")) or 0
-        ),
+        bottles=bottles,
         vintage=vintage,
         appellation=_optional_text(_source_value(raw, fields, "appellation")),
         color=color,
