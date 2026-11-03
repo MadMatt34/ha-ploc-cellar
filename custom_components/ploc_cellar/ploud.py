@@ -233,8 +233,10 @@ def _parse_wine(
     if vintage is not None and vintage <= 0:
         vintage = None
 
-    owner_id = _reference_id(_source_value(raw, fields, "owner_id", "ow"))
-    if owner_id is None and previous is not None:
+    has_owner_id, owner_id = _source_reference_id(
+        raw, fields, "owner_id", "ownerId", "ow", "owner", "Owner"
+    )
+    if not has_owner_id and previous is not None:
         owner_id = previous.owner_id
 
     domain = _optional_text(
