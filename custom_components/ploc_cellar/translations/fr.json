@@ -31,7 +31,7 @@
     "step": {
       "init": {
         "title": "Paramètres de synchronisation",
-        "description": "Définissez l’intervalle entre deux synchronisations et la langue des réponses de PLOUD.",
+        "description": "Définissez l’intervalle de synchronisation et la langue des réponses PLOUD. Le mode automatique utilise le pays de Home Assistant (français pour les pays francophones, anglais pour les autres). Vous pouvez choisir manuellement le français ou l’anglais.",
         "data": {
           "scan_interval": "Intervalle de synchronisation (minutes)",
           "language": "Langue des réponses PLOUD"
