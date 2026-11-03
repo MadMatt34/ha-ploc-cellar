@@ -98,6 +98,11 @@ class PlocCellarCoordinator(DataUpdateCoordinator[Cellar]):
                 if self._force_full_sync or not self.cellar.initialized
                 else self.cellar.cursor
             )
+            _LOGGER.info(
+                "Starting PLOUD %s synchronization (LastSyncTime=%d)",
+                "full" if cursor == 1 else "incremental",
+                cursor,
+            )
             objects, next_cursor = await async_sync(
                 self.session,
                 server=self.server,
@@ -107,6 +112,12 @@ class PlocCellarCoordinator(DataUpdateCoordinator[Cellar]):
                 cursor=cursor,
             )
             full_sync = cursor == 1
+            _LOGGER.info(
+                "PLOUD response received: %s",
+                ", ".join(
+                    f"{name}={len(records)}" for name, records in objects.items()
+                ) or "no supported collections",
+            )
             if full_sync:
                 _validate_full_sync(objects)
 
@@ -171,6 +182,7 @@ class PlocCellarCoordinator(DataUpdateCoordinator[Cellar]):
 
     async def async_force_full_sync(self) -> Cellar:
         """Request a complete PLOUD snapshot without clearing current data first."""
+        _LOGGER.info("Manual full PLOUD synchronization requested")
         self._force_full_sync = True
         while self._force_full_sync:
             await self.async_refresh()
