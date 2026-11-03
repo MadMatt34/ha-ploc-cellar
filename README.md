@@ -14,7 +14,7 @@ A Home Assistant custom integration for a **read-only** view of a PLOC wine cell
 - PLOUD remains the source of truth.
 - Read-only incremental synchronization through `POST https://ploud.ploc.co/v1/sync/exec`, using `Objects={}`.
 - Initial synchronization uses the validated bootstrap value `LastSyncTime=1`. Later synchronizations use the client-maintained Unix-millisecond cursor.
-- Persistent local model containing stocked wines only, racks and rack positions. Wine characteristics are stored directly in each wine record; reference collections are not synchronized.
+- Persistent local model containing stocked wines only, racks and rack positions. Wine characteristics are stored directly in each wine record; reference collections are not processed or retained locally.
 - One compact summary sensor; no entity is created for each wine, rack or position.
 - Detailed inventory is returned on demand by the `ploc_cellar.get_inventory` action.
 - Immediate synchronization is available through the `ploc_cellar.sync` action.
@@ -125,7 +125,7 @@ The PLOUD access token and device UUID are stored in the Home Assistant config e
 
 The local inventory and its matching synchronization cursor are stored through Home Assistant's persistent `Store`. Received changes are applied to a candidate model and saved before replacing the in-memory model, so a failed storage write does not advance the active cursor.
 
-The integration sends only the parameters required for synchronization and an empty `Objects` field. It does not send cellar objects or perform cellar modifications.
+The integration sends only the parameters required for synchronization and an empty `Objects` field. It does not send cellar objects or perform cellar modifications. PLOUD may still include reference collections in its response; the integration ignores them, so the local model and processing are smaller, but network traffic is not necessarily reduced.
 
 ## Validation
 
