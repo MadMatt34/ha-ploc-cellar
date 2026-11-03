@@ -15,6 +15,7 @@ from homeassistant.util.json import JsonValueType
 
 from .const import (
     PLOUD_COLLECTION_DELETED,
+    PLOUD_COLLECTION_ORDERS,
     PLOUD_COLLECTION_OWNERS,
     PLOUD_COLLECTION_RACK_ITEMS,
     PLOUD_COLLECTION_RACKS,
@@ -25,7 +26,7 @@ from .const import (
     PLOUD_SYNC_PATH,
     PLOUD_VERSION,
 )
-from .models import Cellar, JsonObject, Rack, RackItem, Wine
+from .models import Cellar, JsonObject, Order, Rack, RackItem, Wine
 
 type PLOUDCollections = dict[str, list[JsonObject]]
 
@@ -526,6 +527,28 @@ def apply_sync(
             )
             cellar.rack_items[item.id] = item
 
+    for raw in _collection(objects, PLOUD_COLLECTION_ORDERS):
+        identifier = raw.get("id")
+        if not isinstance(identifier, str) or not identifier:
+            raise PloudError("PLOUD returned an Order without a valid ID")
+        wine_id = _optional_text(raw.get("wi", raw.get("wine_id", raw.get("wine"))))
+        incoming = _int(raw.get("in"))
+        outgoing = _int(raw.get("ot"))
+        if (
+            wine_id is None
+            or incoming is None
+            or outgoing is None
+            or incoming < 0
+            or outgoing < 0
+        ):
+            raise PloudError(f"PLOUD returned an invalid Order record: {identifier}")
+        cellar.orders[identifier] = Order(
+            id=identifier,
+            wine_id=wine_id,
+            incoming=incoming,
+            outgoing=outgoing,
+        )
+
     for raw in _collection(objects, PLOUD_COLLECTION_DELETED):
         object_id = _deleted_id(raw)
         if object_id is None:
@@ -553,6 +576,7 @@ def apply_sync(
             "wine": cellar.wines,
             "rack": cellar.racks,
             "rackitem": cellar.rack_items,
+            "order": cellar.orders,
         }
         if normalized_kind in named_targets:
             named_targets[normalized_kind].pop(object_id, None)
@@ -566,6 +590,7 @@ def apply_sync(
             ("wine", cellar.wines),
             ("rack", cellar.racks),
             ("rackitem", cellar.rack_items),
+            ("order", cellar.orders),
         )
         matches = [
             (target_kind, mapping)
