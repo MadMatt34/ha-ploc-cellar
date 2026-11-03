@@ -44,11 +44,20 @@
       "inventory": {
         "name": "Inventaire",
         "state_attributes": {
+          "wine_references": {
+            "name": "Références de vins"
+          },
           "stocked_wines": {
             "name": "Références en cave"
           },
           "rack_count": {
             "name": "Nombre de casiers"
+          },
+          "total_positions": {
+            "name": "Emplacements totaux"
+          },
+          "empty_positions": {
+            "name": "Emplacements vides"
           },
           "occupied_positions": {
             "name": "Emplacements occupés"
