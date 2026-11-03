@@ -23,6 +23,7 @@ from .const import (
     PLOUD_VERSION,
 )
 from .models import Cellar, JsonObject, Rack, RackItem, Wine
+
 type PLOUDCollections = dict[str, list[JsonObject]]
 
 
@@ -85,11 +86,6 @@ def _int(value: object) -> int | None:
     return None
 
 
-def _text(value: object) -> str | None:
-    """Return a string value."""
-    return value if isinstance(value, str) else None
-
-
 def _float(value: object) -> float | None:
     """Parse a finite floating-point value."""
     if isinstance(value, bool):
@@ -132,9 +128,12 @@ def _source_value(
 
 def _parse_color_rgb(value: object) -> tuple[int, int, int] | None:
     """Parse a validated RGB triplet."""
-    if not isinstance(value, (list, tuple)) or len(value) != 3:
+    if not isinstance(value, (list, tuple)):
         return None
-    red, green, blue = (_int(component) for component in value)
+    components = cast(list[object] | tuple[object, ...], value)
+    if len(components) != 3:
+        return None
+    red, green, blue = (_int(component) for component in components)
     if (
         red is None
         or green is None
