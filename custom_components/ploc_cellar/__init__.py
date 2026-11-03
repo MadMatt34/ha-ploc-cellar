@@ -130,6 +130,7 @@ def _build_inventory_response(
             {
                 "id": wine.id,
                 "name": wine.name,
+                "domain": wine.domain,
                 "bottles": wine.bottles,
                 "vintage": wine.vintage,
                 "appellation": wine.appellation,
