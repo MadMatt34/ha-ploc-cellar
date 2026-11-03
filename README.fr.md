@@ -14,7 +14,7 @@ Intégration personnalisée Home Assistant permettant de consulter une cave PLOC
 - PLOUD reste la source de vérité.
 - Synchronisation incrémentale en lecture seule via `POST https://ploud.ploc.co/v1/sync/exec`, avec `Objects={}`.
 - Le premier chargement utilise la valeur d'initialisation validée `LastSyncTime=1`. Les synchronisations suivantes utilisent le curseur client en millisecondes Unix.
-- Modèle local persistant : uniquement les vins en stock, les casiers et leurs emplacements. Les caractéristiques sont directement enregistrées dans chaque fiche vin ; les collections de références ne sont plus synchronisées.
+- Modèle local persistant : uniquement les vins en stock, les casiers et leurs emplacements. Les caractéristiques sont directement enregistrées dans chaque fiche vin ; les collections de références ne sont plus traitées ni conservées localement.
 - Un seul capteur de synthèse ; aucune entité n'est créée pour chaque vin, casier ou emplacement.
 - Inventaire détaillé accessible à la demande avec l'action `ploc_cellar.get_inventory`.
 - Synchronisation immédiate à la demande avec l'action `ploc_cellar.sync`.
