@@ -28,7 +28,7 @@ _LOGGER = logging.getLogger(__name__)
 def _validate_full_sync(objects: PLOUDCollections) -> None:
     """Require the complete set of collections needed for a full cellar sync."""
     collection_names = {name.casefold() for name in objects}
-    required = {"wines", "racks", "rackitems", "owners"}
+    required = {"wines", "racks", "rackitems", "orders", "owners"}
     if not required.issubset(collection_names):
         raise PloudError(
             "Full PLOUD sync is missing one or more cellar collections"
