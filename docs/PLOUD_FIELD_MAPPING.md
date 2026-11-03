@@ -15,7 +15,7 @@ business model.
 |---|---|---|---|
 | `id` | `id` | Wine UUID | Confirmed |
 | `nm` / `name` | `name` | Wine name | Confirmed |
-| `bo` / `bottles` | `bottles` | Number of bottles | Confirmed; only values greater than zero are retained |
+| `bo` / `bottles` | `Wine.bottles` | PLOUD-declared stock | Retained as raw source data; not used alone as effective stock because it overstates the CSV reference for 16 wines in the supplied snapshot |
 | `vi` / `vintage` | `vintage` | Vintage | Confirmed; zero becomes `None` |
 | `appellation` | `appellation` | Appellation label | Expanded label used directly; reference ID `ap` is not stored |
 | `color` | `color` | Color label | Expanded label used directly; reference ID `co` is not stored |
@@ -117,46 +117,48 @@ Order model.
 | `rw` | `RackItem.row` | Row coordinate | Confirmed |
 | `cl` | `RackItem.column` | Column coordinate | Confirmed |
 
-One occupied RackItem represents one bottle position. The in-cellar quantity
-is the number of RackItems associated with the wine and a known rack. Empty
-rack positions are not counted as bottles.
+One occupied RackItem represents one bottle position. The in-cellar quantity is the number of `RackItems` associated with the wine and a known rack. The total number of positions is the number of `RackItems` records (occupied and empty); empty positions are total positions minus occupied positions.
 
 ### Stock values and formulas
 
+Analysis of the supplied `Vins.csv`, `Caves.csv` and full PLOUD snapshot establishes the following reconstruction rule. For each of the 116 Wine UUIDs, the formula below reproduces the CSV `Stock` value exactly:
+
+`effective_stock = max(0, movement_balance, bottles_in_cellar)`
+
 | Integration field | Source / formula | Meaning |
 |---|---|---|
-| `bottles` | `Wine.bo` | Declared total stock; this remains the reference value |
-| `bottles_in_cellar` | Count of associated occupied `RackItems` | Number of bottles assigned to rack positions |
-| `bottles_to_store` | `max(0, bottles - bottles_in_cellar)` | Declared bottles not assigned to a rack |
+| `ploud_bottles` | Raw `Wine.bo` | PLOUD-declared quantity, retained for comparison |
 | `purchased` | Sum of `Order.in` for the Wine UUID | Total recorded incoming movements |
 | `consumed` | Sum of `Order.ot` for the Wine UUID | Total recorded outgoing movements |
 | `movement_balance` | `purchased - consumed` | Signed balance of recorded movements |
 | `calculated_stock` | `max(0, movement_balance)` | Movement balance with the application's zero lower bound |
+| `bottles_in_cellar` | Count of associated occupied `RackItems` | Number of bottles assigned to rack positions |
+| `bottles` / `effective_stock` | `max(calculated_stock, bottles_in_cellar)` | Reconstructed total stock; matches the CSV `Stock` column |
+| `bottles_to_store` | `effective_stock - bottles_in_cellar` | Bottles not assigned to a rack |
+| `wine_references` | Number of Wine records | Complete catalogue reference count |
+| `total_positions` | Number of RackItem records | All physical positions, occupied or empty |
+| `empty_positions` | `total_positions - occupied_positions` | Empty physical positions |
 
-The movement balance is a diagnostic calculation, not a replacement for
-`Wine.bo`. The observed cellar data contains discrepancies between the
-declared Wine stock and the movement history; the integration therefore never
-overwrites the declared stock with the calculated balance.
+The raw `Wine.bo` value is deliberately not substituted for reconstructed stock. In the supplied snapshot it totals 128 bottles, whereas the CSV stock totals 108. The reconstruction formula totals 108 and matches all 116 CSV reference quantities. RackItem counts match the CSV `Stock (en cave)` values for all 116 references. The CSV baseline is therefore:
 
-### Inventory anomaly flags
+- 116 wine references;
+- 105 bottles physically placed;
+- 144 total positions, including 39 empty positions;
+- 3 bottles not placed;
+- 3 references with at least one unplaced bottle.
 
-The per-wine `inventory_errors` list may contain:
+### Inventory anomaly flags and movement warnings
 
-| Flag | Condition | Interpretation |
+The integration distinguishes actionable inventory anomalies from differences between PLOUD's raw stock and the reconstructed stock.
+
+| Field / flag | Condition | Interpretation |
 |---|---|---|
-| `negative_movement_balance` | `movement_balance < 0` | Recorded outgoing movements exceed incoming movements |
-| `declared_stock_above_movements` | `bottles > calculated_stock` | Declared stock exceeds the movement-derived balance |
-| `declared_stock_below_movements` | `bottles < calculated_stock` | Declared stock is below the movement-derived balance |
-| `cellar_stock_above_total` | `bottles_in_cellar > bottles` | More rack positions are occupied than the declared total stock |
+| `inventory_errors` / `unplaced_bottles` | `bottles_to_store > 0` | One or more bottles are not assigned to a rack position |
+| `movement_warnings` / `negative_movement_balance` | `movement_balance < 0` | Recorded outgoing movements exceed incoming movements |
+| `movement_warnings` / `ploud_stock_above_reconstructed_stock` | `Wine.bo > effective_stock` | PLOUD raw stock is higher than the reconstruction |
+| `movement_warnings` / `ploud_stock_below_reconstructed_stock` | `Wine.bo < effective_stock` | PLOUD raw stock is lower than the reconstruction |
 
-These flags identify discrepancies to investigate; they do not prove their
-cause and never trigger automatic correction in PLOUD.
-
-The aggregate inventory response exposes `total_stock_bottles`,
-`bottles_to_store`, `inventory_error_wines` (number of wines with one or more
-flags) and `inventory_error_count` (total number of flags). Each wine also
-exposes its stock values and `inventory_errors`.
-
+The three CSV references with bottles to store are Domaine Rémy Nodin Crozes-Hermitage Le Mazel 2019 (1), Montbazillac 2021 (1) and Romeria Del Sol (1). The integration never corrects PLOUD data. Movement warnings are diagnostic and are not counted as unplaced-stock anomalies.
 ## Known technical or user-specific fields excluded from the Wine model
 
 | PLOUD key | Observed content | Decision |
