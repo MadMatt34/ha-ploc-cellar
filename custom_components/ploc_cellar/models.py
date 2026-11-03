@@ -62,7 +62,8 @@ class Cellar:
     """Complete local cellar snapshot."""
 
     cursor: int = field(default=1, compare=False)
-    last_sync: str | None = field(default=None, compare=False)
+    # Include this timestamp in equality so successful no-op syncs notify listeners.
+    last_sync: str | None = field(default=None)
     initialized: bool = field(default=False, compare=False)
     stale: bool = field(default=False)
     wines: dict[str, Wine] = field(default_factory=lambda: dict[str, Wine]())
