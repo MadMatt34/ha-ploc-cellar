@@ -10,10 +10,6 @@ from homeassistant.util.json import JsonObjectType, JsonValueType
 type JsonValue = JsonValueType
 type JsonObject = JsonObjectType
 
-# Version of the serialized Cellar payload. The Home Assistant Store envelope
-# version remains unchanged so existing data can be loaded and migrated.
-_CELLAR_DATA_VERSION = 2
-
 
 @dataclass(frozen=True, slots=True)
 class Wine:
@@ -136,7 +132,7 @@ class Cellar:
             for item_id, item in self.rack_items.items()
         }
         return {
-            "version": _CELLAR_DATA_VERSION,
+            "version": CELLAR_DATA_VERSION,
             "cursor": self.cursor,
             "last_sync": self.last_sync,
             "initialized": self.initialized,
@@ -149,7 +145,7 @@ class Cellar:
     def from_storage(cls, data: JsonObject) -> Cellar:
         """Restore and migrate a persisted cellar snapshot."""
         data_version = _int(data.get("version"))
-        if data_version not in (1, _CELLAR_DATA_VERSION):
+        if data_version not in (1, CELLAR_DATA_VERSION):
             raise ValueError("Unsupported Ploc Cellar storage version")
 
         cellar = cls(
@@ -246,9 +242,13 @@ def _wine_from_dict(raw: JsonObject, key: str) -> Wine:
     legacy_fields = _as_dict(raw.get("ploud_reference_fields"))
 
     def value(name: str, legacy_name: str) -> object:
-        if name in raw:
-            return raw[name]
-        return legacy_fields.get(legacy_name)
+        """Prefer a populated current field, then its legacy source field."""
+        for candidate in (raw.get(name), legacy_fields.get(legacy_name)):
+            if candidate is not None and not (
+                isinstance(candidate, str) and not candidate.strip()
+            ):
+                return candidate
+        return None
 
     color_rgb = None
     rgb = raw.get("color_rgb")
@@ -275,7 +275,10 @@ def _wine_from_dict(raw: JsonObject, key: str) -> Wine:
         if "bottles" in raw
         else legacy_fields.get("bo")
     )
-    bottles = max(0, _int(raw_bottles) or 0)
+    parsed_bottles = _int(raw_bottles)
+    if parsed_bottles is None or parsed_bottles < 0:
+        raise ValueError(f"Invalid bottle count in stored wine {key}")
+    bottles = parsed_bottles
 
     return Wine(
         id=_str(raw.get("id")) or key,
