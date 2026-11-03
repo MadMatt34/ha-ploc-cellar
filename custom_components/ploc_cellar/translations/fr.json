@@ -6,7 +6,7 @@
         "description": "Connectez-vous avec l’adresse e-mail et le mot de passe de votre compte PLOC. L’intégration active ensuite l’accès PLOUD pour Home Assistant.",
         "data": {
           "password": "Mot de passe PLOC",
-          "email": "Adresse e-mail du compte PLOC"
+          "username": "Adresse e-mail du compte PLOC"
         }
       },
       "reauth_confirm": {
@@ -14,7 +14,7 @@
         "description": "L’accès PLOUD doit être renouvelé. Saisissez à nouveau les identifiants de votre compte PLOC pour rétablir la connexion avec Home Assistant.",
         "data": {
           "password": "Mot de passe PLOC",
-          "email": "Adresse e-mail du compte PLOC"
+          "username": "Adresse e-mail du compte PLOC"
         }
       }
     },
