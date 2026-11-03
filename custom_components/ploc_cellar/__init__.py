@@ -99,7 +99,7 @@ def _build_inventory_response(
         (
             wine
             for wine in cellar.wines.values()
-            if wine.bottles > 0 or wine.bottles_in_cellar > 0
+            if cellar.stock_for(wine).effective_stock > 0 or wine.bottles_in_cellar > 0
         ),
         key=lambda wine: (wine.name.casefold(), wine.vintage or 0),
     )
@@ -137,7 +137,9 @@ def _build_inventory_response(
                 "id": wine.id,
                 "name": wine.name,
                 "domain": wine.domain,
-                "bottles": wine.bottles,
+                "bottles": stock.effective_stock,
+                "effective_stock": stock.effective_stock,
+                "ploud_bottles": wine.bottles,
                 "bottles_in_cellar": wine.bottles_in_cellar,
                 "bottles_to_store": stock.bottles_to_store,
                 "purchased": stock.purchased,
@@ -145,6 +147,7 @@ def _build_inventory_response(
                 "movement_balance": stock.movement_balance,
                 "calculated_stock": stock.calculated_stock,
                 "inventory_errors": list(stock.inventory_errors),
+                "movement_warnings": list(stock.movement_warnings),
                 "vintage": wine.vintage,
                 "appellation": wine.appellation,
                 "color": wine.color,
@@ -174,8 +177,11 @@ def _build_inventory_response(
     return {
         "total_bottles": cellar.total_bottles,
         "stocked_wines": cellar.stocked_wines,
+        "wine_references": cellar.wine_references,
         "total_stock_bottles": cellar.total_stock_bottles,
         "total_stocked_wines": cellar.total_stocked_wines,
+        "total_positions": cellar.total_positions,
+        "empty_positions": cellar.empty_positions,
         "bottles_to_store": cellar.total_bottles_to_store,
         "inventory_error_wines": cellar.inventory_error_wines,
         "inventory_error_count": cellar.inventory_error_count,
