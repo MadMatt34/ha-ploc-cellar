@@ -62,6 +62,28 @@ class RackItem:
     column: int | None
 
 
+@dataclass(frozen=True, slots=True)
+class Order:
+    """A PLOUD stock movement associated with a wine."""
+
+    id: str
+    wine_id: str
+    incoming: int
+    outgoing: int
+
+
+@dataclass(frozen=True, slots=True)
+class WineStock:
+    """Derived stock quantities and inventory diagnostics for one wine."""
+
+    purchased: int
+    consumed: int
+    movement_balance: int
+    calculated_stock: int
+    bottles_to_store: int
+    inventory_errors: tuple[str, ...]
+
+
 @dataclass(slots=True)
 class Cellar:
     """Complete local cellar snapshot."""
@@ -76,6 +98,7 @@ class Cellar:
     rack_items: dict[str, RackItem] = field(
         default_factory=lambda: dict[str, RackItem]()
     )
+    orders: dict[str, Order] = field(default_factory=lambda: dict[str, Order]())
 
     @property
     def total_bottles(self) -> int:
@@ -96,6 +119,63 @@ class Cellar:
     def total_stocked_wines(self) -> int:
         """Return the number of wine references with a positive PLOUD stock."""
         return sum(wine.bottles > 0 for wine in self.wines.values())
+
+    def stock_for(self, wine: Wine) -> WineStock:
+        """Calculate movement stock, unplaced bottles and inventory anomalies."""
+        wine_orders = (
+            order for order in self.orders.values() if order.wine_id == wine.id
+        )
+        purchased = sum(order.incoming for order in wine_orders)
+        # Use a fresh iterator because the first generator has been consumed.
+        consumed = sum(
+            order.outgoing
+            for order in self.orders.values()
+            if order.wine_id == wine.id
+        )
+        movement_balance = purchased - consumed
+        calculated_stock = max(0, movement_balance)
+
+        errors: list[str] = []
+        if movement_balance < 0:
+            errors.append("negative_movement_balance")
+        if wine.bottles > calculated_stock:
+            errors.append("declared_stock_above_movements")
+        elif wine.bottles < calculated_stock:
+            errors.append("declared_stock_below_movements")
+        if wine.bottles_in_cellar > wine.bottles:
+            errors.append("cellar_stock_above_total")
+
+        return WineStock(
+            purchased=purchased,
+            consumed=consumed,
+            movement_balance=movement_balance,
+            calculated_stock=calculated_stock,
+            bottles_to_store=max(0, wine.bottles - wine.bottles_in_cellar),
+            inventory_errors=tuple(errors),
+        )
+
+    @property
+    def total_bottles_to_store(self) -> int:
+        """Return the number of declared bottles not assigned to a rack."""
+        return sum(
+            self.stock_for(wine).bottles_to_store for wine in self.wines.values()
+        )
+
+    @property
+    def inventory_error_wines(self) -> int:
+        """Return the number of wines with at least one inventory anomaly."""
+        return sum(
+            bool(self.stock_for(wine).inventory_errors)
+            for wine in self.wines.values()
+        )
+
+    @property
+    def inventory_error_count(self) -> int:
+        """Return the number of inventory anomaly flags across all wines."""
+        return sum(
+            len(self.stock_for(wine).inventory_errors)
+            for wine in self.wines.values()
+        )
 
     def refresh_bottles_in_cellar(self) -> None:
         """Recalculate each wine's in-cellar quantity from assigned RackItems."""
@@ -163,6 +243,15 @@ class Cellar:
             }
             for item_id, item in self.rack_items.items()
         }
+        orders: dict[str, JsonValue] = {
+            order_id: {
+                "id": order.id,
+                "wine_id": order.wine_id,
+                "incoming": order.incoming,
+                "outgoing": order.outgoing,
+            }
+            for order_id, order in self.orders.items()
+        }
         return {
             "version": CELLAR_DATA_VERSION,
             "cursor": self.cursor,
@@ -171,13 +260,14 @@ class Cellar:
             "wines": wines,
             "racks": racks,
             "rack_items": rack_items,
+            "orders": orders,
         }
 
     @classmethod
     def from_storage(cls, data: JsonObject) -> Cellar:
         """Restore and migrate a persisted cellar snapshot."""
         data_version = _int(data.get("version"))
-        if data_version not in (1, 2, 3, 4, CELLAR_DATA_VERSION):
+        if data_version not in (1, 2, 3, 4, 5, CELLAR_DATA_VERSION):
             raise ValueError("Unsupported Ploc Cellar storage version")
 
         stored_cursor = max(1, _int(data.get("cursor")) or 1)
@@ -211,6 +301,11 @@ class Cellar:
                 # the corresponding Wine reference; the full-sync migration
                 # will restore the complete Wine collection.
                 cellar.rack_items[key] = item
+
+        for key, raw in _as_dict(data.get("orders")).items():
+            if isinstance(raw, dict):
+                order = _order_from_dict(raw, key)
+                cellar.orders[order.id] = order
 
         cellar.refresh_bottles_in_cellar()
         return cellar
@@ -355,6 +450,23 @@ def _wine_from_dict(raw: JsonObject, key: str) -> Wine:
         ploud_pid=_optional_str(value("ploud_pid", "pid")),
         domain=_optional_str(value("domain", "domain")),
         owner_id=_optional_str(value("owner_id", "ow")),
+    )
+
+
+def _order_from_dict(raw: JsonObject, key: str) -> Order:
+    """Restore a stock movement from a stored JSON object."""
+    incoming = _int(raw.get("incoming"))
+    outgoing = _int(raw.get("outgoing"))
+    if incoming is None or outgoing is None or incoming < 0 or outgoing < 0:
+        raise ValueError(f"Invalid stock movement in stored order {key}")
+    wine_id = _str(raw.get("wine_id"))
+    if not wine_id:
+        raise ValueError(f"Invalid wine reference in stored order {key}")
+    return Order(
+        id=_str(raw.get("id")) or key,
+        wine_id=wine_id,
+        incoming=incoming,
+        outgoing=outgoing,
     )
 
 
