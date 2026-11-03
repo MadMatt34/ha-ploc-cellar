@@ -115,6 +115,7 @@ The response contains:
 - `matching_wines`, the number of wines matching the filters;
 - `racks`, the list of racks;
 - `wines`, only wines with positive effective stock, including `bottles` (reconstructed effective stock), `ploud_bottles` (raw `Wine.bo` value), `bottles_in_cellar` (in-cellar), `bottles_to_store` (unplaced), `purchased`, `consumed`, `movement_balance`, `calculated_stock`, `inventory_errors` (unplaced bottles) and `movement_warnings` (differences between movement balance and effective stock);
+- `movement_anomalies`, the dedicated list of the 7 references whose movements do not match effective stock, including zero-stock references;
 - `last_sync`, the date and time of the last successful synchronization.
 
 `inventory_errors` contains `unplaced_bottles` when a reference has bottles that are not assigned to a rack. References with movement discrepancies are listed separately in `movement_anomalies`, including those with zero effective stock; they are therefore not included in the normal `wines` list. `movement_warning_wines` counts these references and `movement_warning_bottles` sums the absolute bottle differences between movement balance and effective stock. Raw `Wine.bo` values are informational and do not determine effective stock or movement anomalies. No correction is sent to PLOUD. Filters do not change the global totals. Each wine location contains its rack name and ID, plus row and column when available.
