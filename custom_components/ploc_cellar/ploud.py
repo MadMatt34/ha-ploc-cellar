@@ -147,8 +147,8 @@ def _parse_color_rgb(value: object) -> tuple[int, int, int] | None:
     return red, green, blue
 
 
-# Stable colors copied from the current PLOUD cellar snapshot. They are a
-# fallback only: an RGB value supplied directly by a Wine record takes priority.
+# These RGB values reproduce the nine entries in the supplied legacy colors
+# reference collection. A direct RGB value in a future Wine payload takes priority.
 _COLOR_RGB: dict[str, tuple[int, int, int]] = {
     "autre": (153, 115, 85),
     "blanc": (255, 211, 116),
@@ -335,8 +335,6 @@ def apply_sync(
     removed_rack_ids: set[str] = set()
 
     for raw in _collection(objects, PLOUD_COLLECTION_WINES):
-        if not isinstance(raw.get("id"), str):
-            continue
         wine = _parse_wine(raw)
         if wine.bottles > 0:
             cellar.wines[wine.id] = wine
