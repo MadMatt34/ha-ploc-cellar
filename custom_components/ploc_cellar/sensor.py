@@ -34,12 +34,12 @@ class PlocCellarSensor(CoordinatorEntity[PlocCellarCoordinator], SensorEntity):
         return True
 
     @property
-    def native_value(self) -> int:
+    def native_value(self) -> int:  # pyright: ignore[reportIncompatibleVariableOverride]
         """Return the total number of bottles."""
         return self.coordinator.data.total_bottles
 
     @property
-    def extra_state_attributes(self) -> dict[str, int | bool | str | None]:
+    def extra_state_attributes(self) -> dict[str, int | bool | str | None]:  # pyright: ignore[reportIncompatibleVariableOverride]
         """Expose aggregate attributes and the last successful synchronization."""
         cellar = self.coordinator.data
         return {
