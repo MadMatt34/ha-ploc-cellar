@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from homeassistant.core import HomeAssistant
 
-from .const import DEFAULT_LANGUAGE, SUPPORTED_LANGUAGES
+from .const import SUPPORTED_LANGUAGES
 
 # Countries where French is an official language or is widely used.
 FRENCH_SPEAKING_COUNTRIES: frozenset[str] = frozenset(
@@ -51,12 +51,12 @@ FRENCH_SPEAKING_COUNTRIES: frozenset[str] = frozenset(
 def get_default_ploud_language(hass: HomeAssistant) -> str:
     """Return the automatic PLOUD language from Home Assistant's core settings."""
     if country := hass.config.country:
-        return "fr" if country.upper() in FRENCH_SPEAKING_COUNTRIES else DEFAULT_LANGUAGE
+        return "fr" if country.upper() in FRENCH_SPEAKING_COUNTRIES else "en"
 
     home_assistant_language = (
         hass.config.language.casefold().replace("_", "-").partition("-")[0]
     )
-    return "fr" if home_assistant_language == "fr" else DEFAULT_LANGUAGE
+    return "fr" if home_assistant_language == "fr" else "en"
 
 
 def get_ploud_language(
