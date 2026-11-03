@@ -66,6 +66,7 @@ class PlocCellarCoordinator(DataUpdateCoordinator[Cellar]):
             hass, STORAGE_VERSION, f"{STORAGE_KEY}.{entry.entry_id}"
         )
         self.cellar = Cellar()
+        self._force_full_sync = False
 
     async def async_load(self) -> None:
         """Restore the model and its matching incremental cursor."""
@@ -92,7 +93,11 @@ class PlocCellarCoordinator(DataUpdateCoordinator[Cellar]):
     async def _async_update_data(self) -> Cellar:
         """Apply a PLOUD delta and persist it before publishing the new model."""
         try:
-            cursor = self.cellar.cursor if self.cellar.initialized else 1
+            cursor = (
+                1
+                if self._force_full_sync or not self.cellar.initialized
+                else self.cellar.cursor
+            )
             objects, next_cursor = await async_sync(
                 self.session,
                 server=self.server,
@@ -154,6 +159,7 @@ class PlocCellarCoordinator(DataUpdateCoordinator[Cellar]):
             updated_cellar.stale = False
             await self.store.async_save(updated_cellar.to_storage())
             self.cellar = updated_cellar
+            self._force_full_sync = False
             return updated_cellar
         except PloudAuthError as err:
             self.cellar.stale = True
@@ -161,6 +167,17 @@ class PlocCellarCoordinator(DataUpdateCoordinator[Cellar]):
         except (PloudError, HomeAssistantError, OSError) as err:
             self.cellar.stale = True
             raise UpdateFailed(str(err)) from err
+
+    async def async_force_full_sync(self) -> Cellar:
+        """Request a complete PLOUD snapshot without clearing current data first."""
+        self._force_full_sync = True
+        await self.async_refresh()
+        if not self.last_update_success:
+            raise HomeAssistantError(
+                translation_domain=DOMAIN,
+                translation_key="sync_failed",
+            ) from self.last_exception
+        return self.data
 
     async def async_force_sync(self) -> Cellar:
         """Request an immediate refresh and report failure to the caller."""
