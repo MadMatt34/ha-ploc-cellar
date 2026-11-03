@@ -405,7 +405,7 @@ def apply_sync(
     """Apply a PLOUD delta to a candidate cellar model."""
     removed_wine_ids: set[str] = set()
     removed_rack_ids: set[str] = set()
-    owner_names: dict[str, str | None] = {}
+    owner_names = cellar.owner_names
 
     # Resolve Owner records into Wine objects without retaining the full
     # reference collection in persistent storage.
@@ -468,10 +468,18 @@ def apply_sync(
         normalized_kind = _deleted_kind(raw)
         if normalized_kind == "owner" or (
             not normalized_kind
-            and any(wine.owner_id == object_id for wine in cellar.wines.values())
+            and any(
+                wine.owner_id is not None
+                and wine.owner_id.casefold() == object_id.casefold()
+                for wine in cellar.wines.values()
+            )
         ):
+            cellar.owner_names.pop(object_id.casefold(), None)
             for wine_id, wine in tuple(cellar.wines.items()):
-                if wine.owner_id == object_id:
+                if (
+                    wine.owner_id is not None
+                    and wine.owner_id.casefold() == object_id.casefold()
+                ):
                     cellar.wines[wine_id] = replace(wine, domain=None)
             continue
 
