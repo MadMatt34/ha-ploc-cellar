@@ -95,15 +95,17 @@ labels are used instead. They are not persisted as separate model attributes.
 ## Synchronization and storage behavior
 
 - Only wine records with `bottles > 0` are kept in the local inventory.
-- A wine update with `bottles = 0` removes the wine and any rack positions
-  assigned to it.
-- A deleted wine also removes its assigned rack positions.
+- A wine update with `bottles = 0` removes the wine from the inventory and
+  clears the `wine_id` from its rack positions while preserving each physical
+  slot's ID, rack, row and column.
+- A deleted wine also frees its assigned positions without deleting the slots.
+- Deleting a rack removes its rack positions.
 - Empty rack slots (rack items with an empty `wine_id`) are retained.
 - The persistent cellar payload is migrated from schema version 1 to version 2
   when loaded. The migrated payload is saved immediately when possible; if
   that save fails, the migrated in-memory model remains usable and the next
   successful sync retries persistence. Existing wine characteristics, rack
   data, the incremental cursor and the last successful synchronization
-  timestamp are retained. Legacy zero-stock wines and their assigned positions
-  are dropped during migration.
+  timestamp are retained. Legacy zero-stock wines are removed and their
+  assigned rack positions are retained as empty slots during migration.
 - The synchronization remains read-only and continues to send `Objects={}`.
