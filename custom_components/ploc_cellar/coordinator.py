@@ -11,7 +11,7 @@ from homeassistant.exceptions import ConfigEntryAuthFailed, HomeAssistantError
 from homeassistant.helpers.storage import Store
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
-from .const import DOMAIN, STORAGE_KEY, STORAGE_VERSION
+from .const import CELLAR_DATA_VERSION, DOMAIN, STORAGE_KEY, STORAGE_VERSION
 from .models import Cellar, JsonValue
 from .ploud import PloudAuthError, PloudError, apply_sync, async_sync
 from .types import PlocCellarConfigEntry
@@ -57,6 +57,15 @@ class PlocCellarCoordinator(DataUpdateCoordinator[Cellar]):
             stored = await self.store.async_load()
             if stored is not None:
                 self.cellar = Cellar.from_storage(stored)
+                if stored.get("version") != CELLAR_DATA_VERSION:
+                    try:
+                        await self.store.async_save(self.cellar.to_storage())
+                    except (HomeAssistantError, OSError, TypeError):
+                        # Keep the migrated in-memory snapshot available. The
+                        # next successful sync will persist it transactionally.
+                        _LOGGER.warning(
+                            "Could not persist migrated Ploc Cellar storage"
+                        )
         except (HomeAssistantError, OSError, ValueError, TypeError) as err:
             raise HomeAssistantError(
                 translation_domain=DOMAIN,
