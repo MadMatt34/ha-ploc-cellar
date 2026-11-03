@@ -69,8 +69,6 @@ Ses attributs sont :
 | Identifiant | Description |
 |---|---|
 | `stocked_wines` | Nombre de références ayant au moins une position en cave |
-| `total_stocked_wines` | Nombre de références avec un stock total PLOUD positif |
-| `total_stock_bottles` | Nombre de bouteilles selon le stock total PLOUD |
 | `rack_count` | Nombre de casiers |
 | `occupied_positions` | Nombre d'emplacements occupés par des vins en stock |
 | `stale` | Indique que la dernière synchronisation a échoué |

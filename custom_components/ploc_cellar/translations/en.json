@@ -47,12 +47,6 @@
           "stocked_wines": {
             "name": "Wines in cellar"
           },
-          "total_stocked_wines": {
-            "name": "Wine references with PLOUD stock"
-          },
-          "total_stock_bottles": {
-            "name": "Bottles in total PLOUD stock"
-          },
           "rack_count": {
             "name": "Number of racks"
           },

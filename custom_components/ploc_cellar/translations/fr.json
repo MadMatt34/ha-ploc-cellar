@@ -47,12 +47,6 @@
           "stocked_wines": {
             "name": "Références en cave"
           },
-          "total_stocked_wines": {
-            "name": "Références avec stock PLOUD"
-          },
-          "total_stock_bottles": {
-            "name": "Bouteilles selon le stock PLOUD"
-          },
           "rack_count": {
             "name": "Nombre de casiers"
           },

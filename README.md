@@ -69,8 +69,6 @@ Its attributes are:
 | Attribute ID | Description |
 |---|---|
 | `stocked_wines` | Number of wine references with at least one cellar position |
-| `total_stocked_wines` | Number of wine references with positive total PLOUD stock |
-| `total_stock_bottles` | Number of bottles in the total PLOUD stock |
 | `rack_count` | Number of racks |
 | `occupied_positions` | Number of positions occupied by stocked wines |
 | `stale` | Indicates that the latest synchronization failed |
