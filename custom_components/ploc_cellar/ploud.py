@@ -253,6 +253,17 @@ def _parse_wine(
             f"PLOUD returned an invalid bottle count for wine {wine_id}"
         )
 
+    _LOGGER.debug(
+        "PLOUD wine inventory record: id=%s name=%r bottles=%r bo=%r "
+        "selected=%d stocked=%s",
+        wine_id,
+        _optional_text(_source_value(raw, fields, "name", "nm")) or "",
+        bottles_value,
+        compact_bottles_value,
+        bottles,
+        bottles > 0,
+    )
+
     vintage = _int(_source_value(raw, fields, "vintage", "vi"))
     if vintage is not None and vintage <= 0:
         vintage = None
