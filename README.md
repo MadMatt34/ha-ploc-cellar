@@ -69,7 +69,12 @@ Its attributes are:
 | Attribute ID | Description |
 |---|---|
 | `wine_references` | Number of Wine references in the catalogue |
-| `stocked_wines` | Number of wine references with at least one cellar position |\n| `total_stock_bottles` | Total number of bottles declared by PLOUD |\n| `bottles_to_store` | Number of unplaced bottles |\n| `inventory_error_wines` | Number of wines with at least one inventory anomaly |\n| `inventory_error_count` | Total number of detected anomalies |
+| `stocked_wines` | Number of wine references with at least one cellar position |
+| `total_stocked_wines` | Number of references with positive effective stock |
+| `total_stock_bottles` | Total reconstructed bottle count |
+| `bottles_to_store` | Number of unplaced bottles |
+| `inventory_error_wines` | Number of references with unplaced bottles |
+| `inventory_error_count` | Number of references with this anomaly |
 | `rack_count` | Number of racks |
 | `total_positions` | Total number of physical rack positions |
 | `empty_positions` | Number of empty rack positions |
