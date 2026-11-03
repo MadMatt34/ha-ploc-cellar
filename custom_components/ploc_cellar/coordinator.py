@@ -60,11 +60,12 @@ class PlocCellarCoordinator(DataUpdateCoordinator[Cellar]):
                 if stored.get("version") != CELLAR_DATA_VERSION:
                     try:
                         await self.store.async_save(self.cellar.to_storage())
-                    except (HomeAssistantError, OSError, TypeError):
+                    except (HomeAssistantError, OSError, TypeError, ValueError) as err:
                         # Keep the migrated in-memory snapshot available. The
                         # next successful sync will persist it transactionally.
                         _LOGGER.warning(
-                            "Could not persist migrated Ploc Cellar storage"
+                            "Could not persist migrated Ploc Cellar storage: %s",
+                            err,
                         )
         except (HomeAssistantError, OSError, ValueError, TypeError) as err:
             raise HomeAssistantError(
