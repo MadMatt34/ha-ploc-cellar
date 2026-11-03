@@ -51,3 +51,4 @@ SENSOR_UNIQUE_ID = f"{DOMAIN}_summary"
 
 SERVICE_GET_INVENTORY = "get_inventory"
 SERVICE_SYNC = "sync"
+SERVICE_SYNC_FULL = "sync_full"
