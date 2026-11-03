@@ -85,7 +85,7 @@ class PlocCellarCoordinator(DataUpdateCoordinator[Cellar]):
                 language=self.language,
                 cursor=cursor,
             )
-            if not self.cellar.initialized:
+            if cursor == 1:
                 collection_names = {name.casefold() for name in objects}
                 required = {"wines", "racks", "rackitems", "owners"}
                 if not required.issubset(collection_names):
