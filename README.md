@@ -105,13 +105,13 @@ response_variable: cellar
 The response contains:
 
 - global totals: `total_bottles` and `stocked_wines` describe the physical cellar contents; `total_stock_bottles` and `total_stocked_wines` describe reconstructed effective stock; `bottles_to_store`, `inventory_error_wines` and `inventory_error_count` report unplaced bottles and anomalies;
-- `rack_count` and `occupied_positions`, the number of racks and occupied positions;
+- `rack_count`, `total_positions`, `occupied_positions` and `empty_positions`, the number of racks and the position breakdown;
 - `matching_wines`, the number of wines matching the filters;
 - `racks`, the list of racks;
-- `wines`, wines with declared stock or at least one occupied position, including `bottles` (reconstructed effective stock), `ploud_bottles` (raw `Wine.bo` value), `bottles_in_cellar` (in-cellar), `bottles_to_store` (unplaced), `purchased`, `consumed`, `movement_balance`, `calculated_stock`, `inventory_errors` (unplaced bottles) and `movement_warnings` (differences from raw PLOUD stock);
+- `wines`, wines with positive effective stock or at least one occupied position, including `bottles` (reconstructed effective stock), `ploud_bottles` (raw `Wine.bo` value), `bottles_in_cellar` (in-cellar), `bottles_to_store` (unplaced), `purchased`, `consumed`, `movement_balance`, `calculated_stock`, `inventory_errors` (unplaced bottles) and `movement_warnings` (differences from raw PLOUD stock);
 - `last_sync`, the date and time of the last successful synchronization.
 
-`inventory_errors` may contain `negative_movement_balance`, `declared_stock_above_movements`, `declared_stock_below_movements` or `cellar_stock_above_total`. A difference from movements is a warning to investigate, not an automatic correction. Filters do not change the global totals. Each wine location contains its rack name and ID, plus row and column when available.
+`inventory_errors` contains `unplaced_bottles` when a reference has bottles that are not assigned to a rack. Differences between `Wine.bo` and reconstructed stock are separate `movement_warnings` (`negative_movement_balance`, `ploud_stock_above_reconstructed_stock` or `ploud_stock_below_reconstructed_stock`); they are informational and never trigger a correction. Filters do not change the global totals. Each wine location contains its rack name and ID, plus row and column when available.
 
 ### `ploc_cellar.sync`
 
