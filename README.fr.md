@@ -14,7 +14,7 @@ Intégration personnalisée Home Assistant permettant de consulter une cave PLOC
 - PLOUD reste la source de vérité.
 - Synchronisation incrémentale en lecture seule via `POST https://ploud.ploc.co/v1/sync/exec`, avec `Objects={}`.
 - Le premier chargement utilise la valeur d'initialisation validée `LastSyncTime=1`. Les synchronisations suivantes utilisent le curseur client en millisecondes Unix.
-- Modèle local persistant : uniquement les vins en stock, les casiers et leurs emplacements. Les caractéristiques sont directement enregistrées dans chaque fiche vin ; les collections de références ne sont plus traitées ni conservées localement.
+- Modèle local persistant : uniquement les vins en stock, les casiers et leurs emplacements. Les caractéristiques, dont le domaine viticole, sont directement enregistrées dans chaque fiche vin. La collection `Owners` sert à résoudre les UUID des propriétaires ; seule une table compacte UUID → nom est conservée, pas les fiches Owner complètes.
 - Un seul capteur de synthèse ; aucune entité n'est créée pour chaque vin, casier ou emplacement.
 - Inventaire détaillé accessible à la demande avec l'action `ploc_cellar.get_inventory`.
 - Synchronisation immédiate à la demande avec l'action `ploc_cellar.sync`.
@@ -86,7 +86,7 @@ Action avec réponse. Utiliser `response_variable` dans un script ou une automat
 
 Le champ `config_entry_id` est obligatoire pour identifier la connexion Ploc Cellar. Home Assistant propose un sélecteur limité aux entrées de cette intégration. Les filtres facultatifs sont :
 
-- `search` : recherche partielle dans le nom du vin, l'appellation, la région, le pays, le cépage, la cuvée ou le commentaire.
+- `search` : recherche partielle dans le nom du vin, le domaine viticole, l'appellation, la région, le pays, le cépage, la cuvée ou le commentaire.
 - `color` : filtre partiel sur la couleur du vin.
 
 Exemple :
@@ -104,7 +104,7 @@ La réponse contient :
 - les totaux globaux : `total_bottles`, `stocked_wines`, `rack_count` et `occupied_positions` ;
 - `matching_wines`, le nombre de vins correspondant aux filtres ;
 - `racks`, la liste des casiers ;
-- `wines`, les vins ayant au moins une bouteille en stock, avec leurs caractéristiques et leurs emplacements ;
+- `wines`, les vins ayant au moins une bouteille en stock, avec leur domaine viticole, leurs caractéristiques et leurs emplacements ;
 - `last_sync`, la date et l'heure de la dernière synchronisation réussie.
 
 Les filtres ne modifient pas les totaux globaux. Chaque emplacement associé à un vin contient le nom et l'identifiant du casier, ainsi que la rangée et la colonne lorsqu'elles sont disponibles.
