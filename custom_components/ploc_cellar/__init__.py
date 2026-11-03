@@ -107,6 +107,7 @@ def _build_inventory_response(
                 wine.country or "",
                 wine.grapes or "",
                 wine.cuvee or "",
+                wine.comment or "",
             )
         ).casefold()
         if normalized_search and normalized_search not in searchable:
@@ -141,6 +142,10 @@ def _build_inventory_response(
                 "country": wine.country,
                 "grapes": wine.grapes,
                 "cuvee": wine.cuvee,
+                "comment": wine.comment,
+                "alcohol_percent": wine.alcohol_percent,
+                "service_temperature_min": wine.service_temperature_min,
+                "service_temperature_max": wine.service_temperature_max,
                 "bottle_format": wine.bottle_format,
                 "bottle_volume_l": wine.bottle_volume_l,
                 "ploud_pid": wine.ploud_pid,
