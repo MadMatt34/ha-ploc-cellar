@@ -102,6 +102,7 @@ def _build_inventory_response(
         searchable = " ".join(
             (
                 wine.name,
+                wine.domain or "",
                 wine.appellation or "",
                 wine.region or "",
                 wine.country or "",
