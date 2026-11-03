@@ -53,7 +53,7 @@ Si Home Assistant demande une réauthentification, saisir à nouveau l'adresse e
 
 Dans **Paramètres → Appareils et services → Ploc Cellar → Configurer**, les options suivantes sont disponibles :
 
-- **Intervalle de synchronisation** : de 5 à 1 440 minutes ; 15 minutes par défaut.
+- **Intervalle de synchronisation** : de 5 à 1 440 minutes ; 240 minutes par défaut.
 - **Langue des réponses PLOUD** : `Automatique`, `Français` ou `English`. En mode automatique (par défaut), les pays francophones utilisent `fr` et les autres pays `en`. Si aucun pays n'est défini dans Home Assistant, la langue générale de Home Assistant sert de repli (`fr` si elle est française, `en` sinon). Les choix manuels `Français` et `English` restent prioritaires jusqu'à ce que `Automatique` soit sélectionné.
 
 L'enregistrement des options recharge l'entrée de configuration. L'adresse du serveur PLOUD n'est pas modifiable depuis l'intégration.
