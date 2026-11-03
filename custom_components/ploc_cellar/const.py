@@ -17,11 +17,13 @@ PLOUD_SYNC_PATH = "/sync/exec"
 PLOUD_COLLECTION_WINES = "Wines"
 PLOUD_COLLECTION_RACKS = "Racks"
 PLOUD_COLLECTION_RACK_ITEMS = "RackItems"
+PLOUD_COLLECTION_OWNERS = "Owners"
 PLOUD_COLLECTION_DELETED = "DeletedObjects"
 PLOUD_SUPPORTED_COLLECTIONS = (
     PLOUD_COLLECTION_WINES,
     PLOUD_COLLECTION_RACKS,
     PLOUD_COLLECTION_RACK_ITEMS,
+    PLOUD_COLLECTION_OWNERS,
     PLOUD_COLLECTION_DELETED,
 )
 PLOUD_HMAC_KEY = b"PLOC.co.20@16"
@@ -35,7 +37,7 @@ MAX_SCAN_INTERVAL_MINUTES = 1440
 # Home Assistant Store envelope version; keep stable for existing installations.
 STORAGE_VERSION = 1
 # Version of the serialized Cellar payload stored inside the Store envelope.
-CELLAR_DATA_VERSION = 2
+CELLAR_DATA_VERSION = 3
 STORAGE_KEY = f"{DOMAIN}.cellar"
 
 CONF_TOKEN = "token"
