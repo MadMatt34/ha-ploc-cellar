@@ -410,15 +410,18 @@ def apply_sync(
             elif target_kind == "rack":
                 removed_rack_ids.add(object_id)
 
-    # Drop positions attached to wines that have reached zero stock or were
-    # deleted, and positions belonging to racks deleted in the same delta.
-    # Keep empty rack slots (wine_id == "") because they describe rack layout.
+    # Removing a wine frees its physical rack slot; retain the RackItem and
+    # clear only its wine assignment. Deleting a rack removes its positions.
+    # Also clear stale assignments whose wine is no longer in the inventory.
     for item_id, item in tuple(cellar.rack_items.items()):
-        if (
-            item.wine_id in removed_wine_ids
-            or item.rack_id in removed_rack_ids
-        ):
+        if item.rack_id in removed_rack_ids:
             cellar.rack_items.pop(item_id, None)
+        elif item.wine_id and (
+            item.wine_id in removed_wine_ids or item.wine_id not in cellar.wines
+        ):
+            cellar.rack_items[item_id] = RackItem(
+                item.id, item.rack_id, "", item.row, item.column
+            )
 
     cellar.cursor = next_cursor
     cellar.initialized = True
