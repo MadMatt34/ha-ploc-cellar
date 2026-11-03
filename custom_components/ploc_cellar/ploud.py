@@ -147,9 +147,21 @@ def _parse_color_rgb(value: object) -> tuple[int, int, int] | None:
     return red, green, blue
 
 
-# These RGB values reproduce the nine entries in the supplied legacy colors
-# reference collection. A direct RGB value in a future Wine payload takes priority.
-_COLOR_RGB: dict[str, tuple[int, int, int]] = {
+# RGB values copied from the nine entries in the supplied PLOUD colors
+# collection. Mapping by the stable "co" identifier avoids language dependence.
+_COLOR_RGB_BY_ID: dict[str, tuple[int, int, int]] = {
+    "8019": (153, 115, 85),  # Autre
+    "8020": (255, 211, 116),  # Blanc
+    "8021": (237, 214, 182),  # Effervescent
+    "8022": (158, 195, 199),  # Liquoreux
+    "10253": (65, 101, 138),  # Muté
+    "10254": (240, 142, 68),  # Orange
+    "8023": (225, 136, 145),  # Rosé
+    "8024": (201, 25, 58),  # Rouge
+    "721a2c41-cdcb-4629-a7fb-7c30ea2fbd87": (34, 199, 129),  # Sirop
+}
+
+_COLOR_RGB_BY_LABEL: dict[str, tuple[int, int, int]] = {
     "autre": (153, 115, 85),
     "blanc": (255, 211, 116),
     "effervescent": (237, 214, 182),
@@ -170,9 +182,16 @@ def _parse_wine(raw: JsonObject) -> Wine:
     )
 
     color = _optional_text(_source_value(raw, fields, "color"))
-    color_rgb = _parse_color_rgb(
-        _source_value(raw, fields, "color_rgb")
-    ) or (_COLOR_RGB.get(color.casefold()) if color is not None else None)
+    color_id = _source_value(raw, fields, "color_id", "co")
+    color_rgb = (
+        _parse_color_rgb(_source_value(raw, fields, "color_rgb"))
+        or _COLOR_RGB_BY_ID.get(str(color_id))
+        or (
+            _COLOR_RGB_BY_LABEL.get(color.casefold())
+            if color is not None
+            else None
+        )
+    )
 
     wine_id = raw.get("id")
     if not isinstance(wine_id, str) or not wine_id.strip():
