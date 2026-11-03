@@ -135,7 +135,7 @@ Analysis of the supplied `Vins.csv`, `Caves.csv` and full PLOUD snapshot establi
 | `bottles_in_cellar` | Count of associated occupied `RackItems` | Number of bottles assigned to rack positions |
 | `bottles` / `effective_stock` | `max(calculated_stock, bottles_in_cellar)` | Reconstructed total stock; matches the CSV `Stock` column |
 | `bottles_to_store` | `effective_stock - bottles_in_cellar` | Bottles not assigned to a rack |
-| `wine_references` | Number of Wine records | Complete catalogue reference count |
+| `wine_references` | Count of references with `effective_stock > 0` | Active inventory reference count; zero-stock catalogue records are retained internally but not exposed in the inventory |
 | `total_positions` | Number of RackItem records | All physical positions, occupied or empty |
 | `empty_positions` | `total_positions - occupied_positions` | Empty physical positions |
 
@@ -149,16 +149,16 @@ The raw `Wine.bo` value is deliberately not substituted for reconstructed stock.
 
 ### Inventory anomaly flags and movement warnings
 
-The integration distinguishes actionable inventory anomalies from differences between PLOUD's raw stock and the reconstructed stock.
+The integration distinguishes unplaced bottles from discrepancies between the Orders movement balance and effective stock. Raw `Wine.bo` is retained for reference only and does not define movement anomalies.
 
 | Field / flag | Condition | Interpretation |
 |---|---|---|
 | `inventory_errors` / `unplaced_bottles` | `bottles_to_store > 0` | One or more bottles are not assigned to a rack position |
 | `movement_warnings` / `negative_movement_balance` | `movement_balance < 0` | Recorded outgoing movements exceed incoming movements |
-| `movement_warnings` / `ploud_stock_above_reconstructed_stock` | `Wine.bo > effective_stock` | PLOUD raw stock is higher than the reconstruction |
-| `movement_warnings` / `ploud_stock_below_reconstructed_stock` | `Wine.bo < effective_stock` | PLOUD raw stock is lower than the reconstruction |
+| `movement_warnings` / `movement_balance_mismatch` | `movement_balance != effective_stock` | Recorded movements do not reproduce the effective stock |
+| `movement_difference_bottles` | `abs(movement_balance - effective_stock)` | Absolute bottle discrepancy for this reference |
 
-The three CSV references with bottles to store are Domaine Rémy Nodin Crozes-Hermitage Le Mazel 2019 (1), Montbazillac 2021 (1) and Romeria Del Sol (1). The integration never corrects PLOUD data. Movement warnings are diagnostic and are not counted as unplaced-stock anomalies.
+The three CSV references with bottles to store are Domaine Rémy Nodin Crozes-Hermitage Le Mazel 2019 (1), Montbazillac 2021 (1) and Romeria Del Sol (1). The seven movement-anomaly references in the supplied snapshot are reported separately from the normal inventory list. Four have a positive discrepancy totalling five bottles; three have a negative movement balance of -1 each. The sum of absolute discrepancies is eight bottles. The integration never corrects PLOUD data. Movement warnings are diagnostic and are not counted as unplaced-stock anomalies. Zero-stock references remain in the internal synchronized model but are omitted from the normal inventory list; zero-stock references with movement anomalies remain visible in the dedicated `movement_anomalies` diagnostic list.
 ## Known technical or user-specific fields excluded from the Wine model
 
 | PLOUD key | Observed content | Decision |
@@ -191,7 +191,7 @@ labels are used instead. They are not persisted as separate model attributes.
 
 ## Synchronization and storage behavior
 
-- Wine records with zero declared stock may still be retained when needed by occupied rack positions; the inventory response includes wines with declared stock or occupied positions.
+- All Wine records, including zero-stock records, remain in the synchronized model because future deltas may update them. The normal inventory response exposes only wines with positive effective stock. Movement-anomaly references are exposed separately in `movement_anomalies`, even when their effective stock is zero.
 - A wine update with `bottles = 0` removes the wine from the inventory and
   clears the `wine_id` from its rack positions while preserving each physical
   slot's ID, rack, row and column.
