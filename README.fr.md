@@ -70,7 +70,6 @@ Ses attributs sont :
 |---|---|
 | `wine_references` | Nombre de références du catalogue |
 | `stocked_wines` | Nombre de références ayant au moins une position en cave |
-| `total_stocked_wines` | Nombre de références avec un stock effectif positif |
 | `total_stock_bottles` | Nombre total de bouteilles reconstitué |
 | `bottles_to_store` | Nombre de bouteilles non placées |
 | `inventory_error_wines` | Nombre de références avec des bouteilles non placées |
@@ -109,7 +108,7 @@ response_variable: cave
 
 La réponse contient :
 
-- les totaux globaux : `total_bottles` et `stocked_wines` décrivent le contenu physique des casiers ; `total_stock_bottles` et `total_stocked_wines` décrivent le stock effectif reconstitué ; `bottles_to_store`, `inventory_error_wines` et `inventory_error_count` donnent les quantités non placées et les anomalies ;
+- les totaux globaux : `total_bottles` et `stocked_wines` décrivent le contenu physique des casiers ; `total_stock_bottles` décrit le stock effectif reconstitué ; `bottles_to_store`, `inventory_error_wines` et `inventory_error_count` donnent les quantités non placées et les anomalies ;
 - `rack_count`, `total_positions`, `occupied_positions` et `empty_positions`, le nombre de casiers et le détail des emplacements ;
 - `matching_wines`, le nombre de vins correspondant aux filtres ;
 - `racks`, la liste des casiers ;
