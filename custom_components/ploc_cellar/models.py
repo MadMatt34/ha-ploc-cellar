@@ -82,6 +82,7 @@ class WineStock:
     calculated_stock: int
     effective_stock: int
     bottles_to_store: int
+    movement_difference_bottles: int
     inventory_errors: tuple[str, ...]
     movement_warnings: tuple[str, ...]
 
@@ -109,8 +110,10 @@ class Cellar:
 
     @property
     def wine_references(self) -> int:
-        """Return the number of Wine references received from PLOUD."""
-        return len(self.wines)
+        """Return the number of wine references with a positive effective stock."""
+        return sum(
+            self.stock_for(wine).effective_stock > 0 for wine in self.wines.values()
+        )
 
     @property
     def total_stock_bottles(self) -> int:
@@ -123,6 +126,23 @@ class Cellar:
     def stocked_wines(self) -> int:
         """Return the number of wine references with bottles in the cellar."""
         return sum(wine.bottles_in_cellar > 0 for wine in self.wines.values())
+
+    @property
+    def movement_warning_wines(self) -> int:
+        """Return the number of wine references with inconsistent movements."""
+        return sum(
+            bool(self.stock_for(wine).movement_warnings)
+            for wine in self.wines.values()
+        )
+
+    @property
+    def movement_warning_bottles(self) -> int:
+        """Return the absolute bottle discrepancy across anomalous references."""
+        return sum(
+            self.stock_for(wine).movement_difference_bottles
+            for wine in self.wines.values()
+            if self.stock_for(wine).movement_warnings
+        )
 
     @property
     def total_positions(self) -> int:
@@ -154,13 +174,12 @@ class Cellar:
         bottles_to_store = effective_stock - wine.bottles_in_cellar
 
         errors = ("unplaced_bottles",) if bottles_to_store > 0 else ()
+        movement_difference_bottles = abs(movement_balance - effective_stock)
         warnings: list[str] = []
         if movement_balance < 0:
             warnings.append("negative_movement_balance")
-        if wine.bottles > effective_stock:
-            warnings.append("ploud_stock_above_reconstructed_stock")
-        elif wine.bottles < effective_stock:
-            warnings.append("ploud_stock_below_reconstructed_stock")
+        if movement_balance != effective_stock:
+            warnings.append("movement_balance_mismatch")
 
         return WineStock(
             purchased=purchased,
@@ -169,6 +188,7 @@ class Cellar:
             calculated_stock=calculated_stock,
             effective_stock=effective_stock,
             bottles_to_store=bottles_to_store,
+            movement_difference_bottles=movement_difference_bottles,
             inventory_errors=errors,
             movement_warnings=tuple(warnings),
         )
