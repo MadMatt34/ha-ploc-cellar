@@ -74,14 +74,16 @@ class Order:
 
 @dataclass(frozen=True, slots=True)
 class WineStock:
-    """Derived stock quantities and inventory diagnostics for one wine."""
+    """Reconstructed stock quantities and diagnostics for one wine."""
 
     purchased: int
     consumed: int
     movement_balance: int
     calculated_stock: int
+    effective_stock: int
     bottles_to_store: int
     inventory_errors: tuple[str, ...]
+    movement_warnings: tuple[str, ...]
 
 
 @dataclass(slots=True)
@@ -106,9 +108,16 @@ class Cellar:
         return sum(wine.bottles_in_cellar for wine in self.wines.values())
 
     @property
+    def wine_references(self) -> int:
+        """Return the number of Wine references received from PLOUD."""
+        return len(self.wines)
+
+    @property
     def total_stock_bottles(self) -> int:
-        """Return the total stock quantity reported by PLOUD."""
-        return sum(wine.bottles for wine in self.wines.values())
+        """Return reconstructed total stock from movements and rack positions."""
+        return sum(
+            self.stock_for(wine).effective_stock for wine in self.wines.values()
+        )
 
     @property
     def stocked_wines(self) -> int:
@@ -117,11 +126,30 @@ class Cellar:
 
     @property
     def total_stocked_wines(self) -> int:
-        """Return the number of wine references with a positive PLOUD stock."""
-        return sum(wine.bottles > 0 for wine in self.wines.values())
+        """Return the number of wine references with reconstructed stock."""
+        return sum(
+            self.stock_for(wine).effective_stock > 0
+            for wine in self.wines.values()
+        )
+
+    @property
+    def total_positions(self) -> int:
+        """Return the number of physical rack positions, occupied or empty."""
+        return len(self.rack_items)
+
+    @property
+    def empty_positions(self) -> int:
+        """Return the number of physical rack positions without a wine."""
+        return max(0, self.total_positions - self.occupied_positions)
 
     def stock_for(self, wine: Wine) -> WineStock:
-        """Calculate movement stock, unplaced bottles and inventory anomalies."""
+        """Reconstruct stock from movements, never below the physical cellar count.
+
+        PLOUD's Wine.bo can overstate the stock in the supplied cellar data.
+        The Android application's stock evaluation is reproduced by taking
+        the greater of the non-negative movement balance and the number of
+        bottles already assigned to rack positions.
+        """
         purchased = 0
         consumed = 0
         for order in self.orders.values():
@@ -130,24 +158,27 @@ class Cellar:
                 consumed += order.outgoing
         movement_balance = purchased - consumed
         calculated_stock = max(0, movement_balance)
+        effective_stock = max(calculated_stock, wine.bottles_in_cellar)
+        bottles_to_store = effective_stock - wine.bottles_in_cellar
 
-        errors: list[str] = []
+        errors = ("unplaced_bottles",) if bottles_to_store > 0 else ()
+        warnings: list[str] = []
         if movement_balance < 0:
-            errors.append("negative_movement_balance")
-        if wine.bottles > calculated_stock:
-            errors.append("declared_stock_above_movements")
-        elif wine.bottles < calculated_stock:
-            errors.append("declared_stock_below_movements")
-        if wine.bottles_in_cellar > wine.bottles:
-            errors.append("cellar_stock_above_total")
+            warnings.append("negative_movement_balance")
+        if wine.bottles > effective_stock:
+            warnings.append("ploud_stock_above_reconstructed_stock")
+        elif wine.bottles < effective_stock:
+            warnings.append("ploud_stock_below_reconstructed_stock")
 
         return WineStock(
             purchased=purchased,
             consumed=consumed,
             movement_balance=movement_balance,
             calculated_stock=calculated_stock,
-            bottles_to_store=max(0, wine.bottles - wine.bottles_in_cellar),
-            inventory_errors=tuple(errors),
+            effective_stock=effective_stock,
+            bottles_to_store=bottles_to_store,
+            inventory_errors=errors,
+            movement_warnings=tuple(warnings),
         )
 
     @property
