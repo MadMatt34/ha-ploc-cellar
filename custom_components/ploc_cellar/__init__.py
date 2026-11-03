@@ -26,7 +26,6 @@ from .const import (
     CONF_SCAN_INTERVAL,
     CONF_SEARCH,
     CONF_TOKEN,
-    DEFAULT_LANGUAGE,
     DEFAULT_SCAN_INTERVAL,
     DOMAIN,
     MAX_SCAN_INTERVAL_MINUTES,
@@ -34,9 +33,9 @@ from .const import (
     PLOUD_DEFAULT_SERVER,
     SERVICE_GET_INVENTORY,
     SERVICE_SYNC,
-    SUPPORTED_LANGUAGES,
 )
 from .coordinator import PlocCellarCoordinator
+from .language import get_ploud_language
 from .models import Cellar
 from .types import GetInventoryServiceData, PlocCellarConfigEntry, SyncServiceData
 
@@ -220,14 +219,8 @@ async def async_setup_entry(
         else int(DEFAULT_SCAN_INTERVAL.total_seconds() // 60)
     )
 
-    raw_language = entry.options.get(
-        CONF_LANGUAGE,
-        entry.data.get(CONF_LANGUAGE, DEFAULT_LANGUAGE),
-    )
-    language = (
-        raw_language
-        if isinstance(raw_language, str) and raw_language in SUPPORTED_LANGUAGES
-        else DEFAULT_LANGUAGE
+    language = get_ploud_language(
+        hass, entry.options.get(CONF_LANGUAGE)
     )
 
     token = entry.data.get(CONF_TOKEN)
