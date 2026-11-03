@@ -86,7 +86,7 @@ Action avec réponse. Utiliser `response_variable` dans un script ou une automat
 
 Le champ `config_entry_id` est obligatoire pour identifier la connexion Ploc Cellar. Home Assistant propose un sélecteur limité aux entrées de cette intégration. Les filtres facultatifs sont :
 
-- `search` : recherche partielle dans le nom du vin, l'appellation, la région, le pays, le cépage ou la cuvée.
+- `search` : recherche partielle dans le nom du vin, l'appellation, la région, le pays, le cépage, la cuvée ou le commentaire.
 - `color` : filtre partiel sur la couleur du vin.
 
 Exemple :
