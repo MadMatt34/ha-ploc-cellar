@@ -101,15 +101,18 @@ class PlocCellarCoordinator(DataUpdateCoordinator[Cellar]):
                 language=self.language,
                 cursor=cursor,
             )
-            if cursor == 1:
+            full_sync = cursor == 1
+            if full_sync:
                 _validate_full_sync(objects)
 
-            updated_cellar = deepcopy(self.cellar)
+            # A full PLOUD response is a snapshot, not a delta. Start from an
+            # empty model so wines absent from that snapshot cannot survive.
+            updated_cellar = Cellar() if full_sync else deepcopy(self.cellar)
             unresolved_owner_ids = apply_sync(
                 updated_cellar, objects, next_cursor
             )
 
-            if unresolved_owner_ids and cursor != 1:
+            if unresolved_owner_ids and not full_sync:
                 _LOGGER.info(
                     "An incremental PLOUD update references an Owner missing "
                     "from the delta; requesting one full sync to resolve winery names"
@@ -123,12 +126,13 @@ class PlocCellarCoordinator(DataUpdateCoordinator[Cellar]):
                     cursor=1,
                 )
                 _validate_full_sync(objects)
-                # Discard the partial candidate and apply the complete response
-                # to the last committed snapshot, not on top of the delta.
-                updated_cellar = deepcopy(self.cellar)
+                # The fallback is also a complete snapshot: discard both the
+                # partial delta candidate and the previous committed model.
+                updated_cellar = Cellar()
                 unresolved_owner_ids = apply_sync(
                     updated_cellar, objects, next_cursor
                 )
+                full_sync = True
 
             if unresolved_owner_ids:
                 _LOGGER.warning(
@@ -137,6 +141,15 @@ class PlocCellarCoordinator(DataUpdateCoordinator[Cellar]):
                     len(unresolved_owner_ids),
                 )
 
+            _LOGGER.info(
+                "PLOUD %s sync applied: %d stocked wines, %d bottles, "
+                "%d racks, %d occupied positions",
+                "full" if full_sync else "incremental",
+                updated_cellar.stocked_wines,
+                updated_cellar.total_bottles,
+                len(updated_cellar.racks),
+                updated_cellar.occupied_positions,
+            )
             updated_cellar.last_sync = datetime.now(UTC).isoformat()
             updated_cellar.stale = False
             await self.store.async_save(updated_cellar.to_storage())
