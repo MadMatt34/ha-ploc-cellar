@@ -18,16 +18,7 @@ PLOUD_COLLECTION_WINES = "Wines"
 PLOUD_COLLECTION_RACKS = "Racks"
 PLOUD_COLLECTION_RACK_ITEMS = "RackItems"
 PLOUD_COLLECTION_DELETED = "DeletedObjects"
-PLOUD_REFERENCE_COLLECTIONS = (
-    "appellations",
-    "bottleFormats",
-    "classifications",
-    "colors",
-    "countries",
-    "regions",
-)
 PLOUD_SUPPORTED_COLLECTIONS = (
-    *PLOUD_REFERENCE_COLLECTIONS,
     PLOUD_COLLECTION_WINES,
     PLOUD_COLLECTION_RACKS,
     PLOUD_COLLECTION_RACK_ITEMS,
