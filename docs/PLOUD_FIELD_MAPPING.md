@@ -54,12 +54,14 @@ retain these reference collections. The sync request remains `Objects={}`, so
 the server may still include reference records in its response; network traffic
 is not guaranteed to decrease.
 
-The local RGB palette exactly reproduces all nine RGB/name pairs in the supplied
-`colors` reference collection. The legacy stored `color_rgb` value was derived
-from that collection by the previous integration; the supplied `ploud_reference_fields`
-do not contain RGB values. This export therefore does not establish that PLOUD
-sends RGB directly on each raw Wine record. Any future color label outside the
-nine known entries will have no RGB value unless explicitly added to the palette.
+The local RGB map exactly reproduces all nine RGB values in the supplied
+`colors` reference collection and is keyed by the wine's existing `co` color
+identifier. This keeps RGB resolution independent of the display language. The
+legacy stored `color_rgb` value was derived from that collection by the previous
+integration; the supplied `ploud_reference_fields` do not contain RGB values.
+This export therefore does not establish that PLOUD sends RGB directly on each
+raw Wine record. A future, unknown color ID will have no RGB value unless added
+to the local map; the French color-label map is only a fallback.
 
 ## Known technical or user-specific fields excluded from the Wine model
 
