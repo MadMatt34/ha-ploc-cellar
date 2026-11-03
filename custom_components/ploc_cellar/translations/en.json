@@ -45,7 +45,13 @@
         "name": "Inventory",
         "state_attributes": {
           "stocked_wines": {
-            "name": "Stocked wines"
+            "name": "Wines in cellar"
+          },
+          "total_stocked_wines": {
+            "name": "Wine references with PLOUD stock"
+          },
+          "total_stock_bottles": {
+            "name": "Bottles in total PLOUD stock"
           },
           "rack_count": {
             "name": "Number of racks"
@@ -66,7 +72,7 @@
   "services": {
     "get_inventory": {
       "name": "Get inventory",
-      "description": "Return the stocked wines and their rack positions without creating entities.",
+      "description": "Return wines with at least one occupied rack position, their in-cellar quantity, total PLOUD stock and rack positions, without creating entities.",
       "fields": {
         "search": {
           "name": "Search",

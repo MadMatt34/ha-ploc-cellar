@@ -14,7 +14,7 @@ A Home Assistant custom integration for a **read-only** view of a PLOC wine cell
 - PLOUD remains the source of truth.
 - Read-only incremental synchronization through `POST https://ploud.ploc.co/v1/sync/exec`, using `Objects={}`.
 - Initial synchronization uses the validated bootstrap value `LastSyncTime=1`. Later synchronizations use the client-maintained Unix-millisecond cursor.
-- Persistent local model containing stocked wines only, racks and rack positions. Wine characteristics, including the winery name, are stored directly in each wine record. The `Owners` collection is used transiently to resolve owner UUIDs; no Owner lookup table is persisted. If an incremental Wine update references an Owner absent from the delta, one full synchronization is requested to resolve it.
+- Persistent local model containing the `Wine` references returned by PLOUD, racks and rack positions. Total PLOUD stock (`bottles`) is kept separately from the in-cellar quantity (`bottles_in_cellar`), which is calculated by counting the `RackItems` assigned to each wine. The exposed inventory includes only wines with at least one occupied rack position. Wine characteristics, including the winery name, are stored directly in each wine record. The `Owners` collection is used transiently to resolve owner UUIDs; no Owner lookup table is persisted. If an incremental Wine update references an Owner absent from the delta, one full synchronization is requested to resolve it.
 - One compact summary sensor; no entity is created for each wine, rack or position.
 - Detailed inventory is returned on demand by the `ploc_cellar.get_inventory` action.
 - Immediate synchronization is available through the `ploc_cellar.sync` action.
@@ -62,13 +62,15 @@ Saving the options reloads the config entry. The PLOUD server endpoint cannot be
 
 The integration creates one summary sensor:
 
-- `sensor.ploc_cellar_inventory`: total number of bottles in stock.
+- `sensor.ploc_cellar_inventory`: number of bottles assigned to cellar positions (derived from `RackItems`).
 
 Its attributes are:
 
 | Attribute ID | Description |
 |---|---|
-| `stocked_wines` | Number of wines with at least one bottle in stock |
+| `stocked_wines` | Number of wine references with at least one cellar position |
+| `total_stocked_wines` | Number of wine references with positive total PLOUD stock |
+| `total_stock_bottles` | Number of bottles in the total PLOUD stock |
 | `rack_count` | Number of racks |
 | `occupied_positions` | Number of positions occupied by stocked wines |
 | `stale` | Indicates that the latest synchronization failed |
@@ -101,10 +103,11 @@ response_variable: cellar
 
 The response contains:
 
-- global totals: `total_bottles`, `stocked_wines`, `rack_count` and `occupied_positions`;
+- global totals: `total_bottles` and `stocked_wines` describe the physical cellar contents; `total_stock_bottles` and `total_stocked_wines` describe the total stock reported by PLOUD;
+- `rack_count` and `occupied_positions`, the number of racks and occupied positions;
 - `matching_wines`, the number of wines matching the filters;
 - `racks`, the list of racks;
-- `wines`, wines with at least one bottle in stock, including their winery, details and locations;
+- `wines`, wines with at least one occupied position, including total PLOUD stock in `bottles`, in-cellar quantity in `bottles_in_cellar`, their details and locations;
 - `last_sync`, the date and time of the last successful synchronization.
 
 Filters do not change the global totals. Each wine location contains its rack name and ID, plus row and column when available.

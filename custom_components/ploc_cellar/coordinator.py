@@ -158,11 +158,14 @@ class PlocCellarCoordinator(DataUpdateCoordinator[Cellar]):
                 )
 
             _LOGGER.info(
-                "PLOUD %s sync applied: %d stocked wines, %d bottles, "
+                "PLOUD %s sync applied: %d wines in cellar, %d bottles in "
+                "cellar; %d wines with total stock, %d total bottles; "
                 "%d racks, %d occupied positions",
                 "full" if full_sync else "incremental",
                 updated_cellar.stocked_wines,
                 updated_cellar.total_bottles,
+                updated_cellar.total_stocked_wines,
+                updated_cellar.total_stock_bottles,
                 len(updated_cellar.racks),
                 updated_cellar.occupied_positions,
             )

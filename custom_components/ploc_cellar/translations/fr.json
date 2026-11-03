@@ -45,7 +45,13 @@
         "name": "Inventaire",
         "state_attributes": {
           "stocked_wines": {
-            "name": "Vins en stock"
+            "name": "Références en cave"
+          },
+          "total_stocked_wines": {
+            "name": "Références avec stock PLOUD"
+          },
+          "total_stock_bottles": {
+            "name": "Bouteilles selon le stock PLOUD"
           },
           "rack_count": {
             "name": "Nombre de casiers"
@@ -66,7 +72,7 @@
   "services": {
     "get_inventory": {
       "name": "Obtenir l'inventaire",
-      "description": "Renvoyer les vins en stock et leurs emplacements sans créer d'entités.",
+      "description": "Renvoyer les vins ayant au moins un emplacement occupé, leur quantité en cave, leur stock total PLOUD et leurs emplacements, sans créer d'entités.",
       "fields": {
         "search": {
           "name": "Recherche",

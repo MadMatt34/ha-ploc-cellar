@@ -96,7 +96,7 @@ def _build_inventory_response(
     inventory: list[JsonValueType] = []
 
     stocked_wines = sorted(
-        (wine for wine in cellar.wines.values() if wine.bottles > 0),
+        (wine for wine in cellar.wines.values() if wine.bottles_in_cellar > 0),
         key=lambda wine: (wine.name.casefold(), wine.vintage or 0),
     )
     for wine in stocked_wines:
@@ -133,6 +133,7 @@ def _build_inventory_response(
                 "name": wine.name,
                 "domain": wine.domain,
                 "bottles": wine.bottles,
+                "bottles_in_cellar": wine.bottles_in_cellar,
                 "vintage": wine.vintage,
                 "appellation": wine.appellation,
                 "color": wine.color,
@@ -162,6 +163,8 @@ def _build_inventory_response(
     return {
         "total_bottles": cellar.total_bottles,
         "stocked_wines": cellar.stocked_wines,
+        "total_stock_bottles": cellar.total_stock_bottles,
+        "total_stocked_wines": cellar.total_stocked_wines,
         "matching_wines": len(inventory),
         "rack_count": len(cellar.racks),
         "occupied_positions": cellar.occupied_positions,

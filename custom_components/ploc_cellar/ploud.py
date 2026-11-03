@@ -255,7 +255,7 @@ def _parse_wine(
 
     _LOGGER.debug(
         "PLOUD wine inventory record: id=%s name=%r bottles=%r bo=%r "
-        "selected=%d stocked=%s",
+        "selected=%d total_stocked=%s",
         wine_id,
         _optional_text(_source_value(raw, fields, "name", "nm")) or "",
         bottles_value,
@@ -286,6 +286,7 @@ def _parse_wine(
         id=wine_id,
         name=_optional_text(_source_value(raw, fields, "name", "nm")) or "",
         bottles=bottles,
+        bottles_in_cellar=0,
         vintage=vintage,
         appellation=_optional_text(_source_value(raw, fields, "appellation")),
         color=color,
@@ -485,24 +486,23 @@ def apply_sync(
             owner_names=owner_names,
             previous=previous,
         )
-        if wine.bottles > 0:
-            if (
-                wine.owner_id is not None
-                and wine.domain is None
-                and wine.owner_id.casefold() not in owner_records_seen
-                and (
-                    previous is None
-                    or previous.owner_id is None
-                    or previous.owner_id.casefold() != wine.owner_id.casefold()
-                    or previous.domain is not None
-                )
-            ):
-                unresolved_owner_ids.add(wine.owner_id)
-            cellar.wines[wine.id] = wine
-            removed_wine_ids.discard(wine.id)
-        else:
-            cellar.wines.pop(wine.id, None)
-            removed_wine_ids.add(wine.id)
+        if (
+            wine.owner_id is not None
+            and wine.domain is None
+            and wine.owner_id.casefold() not in owner_records_seen
+            and (
+                previous is None
+                or previous.owner_id is None
+                or previous.owner_id.casefold() != wine.owner_id.casefold()
+                or previous.domain is not None
+            )
+        ):
+            unresolved_owner_ids.add(wine.owner_id)
+        # Keep every Wine reference, including zero-total-stock wines. A later
+        # RackItem delta may assign one to a cellar position without repeating
+        # its Wine object in the same response.
+        cellar.wines[wine.id] = wine
+        removed_wine_ids.discard(wine.id)
 
     for raw in _collection(objects, PLOUD_COLLECTION_RACKS):
         identifier = raw.get("id")
@@ -597,6 +597,9 @@ def apply_sync(
                 item.id, item.rack_id, "", item.row, item.column
             )
 
+    # RackItems, not Wine.bo, define the quantity physically stored in the
+    # cellar. Refresh after applying both collections and all deletions.
+    cellar.refresh_bottles_in_cellar()
     cellar.cursor = next_cursor
     cellar.initialized = True
     return unresolved_owner_ids

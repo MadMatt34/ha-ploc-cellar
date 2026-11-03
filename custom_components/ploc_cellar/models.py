@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 import math
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from typing import cast
 
 from homeassistant.util.json import JsonObjectType, JsonValueType
@@ -15,11 +15,14 @@ type JsonObject = JsonObjectType
 
 @dataclass(frozen=True, slots=True)
 class Wine:
-    """A stocked PLOUD wine with its display-ready characteristics."""
+    """A PLOUD Wine reference with its display-ready characteristics."""
 
     id: str
     name: str
+    # PLOUD total stock, including bottles not assigned to a rack position.
     bottles: int
+    # Derived from the number of assigned PLOUD RackItems.
+    bottles_in_cellar: int
     vintage: int | None
     appellation: str | None
     color: str | None
@@ -76,22 +79,43 @@ class Cellar:
 
     @property
     def total_bottles(self) -> int:
-        """Return the total number of bottles currently in stock."""
+        """Return the number of bottles assigned to cellar positions."""
+        return sum(wine.bottles_in_cellar for wine in self.wines.values())
+
+    @property
+    def total_stock_bottles(self) -> int:
+        """Return the total stock quantity reported by PLOUD."""
         return sum(wine.bottles for wine in self.wines.values())
 
     @property
     def stocked_wines(self) -> int:
-        """Return the number of wines with at least one bottle."""
-        return len(self.wines)
+        """Return the number of wine references with bottles in the cellar."""
+        return sum(wine.bottles_in_cellar > 0 for wine in self.wines.values())
+
+    @property
+    def total_stocked_wines(self) -> int:
+        """Return the number of wine references with a positive PLOUD stock."""
+        return sum(wine.bottles > 0 for wine in self.wines.values())
+
+    def refresh_bottles_in_cellar(self) -> None:
+        """Recalculate each wine's in-cellar quantity from assigned RackItems."""
+        counts: dict[str, int] = {}
+        for item in self.rack_items.values():
+            if item.wine_id in self.wines and item.rack_id in self.racks:
+                counts[item.wine_id] = counts.get(item.wine_id, 0) + 1
+
+        for wine_id, wine in tuple(self.wines.items()):
+            count = counts.get(wine_id, 0)
+            if wine.bottles_in_cellar != count:
+                self.wines[wine_id] = replace(wine, bottles_in_cellar=count)
 
     @property
     def occupied_positions(self) -> int:
-        """Return positions assigned to stocked wines in existing racks."""
-        stocked_ids = {wine.id for wine in self.wines.values()}
+        """Return rack positions with a wine assignment in existing racks."""
         return sum(
             1
             for item in self.rack_items.values()
-            if item.wine_id in stocked_ids and item.rack_id in self.racks
+            if item.wine_id and item.rack_id in self.racks
         )
 
     def to_storage(self) -> JsonObject:
@@ -101,6 +125,7 @@ class Cellar:
                 "id": wine.id,
                 "name": wine.name,
                 "bottles": wine.bottles,
+                "bottles_in_cellar": wine.bottles_in_cellar,
                 "vintage": wine.vintage,
                 "appellation": wine.appellation,
                 "color": wine.color,
@@ -152,30 +177,26 @@ class Cellar:
     def from_storage(cls, data: JsonObject) -> Cellar:
         """Restore and migrate a persisted cellar snapshot."""
         data_version = _int(data.get("version"))
-        if data_version not in (1, 2, 3, CELLAR_DATA_VERSION):
+        if data_version not in (1, 2, 3, 4, CELLAR_DATA_VERSION):
             raise ValueError("Unsupported Ploc Cellar storage version")
 
         stored_cursor = max(1, _int(data.get("cursor")) or 1)
         cellar = cls(
-            # v1/v2 snapshots predate wine-level owner resolution. Reset the
-            # cursor once so the next full sync can populate Wine.domain.
-            # v3 already stores Wine.domain and can keep its incremental cursor.
-            cursor=1 if data_version < 3 else stored_cursor,
+            # Older snapshots retained only wines with a positive PLOUD stock.
+            # Force one full sync to restore every Wine reference and derive
+            # in-cellar quantities from the current RackItems collection.
+            cursor=1 if data_version < CELLAR_DATA_VERSION else stored_cursor,
             last_sync=_str(data.get("last_sync")),
             initialized=data.get("initialized") is True,
         )
 
-        removed_wine_ids: set[str] = set()
         for key, raw in _as_dict(data.get("wines")).items():
             if not isinstance(raw, dict):
                 continue
             wine = _wine_from_dict(raw, key)
-            if wine.bottles > 0:
-                if wine.id in cellar.wines:
-                    raise ValueError(f"Duplicate wine ID in stored cellar: {wine.id}")
-                cellar.wines[wine.id] = wine
-            else:
-                removed_wine_ids.add(wine.id)
+            if wine.id in cellar.wines:
+                raise ValueError(f"Duplicate wine ID in stored cellar: {wine.id}")
+            cellar.wines[wine.id] = wine
 
         for key, raw in _as_dict(data.get("racks")).items():
             if isinstance(raw, dict):
@@ -186,15 +207,12 @@ class Cellar:
         for key, raw in _as_dict(data.get("rack_items")).items():
             if isinstance(raw, dict):
                 item = _rack_item_from_dict(raw, key)
-                if item.wine_id in removed_wine_ids or (
-                    item.wine_id and item.wine_id not in cellar.wines
-                ):
-                    # Keep the physical rack slot but clear its wine assignment.
-                    item = RackItem(
-                        item.id, item.rack_id, "", item.row, item.column
-                    )
+                # Preserve the assignment even when an older snapshot lacks
+                # the corresponding Wine reference; the full-sync migration
+                # will restore the complete Wine collection.
                 cellar.rack_items[key] = item
 
+        cellar.refresh_bottles_in_cellar()
         return cellar
 
 
@@ -300,10 +318,19 @@ def _wine_from_dict(raw: JsonObject, key: str) -> Wine:
         raise ValueError(f"Invalid bottle count in stored wine {key}")
     bottles = parsed_bottles
 
+    parsed_bottles_in_cellar = _int(raw.get("bottles_in_cellar"))
+    if parsed_bottles_in_cellar is None:
+        if "bottles_in_cellar" in raw:
+            raise ValueError(f"Invalid in-cellar bottle count in stored wine {key}")
+        parsed_bottles_in_cellar = 0
+    if parsed_bottles_in_cellar < 0:
+        raise ValueError(f"Invalid in-cellar bottle count in stored wine {key}")
+
     return Wine(
         id=_str(raw.get("id")) or key,
         name=_str(raw.get("name")) or "",
         bottles=bottles,
+        bottles_in_cellar=parsed_bottles_in_cellar,
         vintage=vintage,
         appellation=_optional_str(value("appellation", "appellation")),
         color=_optional_str(value("color", "color")),

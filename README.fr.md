@@ -14,7 +14,7 @@ Intégration personnalisée Home Assistant permettant de consulter une cave PLOC
 - PLOUD reste la source de vérité.
 - Synchronisation incrémentale en lecture seule via `POST https://ploud.ploc.co/v1/sync/exec`, avec `Objects={}`.
 - Le premier chargement utilise la valeur d'initialisation validée `LastSyncTime=1`. Les synchronisations suivantes utilisent le curseur client en millisecondes Unix.
-- Modèle local persistant : uniquement les vins en stock, les casiers et leurs emplacements. Les caractéristiques, dont le domaine viticole, sont directement enregistrées dans chaque fiche vin. La collection `Owners` est utilisée temporairement pour résoudre les UUID des propriétaires ; aucune table de correspondance n'est conservée. Si un vin reçu dans un delta référence un propriétaire absent de ce delta, une synchronisation complète ponctuelle est déclenchée pour résoudre son nom.
+- Modèle local persistant : les références `Wine` reçues de PLOUD, les casiers et leurs emplacements. Le stock total PLOUD (`bottles`) est conservé séparément du stock en cave (`bottles_in_cellar`), calculé à partir du nombre de `RackItems` affectés au vin. L'inventaire exposé ne retient que les vins ayant au moins un emplacement occupé. Les caractéristiques, dont le domaine viticole, sont directement enregistrées dans chaque fiche vin. La collection `Owners` est utilisée temporairement pour résoudre les UUID des propriétaires ; aucune table de correspondance n'est conservée. Si un vin reçu dans un delta référence un propriétaire absent de ce delta, une synchronisation complète ponctuelle est déclenchée pour résoudre son nom.
 - Un seul capteur de synthèse ; aucune entité n'est créée pour chaque vin, casier ou emplacement.
 - Inventaire détaillé accessible à la demande avec l'action `ploc_cellar.get_inventory`.
 - Synchronisation immédiate à la demande avec l'action `ploc_cellar.sync`.
@@ -62,13 +62,15 @@ L'enregistrement des options recharge l'entrée de configuration. L'adresse du s
 
 L'intégration crée un capteur de synthèse :
 
-- `sensor.ploc_cellar_inventory` : nombre total de bouteilles en stock.
+- `sensor.ploc_cellar_inventory` : nombre de bouteilles affectées à des emplacements de cave (calculé depuis les `RackItems`).
 
 Ses attributs sont :
 
 | Identifiant | Description |
 |---|---|
-| `stocked_wines` | Nombre de vins ayant au moins une bouteille en stock |
+| `stocked_wines` | Nombre de références ayant au moins une position en cave |
+| `total_stocked_wines` | Nombre de références avec un stock total PLOUD positif |
+| `total_stock_bottles` | Nombre de bouteilles selon le stock total PLOUD |
 | `rack_count` | Nombre de casiers |
 | `occupied_positions` | Nombre d'emplacements occupés par des vins en stock |
 | `stale` | Indique que la dernière synchronisation a échoué |
@@ -101,10 +103,11 @@ response_variable: cave
 
 La réponse contient :
 
-- les totaux globaux : `total_bottles`, `stocked_wines`, `rack_count` et `occupied_positions` ;
+- les totaux globaux : `total_bottles` et `stocked_wines` décrivent le contenu physique des casiers ; `total_stock_bottles` et `total_stocked_wines` reprennent le stock total annoncé par PLOUD ;
+- `rack_count` et `occupied_positions`, le nombre de casiers et d'emplacements occupés ;
 - `matching_wines`, le nombre de vins correspondant aux filtres ;
 - `racks`, la liste des casiers ;
-- `wines`, les vins ayant au moins une bouteille en stock, avec leur domaine viticole, leurs caractéristiques et leurs emplacements ;
+- `wines`, les vins ayant au moins un emplacement occupé, avec leur stock total PLOUD dans `bottles`, leur quantité en cave dans `bottles_in_cellar`, leurs caractéristiques et leurs emplacements ;
 - `last_sync`, la date et l'heure de la dernière synchronisation réussie.
 
 Les filtres ne modifient pas les totaux globaux. Chaque emplacement associé à un vin contient le nom et l'identifiant du casier, ainsi que la rangée et la colonne lorsqu'elles sont disponibles.

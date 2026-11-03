@@ -37,7 +37,7 @@ MAX_SCAN_INTERVAL_MINUTES = 1440
 # Home Assistant Store envelope version; keep stable for existing installations.
 STORAGE_VERSION = 1
 # Version of the serialized Cellar payload stored inside the Store envelope.
-CELLAR_DATA_VERSION = 4
+CELLAR_DATA_VERSION = 5
 STORAGE_KEY = f"{DOMAIN}.cellar"
 
 CONF_TOKEN = "token"
