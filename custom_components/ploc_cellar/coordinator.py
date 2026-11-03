@@ -159,13 +159,16 @@ class PlocCellarCoordinator(DataUpdateCoordinator[Cellar]):
 
             _LOGGER.info(
                 "PLOUD %s sync applied: %d wines in cellar, %d bottles in "
-                "cellar; %d wines with total stock, %d total bottles; "
+                "cellar; %d wine references with stock, %d total bottles; "
+                "%d movement-anomaly references (%d bottles discrepancy); "
                 "%d racks, %d occupied positions",
                 "full" if full_sync else "incremental",
                 updated_cellar.stocked_wines,
                 updated_cellar.total_bottles,
-                updated_cellar.total_stocked_wines,
+                updated_cellar.wine_references,
                 updated_cellar.total_stock_bottles,
+                updated_cellar.movement_warning_wines,
+                updated_cellar.movement_warning_bottles,
                 len(updated_cellar.racks),
                 updated_cellar.occupied_positions,
             )
