@@ -44,6 +44,10 @@ class PlocCellarSensor(CoordinatorEntity[PlocCellarCoordinator], SensorEntity):
         cellar = self.coordinator.data
         return {
             "stocked_wines": cellar.stocked_wines,
+            "total_stock_bottles": cellar.total_stock_bottles,
+            "bottles_to_store": cellar.total_bottles_to_store,
+            "inventory_error_wines": cellar.inventory_error_wines,
+            "inventory_error_count": cellar.inventory_error_count,
             "rack_count": len(cellar.racks),
             "occupied_positions": cellar.occupied_positions,
             "stale": cellar.stale,
