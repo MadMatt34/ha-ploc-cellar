@@ -182,7 +182,6 @@ def _build_inventory_response(
         "stocked_wines": cellar.stocked_wines,
         "wine_references": cellar.wine_references,
         "total_stock_bottles": cellar.total_stock_bottles,
-        "total_stocked_wines": cellar.total_stocked_wines,
         "total_positions": cellar.total_positions,
         "empty_positions": cellar.empty_positions,
         "bottles_to_store": cellar.total_bottles_to_store,
