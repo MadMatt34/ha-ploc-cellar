@@ -96,7 +96,11 @@ def _build_inventory_response(
     inventory: list[JsonValueType] = []
 
     stocked_wines = sorted(
-        (wine for wine in cellar.wines.values() if wine.bottles_in_cellar > 0),
+        (
+            wine
+            for wine in cellar.wines.values()
+            if wine.bottles > 0 or wine.bottles_in_cellar > 0
+        ),
         key=lambda wine: (wine.name.casefold(), wine.vintage or 0),
     )
     for wine in stocked_wines:
@@ -117,6 +121,7 @@ def _build_inventory_response(
         if normalized_color and normalized_color not in (wine.color or "").casefold():
             continue
 
+        stock = cellar.stock_for(wine)
         locations: list[JsonValueType] = [
             {
                 "rack": cellar.racks[item.rack_id].name,
@@ -134,6 +139,12 @@ def _build_inventory_response(
                 "domain": wine.domain,
                 "bottles": wine.bottles,
                 "bottles_in_cellar": wine.bottles_in_cellar,
+                "bottles_to_store": stock.bottles_to_store,
+                "purchased": stock.purchased,
+                "consumed": stock.consumed,
+                "movement_balance": stock.movement_balance,
+                "calculated_stock": stock.calculated_stock,
+                "inventory_errors": list(stock.inventory_errors),
                 "vintage": wine.vintage,
                 "appellation": wine.appellation,
                 "color": wine.color,
@@ -165,6 +176,9 @@ def _build_inventory_response(
         "stocked_wines": cellar.stocked_wines,
         "total_stock_bottles": cellar.total_stock_bottles,
         "total_stocked_wines": cellar.total_stocked_wines,
+        "bottles_to_store": cellar.total_bottles_to_store,
+        "inventory_error_wines": cellar.inventory_error_wines,
+        "inventory_error_count": cellar.inventory_error_count,
         "matching_wines": len(inventory),
         "rack_count": len(cellar.racks),
         "occupied_positions": cellar.occupied_positions,
