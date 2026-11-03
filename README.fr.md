@@ -69,7 +69,12 @@ Ses attributs sont :
 | Identifiant | Description |
 |---|---|
 | `wine_references` | Nombre de références du catalogue |
-| `stocked_wines` | Nombre de références ayant au moins une position en cave |\n| `total_stock_bottles` | Nombre total de bouteilles déclaré par PLOUD |\n| `bottles_to_store` | Nombre de bouteilles non placées |\n| `inventory_error_wines` | Nombre de vins présentant au moins une anomalie d'inventaire |\n| `inventory_error_count` | Nombre total d'anomalies détectées |
+| `stocked_wines` | Nombre de références ayant au moins une position en cave |
+| `total_stocked_wines` | Nombre de références avec un stock effectif positif |
+| `total_stock_bottles` | Nombre total de bouteilles reconstitué |
+| `bottles_to_store` | Nombre de bouteilles non placées |
+| `inventory_error_wines` | Nombre de références avec des bouteilles non placées |
+| `inventory_error_count` | Nombre de références présentant cette anomalie |
 | `rack_count` | Nombre de casiers |
 | `total_positions` | Nombre total d'emplacements physiques |
 | `empty_positions` | Nombre d'emplacements vides |
