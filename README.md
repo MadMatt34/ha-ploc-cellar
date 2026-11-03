@@ -86,7 +86,7 @@ A response action. Use `response_variable` in a script or automation.
 
 A `config_entry_id` is required to identify the Ploc Cellar connection. Home Assistant provides a selector restricted to this integration's config entries. Optional filters are:
 
-- `search`: partial match against wine name, appellation, region, country, grape or cuvée.
+- `search`: partial match against wine name, appellation, region, country, grape, cuvée or comment.
 - `color`: partial match against the wine color.
 
 Example:
