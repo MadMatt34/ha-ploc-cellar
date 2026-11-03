@@ -416,22 +416,26 @@ async def async_sync(
 
 def apply_sync(
     cellar: Cellar, objects: PLOUDCollections, next_cursor: int
-) -> None:
-    """Apply a PLOUD delta to a candidate cellar model."""
+) -> set[str]:
+    """Apply a PLOUD delta and return unresolved new Owner references."""
     removed_wine_ids: set[str] = set()
     removed_rack_ids: set[str] = set()
-    owner_names = cellar.owner_names
+    deleted_owner_ids: set[str] = set()
+    unresolved_owner_ids: set[str] = set()
+    owner_names: dict[str, str | None] = {}
+    owner_records_seen: set[str] = set()
 
-    # Resolve Owner records into Wine objects without retaining the full
-    # reference collection in persistent storage.
+    # Owner names are transient to this response only. The resolved winery
+    # name is copied into each affected Wine record.
     for raw in _collection(objects, PLOUD_COLLECTION_OWNERS):
         owner_id = _deleted_id(raw)
         if owner_id is None:
             continue
+        owner_key = owner_id.casefold()
+        owner_records_seen.add(owner_key)
         has_name, owner_name = _owner_display_name(raw)
         if not has_name:
             continue
-        owner_key = owner_id.casefold()
         owner_names[owner_key] = owner_name
         for wine_id, wine in tuple(cellar.wines.items()):
             if wine.owner_id is not None and wine.owner_id.casefold() == owner_key:
@@ -447,6 +451,18 @@ def apply_sync(
             previous=previous,
         )
         if wine.bottles > 0:
+            if (
+                wine.owner_id is not None
+                and wine.domain is None
+                and wine.owner_id.casefold() not in owner_records_seen
+                and (
+                    previous is None
+                    or previous.owner_id is None
+                    or previous.owner_id.casefold() != wine.owner_id.casefold()
+                    or previous.domain is not None
+                )
+            ):
+                unresolved_owner_ids.add(wine.owner_id)
             cellar.wines[wine.id] = wine
             removed_wine_ids.discard(wine.id)
         else:
@@ -489,7 +505,7 @@ def apply_sync(
                 for wine in cellar.wines.values()
             )
         ):
-            cellar.owner_names.pop(object_id.casefold(), None)
+            deleted_owner_ids.add(object_id.casefold())
             for wine_id, wine in tuple(cellar.wines.items()):
                 if (
                     wine.owner_id is not None
@@ -529,6 +545,10 @@ def apply_sync(
             elif target_kind == "rack":
                 removed_rack_ids.add(object_id)
 
+    # An explicitly deleted Owner is not an unresolved reference: its wines
+    # correctly keep no winery name.
+    unresolved_owner_ids.difference_update(deleted_owner_ids)
+
     # Removing a wine frees its physical rack slot; retain the RackItem and
     # clear only its wine assignment. Deleting a rack removes its positions.
     # Also clear stale assignments whose wine is no longer in the inventory.
@@ -544,3 +564,4 @@ def apply_sync(
 
     cellar.cursor = next_cursor
     cellar.initialized = True
+    return unresolved_owner_ids
