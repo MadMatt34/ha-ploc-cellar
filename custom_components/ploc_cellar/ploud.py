@@ -6,6 +6,7 @@ import hashlib
 import hmac
 import math
 import time
+from dataclasses import replace
 from typing import cast
 
 from aiohttp import ClientError, ClientSession, ClientTimeout, FormData
@@ -13,6 +14,7 @@ from homeassistant.util.json import JsonValueType
 
 from .const import (
     PLOUD_COLLECTION_DELETED,
+    PLOUD_COLLECTION_OWNERS,
     PLOUD_COLLECTION_RACK_ITEMS,
     PLOUD_COLLECTION_RACKS,
     PLOUD_COLLECTION_WINES,
@@ -173,8 +175,21 @@ _COLOR_RGB_BY_ID: dict[str, tuple[int, int, int]] = {
 
 
 
-def _parse_wine(raw: JsonObject) -> Wine:
-    """Convert one PLOUD wine using its own expanded display fields."""
+def _owner_display_name(raw: JsonObject) -> tuple[bool, str | None]:
+    """Return an Owner display name when its name field is present."""
+    for key in ("fullname", "fullName", "full_name", "nm", "name", "Name"):
+        if key in raw:
+            return True, _optional_text(raw[key])
+    return False, None
+
+
+def _parse_wine(
+    raw: JsonObject,
+    *,
+    owner_names: dict[str, str | None],
+    previous: Wine | None,
+) -> Wine:
+    """Convert one PLOUD wine and resolve its Owner UUID to a winery name."""
     stored_fields = raw.get("ploud_reference_fields")
     fields = (
         cast(JsonObject, stored_fields) if isinstance(stored_fields, dict) else {}
@@ -204,6 +219,18 @@ def _parse_wine(raw: JsonObject) -> Wine:
     vintage = _int(_source_value(raw, fields, "vintage", "vi"))
     if vintage is not None and vintage <= 0:
         vintage = None
+
+    owner_id = _reference_id(_source_value(raw, fields, "owner_id", "ow"))
+    if owner_id is None and previous is not None:
+        owner_id = previous.owner_id
+
+    domain = _optional_text(
+        _source_value(raw, fields, "domain", "owner_name", "owner_fullname")
+    )
+    if owner_id is not None and owner_id.casefold() in owner_names:
+        domain = owner_names[owner_id.casefold()]
+    elif previous is not None and previous.owner_id == owner_id:
+        domain = domain or previous.domain
 
     return Wine(
         id=wine_id,
@@ -237,6 +264,8 @@ def _parse_wine(raw: JsonObject) -> Wine:
             _source_value(raw, fields, "bottle_volume_l")
         ),
         ploud_pid=_optional_text(_source_value(raw, fields, "ploud_pid", "pid")),
+        domain=domain,
+        owner_id=owner_id,
     )
 
 
@@ -251,9 +280,36 @@ def _collection(objects: PLOUDCollections, name: str) -> list[JsonObject]:
 def _deleted_id(raw: JsonObject) -> str | None:
     """Extract the ID of a deleted PLOUD object."""
     for key in ("id", "Id", "ID"):
-        if isinstance(raw.get(key), str):
-            return cast(str, raw[key])
+        value = raw.get(key)
+        if isinstance(value, str) and value:
+            return value
     return None
+
+
+def _deleted_kind(raw: JsonObject) -> str:
+    """Normalize a deleted-object type, including PLOUD numeric object IDs."""
+    numeric_types = {
+        "100": "wine",
+        "106": "owner",
+        "111": "rack",
+        "112": "rackitem",
+    }
+    for key in ("type", "Type", "objectType", "ObjectType", "ty"):
+        value = raw.get(key)
+        if isinstance(value, bool) or value is None:
+            continue
+        if isinstance(value, int):
+            normalized = str(value)
+        elif isinstance(value, str):
+            normalized = value.strip().casefold()
+        else:
+            continue
+        if not normalized:
+            continue
+        if normalized.isdecimal():
+            return numeric_types.get(normalized, "")
+        return normalized.replace("_", "").replace("-", "")
+    return ""
 
 
 async def async_sync(
@@ -349,9 +405,32 @@ def apply_sync(
     """Apply a PLOUD delta to a candidate cellar model."""
     removed_wine_ids: set[str] = set()
     removed_rack_ids: set[str] = set()
+    owner_names: dict[str, str | None] = {}
+
+    # Resolve Owner records into Wine objects without retaining the full
+    # reference collection in persistent storage.
+    for raw in _collection(objects, PLOUD_COLLECTION_OWNERS):
+        owner_id = _deleted_id(raw)
+        if owner_id is None:
+            continue
+        has_name, owner_name = _owner_display_name(raw)
+        if not has_name:
+            continue
+        owner_key = owner_id.casefold()
+        owner_names[owner_key] = owner_name
+        for wine_id, wine in tuple(cellar.wines.items()):
+            if wine.owner_id is not None and wine.owner_id.casefold() == owner_key:
+                if wine.domain != owner_name:
+                    cellar.wines[wine_id] = replace(wine, domain=owner_name)
 
     for raw in _collection(objects, PLOUD_COLLECTION_WINES):
-        wine = _parse_wine(raw)
+        raw_id = raw.get("id")
+        previous = cellar.wines.get(raw_id) if isinstance(raw_id, str) else None
+        wine = _parse_wine(
+            raw,
+            owner_names=owner_names,
+            previous=previous,
+        )
         if wine.bottles > 0:
             cellar.wines[wine.id] = wine
             removed_wine_ids.discard(wine.id)
@@ -386,15 +465,16 @@ def apply_sync(
         if object_id is None:
             continue
 
-        kind = next(
-            (
-                raw[key]
-                for key in ("type", "Type", "objectType", "ObjectType")
-                if isinstance(raw.get(key), str)
-            ),
-            "",
-        )
-        normalized_kind = kind.casefold() if isinstance(kind, str) else ""
+        normalized_kind = _deleted_kind(raw)
+        if normalized_kind == "owner" or (
+            not normalized_kind
+            and any(wine.owner_id == object_id for wine in cellar.wines.values())
+        ):
+            for wine_id, wine in tuple(cellar.wines.items()):
+                if wine.owner_id == object_id:
+                    cellar.wines[wine_id] = replace(wine, domain=None)
+            continue
+
         named_targets = {
             "wine": cellar.wines,
             "rack": cellar.racks,
