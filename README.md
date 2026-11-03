@@ -38,7 +38,7 @@ Home Assistant automatically performs the following operations:
 2. Activates PLOUD for the **Home Assistant** application through `POST https://api.ploc.co/v1/ploud/activate`, using the PLOC session token obtained in the previous step.
 3. Retrieves the PLOUD access token returned by the activation endpoint.
 4. Generates a UUID device identifier dedicated to this installation.
-5. Stores the PLOUD access token, device identifier and initial language in the Home Assistant config entry.
+5. Stores the PLOUD access token and device identifier in the Home Assistant config entry. The language is not fixed in that entry: it is resolved automatically from the country configured in Home Assistant.
 6. Runs the first read-only synchronization against the fixed PLOUD server.
 
 The full UUID is stored locally. PLOUD requests send only its first five characters in the `Device` field and use that short identifier when calculating the request signature, matching the Android client's behavior.
@@ -54,7 +54,7 @@ When Home Assistant requests reauthentication, enter the PLOC account email addr
 Open **Settings → Devices & services → Ploc Cellar → Configure** to change:
 
 - **Synchronization interval**: 5 to 1,440 minutes; 15 minutes by default.
-- **PLOUD response language**: French or English; French by default.
+- **PLOUD response language**: `Automatic`, `Français` or `English`. In automatic mode (the default), francophone countries use `fr` and all other countries use `en`. When no country is configured in Home Assistant, its general language is used as a fallback (`fr` for French, `en` otherwise). The manual `Français` and `English` choices remain in force until `Automatic` is selected.
 
 Saving the options reloads the config entry. The PLOUD server endpoint cannot be changed through the integration.
 
