@@ -159,7 +159,8 @@ class PlocCellarCoordinator(DataUpdateCoordinator[Cellar]):
             updated_cellar.stale = False
             await self.store.async_save(updated_cellar.to_storage())
             self.cellar = updated_cellar
-            self._force_full_sync = False
+            if full_sync:
+                self._force_full_sync = False
             return updated_cellar
         except PloudAuthError as err:
             self.cellar.stale = True
@@ -171,12 +172,13 @@ class PlocCellarCoordinator(DataUpdateCoordinator[Cellar]):
     async def async_force_full_sync(self) -> Cellar:
         """Request a complete PLOUD snapshot without clearing current data first."""
         self._force_full_sync = True
-        await self.async_refresh()
-        if not self.last_update_success:
-            raise HomeAssistantError(
-                translation_domain=DOMAIN,
-                translation_key="sync_failed",
-            ) from self.last_exception
+        while self._force_full_sync:
+            await self.async_refresh()
+            if not self.last_update_success:
+                raise HomeAssistantError(
+                    translation_domain=DOMAIN,
+                    translation_key="sync_failed",
+                ) from self.last_exception
         return self.data
 
     async def async_force_sync(self) -> Cellar:
