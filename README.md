@@ -68,12 +68,14 @@ Its attributes are:
 
 | Attribute ID | Description |
 |---|---|
-| `wine_references` | Number of Wine references in the catalogue |
+| `wine_references` | Number of references with positive effective stock |
 | `stocked_wines` | Number of wine references with at least one cellar position |
 | `total_stock_bottles` | Total reconstructed bottle count |
 | `bottles_to_store` | Number of unplaced bottles |
 | `inventory_error_wines` | Number of references with unplaced bottles |
-| `inventory_error_count` | Number of references with this anomaly |
+| `inventory_error_count` | Number of references with unplaced bottles |
+| `movement_warning_wines` | Number of references with movement anomalies |
+| `movement_warning_bottles` | Sum of absolute bottle discrepancies between movements and effective stock |
 | `rack_count` | Number of racks |
 | `total_positions` | Total number of physical rack positions |
 | `empty_positions` | Number of empty rack positions |
@@ -112,10 +114,10 @@ The response contains:
 - `rack_count`, `total_positions`, `occupied_positions` and `empty_positions`, the number of racks and the position breakdown;
 - `matching_wines`, the number of wines matching the filters;
 - `racks`, the list of racks;
-- `wines`, wines with positive effective stock or at least one occupied position, including `bottles` (reconstructed effective stock), `ploud_bottles` (raw `Wine.bo` value), `bottles_in_cellar` (in-cellar), `bottles_to_store` (unplaced), `purchased`, `consumed`, `movement_balance`, `calculated_stock`, `inventory_errors` (unplaced bottles) and `movement_warnings` (differences from raw PLOUD stock);
+- `wines`, only wines with positive effective stock, including `bottles` (reconstructed effective stock), `ploud_bottles` (raw `Wine.bo` value), `bottles_in_cellar` (in-cellar), `bottles_to_store` (unplaced), `purchased`, `consumed`, `movement_balance`, `calculated_stock`, `inventory_errors` (unplaced bottles) and `movement_warnings` (differences between movement balance and effective stock);
 - `last_sync`, the date and time of the last successful synchronization.
 
-`inventory_errors` contains `unplaced_bottles` when a reference has bottles that are not assigned to a rack. Differences between `Wine.bo` and reconstructed stock are separate `movement_warnings` (`negative_movement_balance`, `ploud_stock_above_reconstructed_stock` or `ploud_stock_below_reconstructed_stock`); they are informational and never trigger a correction. Filters do not change the global totals. Each wine location contains its rack name and ID, plus row and column when available.
+`inventory_errors` contains `unplaced_bottles` when a reference has bottles that are not assigned to a rack. References with movement discrepancies are listed separately in `movement_anomalies`, including those with zero effective stock; they are therefore not included in the normal `wines` list. `movement_warning_wines` counts these references and `movement_warning_bottles` sums the absolute bottle differences between movement balance and effective stock. Raw `Wine.bo` values are informational and do not determine effective stock or movement anomalies. No correction is sent to PLOUD. Filters do not change the global totals. Each wine location contains its rack name and ID, plus row and column when available.
 
 ### `ploc_cellar.sync`
 
