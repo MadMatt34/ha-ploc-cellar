@@ -49,10 +49,17 @@ The supplied snapshot contained these reference collections:
 | `countries` | 50 | `cn` | `country` |
 | `regions` | 406 | `rn` | `region` |
 
-The integration now consumes the expanded wine fields and does not request or
-persist these reference collections. The RGB fallback table is limited to color
-labels observed in the supplied snapshot; it is not a replacement reference
-synchronization mechanism.
+The integration now consumes the expanded wine fields and does not parse or
+retain these reference collections. The sync request remains `Objects={}`, so
+the server may still include reference records in its response; network traffic
+is not guaranteed to decrease.
+
+The local RGB palette exactly reproduces all nine RGB/name pairs in the supplied
+`colors` reference collection. The legacy stored `color_rgb` value was derived
+from that collection by the previous integration; the supplied `ploud_reference_fields`
+do not contain RGB values. This export therefore does not establish that PLOUD
+sends RGB directly on each raw Wine record. Any future color label outside the
+nine known entries will have no RGB value unless explicitly added to the palette.
 
 ## Known technical or user-specific fields excluded from the Wine model
 
@@ -92,8 +99,11 @@ labels are used instead. They are not persisted as separate model attributes.
   assigned to it.
 - A deleted wine also removes its assigned rack positions.
 - Empty rack slots (rack items with an empty `wine_id`) are retained.
-- The persistent cellar payload is migrated from schema version 1 to version 2.
-  Existing wine characteristics, rack data, the incremental cursor and the
-  last successful synchronization timestamp are retained. Legacy zero-stock
-  wines and their assigned positions are dropped during migration.
+- The persistent cellar payload is migrated from schema version 1 to version 2
+  when loaded. The migrated payload is saved immediately when possible; if
+  that save fails, the migrated in-memory model remains usable and the next
+  successful sync retries persistence. Existing wine characteristics, rack
+  data, the incremental cursor and the last successful synchronization
+  timestamp are retained. Legacy zero-stock wines and their assigned positions
+  are dropped during migration.
 - The synchronization remains read-only and continues to send `Objects={}`.
