@@ -87,6 +87,76 @@ triplet in a future Wine payload is accepted only when the color ID has no known
 mapping. Unknown IDs without an explicit RGB value have no RGB value until the
 local map is extended.
 
+## Stock, rack positions and inventory diagnostics
+
+The integration also consumes the `Orders` and `RackItems` collections. These
+collections have different meanings and must not be conflated.
+
+### Order fields
+
+The PLOUD server model identifies the following compact fields:
+
+| PLOUD key | Integration attribute | Meaning | Handling |
+|---|---|---|---|
+| `id` | `Order.id` | Order UUID | Confirmed |
+| `wi` | `Order.wine_id` | Associated Wine UUID | Confirmed |
+| `in` | `Order.incoming` | Number of bottles entering stock | Confirmed |
+| `ot` | `Order.outgoing` | Number of bottles leaving stock | Confirmed |
+
+Other Order fields (date, occasion, vendor, comments, price, etc.) are not
+needed for these stock calculations and are not copied into the integration's
+Order model.
+
+### RackItem fields
+
+| PLOUD key | Integration attribute | Meaning | Handling |
+|---|---|---|---|
+| `id` | `RackItem.id` | Rack position record UUID | Confirmed |
+| `rk` | `RackItem.rack_id` | Associated Rack UUID | Confirmed |
+| `wi` | `RackItem.wine_id` | Associated Wine UUID | Confirmed |
+| `rw` | `RackItem.row` | Row coordinate | Confirmed |
+| `cl` | `RackItem.column` | Column coordinate | Confirmed |
+
+One occupied RackItem represents one bottle position. The in-cellar quantity
+is the number of RackItems associated with the wine and a known rack. Empty
+rack positions are not counted as bottles.
+
+### Stock values and formulas
+
+| Integration field | Source / formula | Meaning |
+|---|---|---|
+| `bottles` | `Wine.bo` | Declared total stock; this remains the reference value |
+| `bottles_in_cellar` | Count of associated occupied `RackItems` | Number of bottles assigned to rack positions |
+| `bottles_to_store` | `max(0, bottles - bottles_in_cellar)` | Declared bottles not assigned to a rack |
+| `purchased` | Sum of `Order.in` for the Wine UUID | Total recorded incoming movements |
+| `consumed` | Sum of `Order.ot` for the Wine UUID | Total recorded outgoing movements |
+| `movement_balance` | `purchased - consumed` | Signed balance of recorded movements |
+| `calculated_stock` | `max(0, movement_balance)` | Movement balance with the application's zero lower bound |
+
+The movement balance is a diagnostic calculation, not a replacement for
+`Wine.bo`. The observed cellar data contains discrepancies between the
+declared Wine stock and the movement history; the integration therefore never
+overwrites the declared stock with the calculated balance.
+
+### Inventory anomaly flags
+
+The per-wine `inventory_errors` list may contain:
+
+| Flag | Condition | Interpretation |
+|---|---|---|
+| `negative_movement_balance` | `movement_balance < 0` | Recorded outgoing movements exceed incoming movements |
+| `declared_stock_above_movements` | `bottles > calculated_stock` | Declared stock exceeds the movement-derived balance |
+| `declared_stock_below_movements` | `bottles < calculated_stock` | Declared stock is below the movement-derived balance |
+| `cellar_stock_above_total` | `bottles_in_cellar > bottles` | More rack positions are occupied than the declared total stock |
+
+These flags identify discrepancies to investigate; they do not prove their
+cause and never trigger automatic correction in PLOUD.
+
+The aggregate inventory response exposes `total_stock_bottles`,
+`bottles_to_store`, `inventory_error_wines` (number of wines with one or more
+flags) and `inventory_error_count` (total number of flags). Each wine also
+exposes its stock values and `inventory_errors`.
+
 ## Known technical or user-specific fields excluded from the Wine model
 
 | PLOUD key | Observed content | Decision |
@@ -119,7 +189,7 @@ labels are used instead. They are not persisted as separate model attributes.
 
 ## Synchronization and storage behavior
 
-- Only wine records with `bottles > 0` are kept in the local inventory.
+- Wine records with zero declared stock may still be retained when needed by occupied rack positions; the inventory response includes wines with declared stock or occupied positions.
 - A wine update with `bottles = 0` removes the wine from the inventory and
   clears the `wine_id` from its rack positions while preserving each physical
   slot's ID, rack, row and column.
