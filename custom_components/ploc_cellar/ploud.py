@@ -17,17 +17,13 @@ from .const import (
     PLOUD_COLLECTION_RACKS,
     PLOUD_COLLECTION_WINES,
     PLOUD_HMAC_KEY,
-    PLOUD_REFERENCE_COLLECTIONS,
     PLOUD_SUPPORTED_COLLECTIONS,
     PLOUD_SYNC_METHOD,
     PLOUD_SYNC_PATH,
     PLOUD_VERSION,
 )
 from .models import Cellar, JsonObject, Rack, RackItem, Wine
-
-REFERENCE_COLLECTIONS = PLOUD_REFERENCE_COLLECTIONS
 type PLOUDCollections = dict[str, list[JsonObject]]
-type PLOUDReferences = dict[str, dict[str, JsonObject]]
 
 
 class PloudError(Exception):
@@ -107,100 +103,113 @@ def _float(value: object) -> float | None:
     return None
 
 
-def _lookup(
-    references: PLOUDReferences, collection: str, identifier: object
-) -> JsonObject | None:
-    """Resolve a PLOUD reference identifier."""
-    if identifier is None:
+def _optional_text(value: object) -> str | None:
+    """Return normalized optional text, treating empty strings as missing."""
+    if not isinstance(value, str):
         return None
-    return references.get(collection, {}).get(str(identifier))
+    normalized = value.strip()
+    return normalized or None
 
 
-def _label(
-    references: PLOUDReferences, collection: str, identifier: object
-) -> str | None:
-    """Resolve the display label of a PLOUD reference."""
-    item = _lookup(references, collection, identifier)
-    return _text(item.get("nm")) if item else None
+def _positive_float(value: object) -> float | None:
+    """Parse a positive finite float; PLOUD uses zero for missing values."""
+    parsed = _float(value)
+    return parsed if parsed is not None and parsed > 0 else None
 
 
-def _parse_wine(raw: JsonObject, references: PLOUDReferences) -> Wine:
-    """Convert one raw PLOUD wine while retaining all source fields."""
-    stored_refs = raw.get("ploud_reference_fields")
-    raw_refs = (
-        cast(JsonObject, stored_refs)
-        if isinstance(stored_refs, dict)
-        else {
-            key: value
-            for key, value in raw.items()
-            if key not in {"id", "sid", "nm", "tc", "tm", "tp"}
-        }
+def _source_value(
+    raw: JsonObject,
+    fields: JsonObject,
+    *names: str,
+) -> object:
+    """Read a display-ready field from a PLOUD record or its expanded fields."""
+    for source in (raw, fields):
+        for name in names:
+            if name in source:
+                return source[name]
+    return None
+
+
+def _parse_color_rgb(value: object) -> tuple[int, int, int] | None:
+    """Parse a validated RGB triplet."""
+    if not isinstance(value, (list, tuple)) or len(value) != 3:
+        return None
+    red, green, blue = (_int(component) for component in value)
+    if (
+        red is None
+        or green is None
+        or blue is None
+        or not all(0 <= component <= 255 for component in (red, green, blue))
+    ):
+        return None
+    return red, green, blue
+
+
+# Stable colors copied from the current PLOUD cellar snapshot. They are a
+# fallback only: an RGB value supplied directly by a Wine record takes priority.
+_COLOR_RGB: dict[str, tuple[int, int, int]] = {
+    "autre": (153, 115, 85),
+    "blanc": (255, 211, 116),
+    "effervescent": (237, 214, 182),
+    "liquoreux": (158, 195, 199),
+    "muté": (65, 101, 138),
+    "orange": (240, 142, 68),
+    "rosé": (225, 136, 145),
+    "rouge": (201, 25, 58),
+    "sirop": (34, 199, 129),
+}
+
+
+def _parse_wine(raw: JsonObject) -> Wine:
+    """Convert one PLOUD wine using its own expanded display fields."""
+    stored_fields = raw.get("ploud_reference_fields")
+    fields = (
+        cast(JsonObject, stored_fields) if isinstance(stored_fields, dict) else {}
     )
 
-    def ref_id(short: str, long: str) -> object:
-        return raw.get(long, raw_refs.get(short))
+    color = _optional_text(_source_value(raw, fields, "color"))
+    color_rgb = _parse_color_rgb(
+        _source_value(raw, fields, "color_rgb")
+    ) or (_COLOR_RGB.get(color.casefold()) if color is not None else None)
 
-    bottle_format = _lookup(
-        references, "bottleFormats", ref_id("vf", "bottle_format_id")
-    )
-    color_ref = _lookup(references, "colors", ref_id("co", "color_id"))
-    color_rgb = None
-    if color_ref is not None:
-        red, green, blue = (
-            _int(color_ref.get(channel)) for channel in ("r", "g", "b")
-        )
-        if (
-            red is not None
-            and green is not None
-            and blue is not None
-            and all(0 <= value <= 255 for value in (red, green, blue))
-        ):
-            color_rgb = (red, green, blue)
+    vintage = _int(_source_value(raw, fields, "vintage", "vi"))
+    if vintage is not None and vintage <= 0:
+        vintage = None
 
     return Wine(
         id=str(raw["id"]),
-        name=_text(raw.get("nm", raw.get("name"))) or "",
-        bottles=_int(raw.get("bo", raw.get("bottles"))) or 0,
-        vintage=_int(raw.get("vi", raw.get("vintage"))),
-        appellation=(
-            _label(references, "appellations", ref_id("ap", "appellation_id"))
-            or _text(raw.get("appellation"))
+        name=_optional_text(_source_value(raw, fields, "name", "nm")) or "",
+        bottles=max(
+            0, _int(_source_value(raw, fields, "bottles", "bo")) or 0
         ),
-        color=(
-            _label(references, "colors", ref_id("co", "color_id"))
-            or _text(raw.get("color"))
-        ),
+        vintage=vintage,
+        appellation=_optional_text(_source_value(raw, fields, "appellation")),
+        color=color,
         color_rgb=color_rgb,
-        classification=(
-            _label(
-                references,
-                "classifications",
-                ref_id("cl", "classification_id"),
-            )
-            or _text(raw.get("classification"))
+        classification=_optional_text(
+            _source_value(raw, fields, "classification")
         ),
-        region=(
-            _label(references, "regions", ref_id("rn", "region_id"))
-            or _text(raw.get("region"))
+        region=_optional_text(_source_value(raw, fields, "region")),
+        country=_optional_text(_source_value(raw, fields, "country")),
+        grapes=_optional_text(_source_value(raw, fields, "grapes", "gr")),
+        cuvee=_optional_text(_source_value(raw, fields, "cuvee", "cu")),
+        comment=_optional_text(_source_value(raw, fields, "comment", "cs")),
+        alcohol_percent=_positive_float(
+            _source_value(raw, fields, "alcohol_percent", "de")
         ),
-        country=(
-            _label(references, "countries", ref_id("cn", "country_id"))
-            or _text(raw.get("country"))
+        service_temperature_min=_positive_float(
+            _source_value(raw, fields, "service_temperature_min", "ti")
         ),
-        grapes=_text(raw.get("grapes")) or _text(raw_refs.get("gr")),
-        cuvee=_text(raw.get("cuvee")) or _text(raw_refs.get("cu")),
-        bottle_format=(
-            _text(bottle_format.get("nm"))
-            if bottle_format
-            else _text(raw.get("bottle_format"))
+        service_temperature_max=_positive_float(
+            _source_value(raw, fields, "service_temperature_max", "to")
         ),
-        bottle_volume_l=(
-            _float(bottle_format.get("vo"))
-            if bottle_format
-            else _float(raw.get("bottle_volume_l"))
+        bottle_format=_optional_text(
+            _source_value(raw, fields, "bottle_format")
         ),
-        ploud_pid=_text(raw.get("ploud_pid")) or _text(raw_refs.get("pid")),
-        ploud_reference_fields=raw_refs,
+        bottle_volume_l=_positive_float(
+            _source_value(raw, fields, "bottle_volume_l")
+        ),
+        ploud_pid=_optional_text(_source_value(raw, fields, "ploud_pid", "pid")),
     )
 
 
@@ -311,43 +320,42 @@ def apply_sync(
     cellar: Cellar, objects: PLOUDCollections, next_cursor: int
 ) -> None:
     """Apply a PLOUD delta to a candidate cellar model."""
-    for name in REFERENCE_COLLECTIONS:
-        for item in _collection(objects, name):
-            identifier = item.get("id")
-            if isinstance(identifier, str):
-                cellar.references.setdefault(name, {})[identifier] = item
+    removed_wine_ids: set[str] = set()
+    removed_rack_ids: set[str] = set()
 
     for raw in _collection(objects, PLOUD_COLLECTION_WINES):
-        if isinstance(raw.get("id"), str):
-            wine = _parse_wine(raw, cellar.references)
+        if not isinstance(raw.get("id"), str):
+            continue
+        wine = _parse_wine(raw)
+        if wine.bottles > 0:
             cellar.wines[wine.id] = wine
+            removed_wine_ids.discard(wine.id)
+        else:
+            cellar.wines.pop(wine.id, None)
+            removed_wine_ids.add(wine.id)
 
     for raw in _collection(objects, PLOUD_COLLECTION_RACKS):
         identifier = raw.get("id")
         if isinstance(identifier, str):
-            rack = Rack(
+            cellar.racks[identifier] = Rack(
                 identifier,
-                _text(raw.get("nm", raw.get("name"))) or "",
+                _optional_text(raw.get("nm", raw.get("name"))) or "",
             )
-            cellar.racks[rack.id] = rack
 
     for raw in _collection(objects, PLOUD_COLLECTION_RACK_ITEMS):
         identifier = raw.get("id")
         if isinstance(identifier, str):
             item = RackItem(
                 identifier,
-                _text(raw.get("rk", raw.get("rack_id", raw.get("rack"))))
+                _optional_text(raw.get("rk", raw.get("rack_id", raw.get("rack"))))
                 or "",
-                _text(raw.get("wi", raw.get("wine_id", raw.get("wine"))))
+                _optional_text(raw.get("wi", raw.get("wine_id", raw.get("wine"))))
                 or "",
                 _int(raw.get("rw", raw.get("row"))),
                 _int(raw.get("cl", raw.get("column"))),
             )
             cellar.rack_items[item.id] = item
 
-    reference_changed = any(
-        _collection(objects, name) for name in REFERENCE_COLLECTIONS
-    )
     for raw in _collection(objects, PLOUD_COLLECTION_DELETED):
         object_id = _deleted_id(raw)
         if object_id is None:
@@ -361,51 +369,47 @@ def apply_sync(
             ),
             "",
         )
+        normalized_kind = kind.casefold() if isinstance(kind, str) else ""
         named_targets = {
             "wine": cellar.wines,
             "rack": cellar.racks,
             "rackitem": cellar.rack_items,
         }
-        if isinstance(kind, str) and kind.casefold() in named_targets:
-            named_targets[kind.casefold()].pop(object_id, None)
+        if normalized_kind in named_targets:
+            named_targets[normalized_kind].pop(object_id, None)
+            if normalized_kind == "wine":
+                removed_wine_ids.add(object_id)
+            elif normalized_kind == "rack":
+                removed_rack_ids.add(object_id)
             continue
 
-        targets = [
-            cellar.wines,
-            cellar.racks,
-            cellar.rack_items,
-            *cellar.references.values(),
+        targets = (
+            ("wine", cellar.wines),
+            ("rack", cellar.racks),
+            ("rackitem", cellar.rack_items),
+        )
+        matches = [
+            (target_kind, mapping)
+            for target_kind, mapping in targets
+            if object_id in mapping
         ]
-        matches = [mapping for mapping in targets if object_id in mapping]
         if len(matches) == 1:
-            matches[0].pop(object_id, None)
-            if any(
-                matches[0] is reference_map
-                for reference_map in cellar.references.values()
-            ):
-                reference_changed = True
+            target_kind, mapping = matches[0]
+            mapping.pop(object_id, None)
+            if target_kind == "wine":
+                removed_wine_ids.add(object_id)
+            elif target_kind == "rack":
+                removed_rack_ids.add(object_id)
 
-    # Re-resolve labels when reference records are added, changed or deleted.
-    if reference_changed:
-        for wine_id, wine in tuple(cellar.wines.items()):
-            raw_wine = {
-                **wine.ploud_reference_fields,
-                "id": wine.id,
-                "nm": wine.name,
-                "bo": wine.bottles,
-                "vi": wine.vintage,
-                "appellation": wine.appellation,
-                "color": wine.color,
-                "region": wine.region,
-                "country": wine.country,
-                "classification": wine.classification,
-                "grapes": wine.grapes,
-                "cuvee": wine.cuvee,
-                "bottle_format": wine.bottle_format,
-                "bottle_volume_l": wine.bottle_volume_l,
-                "ploud_pid": wine.ploud_pid,
-            }
-            cellar.wines[wine_id] = _parse_wine(raw_wine, cellar.references)
+    # Drop positions attached to wines that have reached zero stock or were
+    # deleted, and positions belonging to racks deleted in the same delta.
+    # Keep empty rack slots (wine_id == "") because they describe rack layout.
+    for item_id, item in tuple(cellar.rack_items.items()):
+        if (
+            item.wine_id in removed_wine_ids
+            or item.rack_id in removed_rack_ids
+        ):
+            cellar.rack_items.pop(item_id, None)
 
     cellar.cursor = next_cursor
     cellar.initialized = True
