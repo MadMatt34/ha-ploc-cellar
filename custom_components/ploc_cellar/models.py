@@ -272,11 +272,11 @@ def _wine_from_dict(raw: JsonObject, key: str) -> Wine:
     if vintage is not None and vintage <= 0:
         vintage = None
 
-    raw_bottles = (
-        raw.get("bottles")
-        if "bottles" in raw
-        else legacy_fields.get("bo")
-    )
+    raw_bottles = raw.get("bottles")
+    if raw_bottles is None or (
+        isinstance(raw_bottles, str) and not raw_bottles.strip()
+    ):
+        raw_bottles = legacy_fields.get("bo")
     parsed_bottles = _int(raw_bottles)
     if parsed_bottles is None or parsed_bottles < 0:
         raise ValueError(f"Invalid bottle count in stored wine {key}")
