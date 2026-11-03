@@ -72,6 +72,7 @@ Ses attributs sont :
 | `rack_count` | Nombre de casiers |
 | `occupied_positions` | Nombre d'emplacements occupés par des vins en stock |
 | `stale` | Indique que la dernière synchronisation a échoué |
+| `last_successful_sync` | Date et heure de la dernière synchronisation réussie (format ISO 8601) |
 
 Les libellés des attributs sont traduits selon la langue de Home Assistant. En cas d'échec de synchronisation, le dernier inventaire local connu est conservé et l'attribut `stale` indique que les données peuvent être périmées. Une synchronisation réussie remet cet indicateur à `false`.
 
