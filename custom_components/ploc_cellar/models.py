@@ -270,19 +270,24 @@ def _wine_from_dict(raw: JsonObject, key: str) -> Wine:
     if vintage is not None and vintage <= 0:
         vintage = None
 
-    bottles = max(0, _int(raw.get("bottles")) or _int(legacy_fields.get("bo")) or 0)
+    raw_bottles = (
+        raw.get("bottles")
+        if "bottles" in raw
+        else legacy_fields.get("bo")
+    )
+    bottles = max(0, _int(raw_bottles) or 0)
 
     return Wine(
         id=_str(raw.get("id")) or key,
         name=_str(raw.get("name")) or "",
         bottles=bottles,
         vintage=vintage,
-        appellation=_optional_str(raw.get("appellation")),
-        color=_optional_str(raw.get("color")),
+        appellation=_optional_str(value("appellation", "appellation")),
+        color=_optional_str(value("color", "color")),
         color_rgb=color_rgb,
-        classification=_optional_str(raw.get("classification")),
-        region=_optional_str(raw.get("region")),
-        country=_optional_str(raw.get("country")),
+        classification=_optional_str(value("classification", "classification")),
+        region=_optional_str(value("region", "region")),
+        country=_optional_str(value("country", "country")),
         grapes=_optional_str(value("grapes", "gr")),
         cuvee=_optional_str(value("cuvee", "cu")),
         comment=_optional_str(value("comment", "cs")),
