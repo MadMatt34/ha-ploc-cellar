@@ -4,6 +4,7 @@ from __future__ import annotations
 import base64
 import hashlib
 import hmac
+import logging
 import math
 import time
 from dataclasses import replace
@@ -27,6 +28,8 @@ from .const import (
 from .models import Cellar, JsonObject, Rack, RackItem, Wine
 
 type PLOUDCollections = dict[str, list[JsonObject]]
+
+_LOGGER = logging.getLogger(__name__)
 
 
 class PloudError(Exception):
@@ -222,8 +225,29 @@ def _parse_wine(
     if not isinstance(wine_id, str) or not wine_id.strip():
         raise PloudError("PLOUD returned a wine without a valid ID")
 
-    raw_bottles = _source_value(raw, fields, "bottles", "bo")
-    bottles = _int(raw_bottles)
+    # PLOUD payloads may expose both the descriptive field and its compact
+    # protocol alias. Keep the existing precedence, but report disagreements
+    # so the source of inventory-count discrepancies can be identified.
+    bottles_value = _source_value(raw, fields, "bottles")
+    compact_bottles_value = _source_value(raw, fields, "bo")
+    bottles = _int(
+        bottles_value if bottles_value is not None else compact_bottles_value
+    )
+    compact_bottles = _int(compact_bottles_value)
+    if (
+        bottles is not None
+        and compact_bottles is not None
+        and bottles != compact_bottles
+    ):
+        _LOGGER.warning(
+            "PLOUD bottle-count fields disagree for wine %s (%s): "
+            "bottles=%r, bo=%r; using bottles=%d",
+            wine_id,
+            _optional_text(_source_value(raw, fields, "name", "nm")) or "",
+            bottles_value,
+            compact_bottles_value,
+            bottles,
+        )
     if bottles is None or bottles < 0:
         raise PloudError(
             f"PLOUD returned an invalid bottle count for wine {wine_id}"
