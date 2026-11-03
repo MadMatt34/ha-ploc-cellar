@@ -84,7 +84,7 @@ class Cellar:
     @property
     def occupied_positions(self) -> int:
         """Return positions assigned to stocked wines in existing racks."""
-        stocked_ids = set(self.wines)
+        stocked_ids = {wine.id for wine in self.wines.values()}
         return sum(
             1
             for item in self.rack_items.values()
@@ -161,7 +161,9 @@ class Cellar:
                 continue
             wine = _wine_from_dict(raw, key)
             if wine.bottles > 0:
-                cellar.wines[key] = wine
+                if wine.id in cellar.wines:
+                    raise ValueError(f"Duplicate wine ID in stored cellar: {wine.id}")
+                cellar.wines[wine.id] = wine
             else:
                 removed_wine_ids.add(wine.id)
 
