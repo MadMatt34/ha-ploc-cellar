@@ -14,7 +14,7 @@ A Home Assistant custom integration for a **read-only** view of a PLOC wine cell
 - PLOUD remains the source of truth.
 - Read-only incremental synchronization through `POST https://ploud.ploc.co/v1/sync/exec`, using `Objects={}`.
 - Initial synchronization uses the validated bootstrap value `LastSyncTime=1`. Later synchronizations use the client-maintained Unix-millisecond cursor.
-- Persistent local model containing stocked wines only, racks and rack positions. Wine characteristics are stored directly in each wine record; reference collections are not processed or retained locally.
+- Persistent local model containing stocked wines only, racks and rack positions. Wine characteristics, including the winery name, are stored directly in each wine record. The `Owners` reference collection is used to resolve owner UUIDs; only a compact UUID-to-name lookup is retained locally, not the full Owner records.
 - One compact summary sensor; no entity is created for each wine, rack or position.
 - Detailed inventory is returned on demand by the `ploc_cellar.get_inventory` action.
 - Immediate synchronization is available through the `ploc_cellar.sync` action.
@@ -86,7 +86,7 @@ A response action. Use `response_variable` in a script or automation.
 
 A `config_entry_id` is required to identify the Ploc Cellar connection. Home Assistant provides a selector restricted to this integration's config entries. Optional filters are:
 
-- `search`: partial match against wine name, appellation, region, country, grape, cuvée or comment.
+- `search`: partial match against wine name, winery, appellation, region, country, grape, cuvée or comment.
 - `color`: partial match against the wine color.
 
 Example:
@@ -104,7 +104,7 @@ The response contains:
 - global totals: `total_bottles`, `stocked_wines`, `rack_count` and `occupied_positions`;
 - `matching_wines`, the number of wines matching the filters;
 - `racks`, the list of racks;
-- `wines`, wines with at least one bottle in stock, including their details and locations;
+- `wines`, wines with at least one bottle in stock, including their winery, details and locations;
 - `last_sync`, the date and time of the last successful synchronization.
 
 Filters do not change the global totals. Each wine location contains its rack name and ID, plus row and column when available.
