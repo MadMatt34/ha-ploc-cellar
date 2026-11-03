@@ -18,7 +18,7 @@ business model.
 | `vi` / `vintage` | `vintage` | Vintage | Confirmed; zero becomes `None` |
 | `appellation` | `appellation` | Appellation label | Expanded label used directly; reference ID `ap` is not stored |
 | `color` | `color` | Color label | Expanded label used directly; reference ID `co` is not stored |
-| `color_rgb` | `color_rgb` | RGB color triplet | Used directly when present; known color palette is a fallback |
+| `color_rgb` | `color_rgb` | RGB color triplet | In the supplied persisted snapshot this value was already calculated by the previous integration from the `colors` reference collection; it was not present in `ploud_reference_fields`. The refactored integration uses the exact nine RGB values from that snapshot as a local palette. |
 | `classification` | `classification` | Classification label | Expanded label used directly; reference ID `cl` is not stored |
 | `region` | `region` | Region label | Expanded label used directly; reference ID `rn` is not stored |
 | `country` | `country` | Country label | Expanded label used directly; reference ID `cn` is not stored |
