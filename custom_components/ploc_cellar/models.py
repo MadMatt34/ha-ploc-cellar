@@ -7,15 +7,17 @@ from typing import cast
 
 from homeassistant.util.json import JsonObjectType, JsonValueType
 
-from .const import STORAGE_VERSION
-
 type JsonValue = JsonValueType
 type JsonObject = JsonObjectType
+
+# Version of the serialized Cellar payload. The Home Assistant Store envelope
+# version remains unchanged so existing data can be loaded and migrated.
+_CELLAR_DATA_VERSION = 2
 
 
 @dataclass(frozen=True, slots=True)
 class Wine:
-    """A PLOUD wine record, including wines with no current stock."""
+    """A stocked PLOUD wine with its display-ready characteristics."""
 
     id: str
     name: str
@@ -29,12 +31,13 @@ class Wine:
     country: str | None
     grapes: str | None
     cuvee: str | None
+    comment: str | None
+    alcohol_percent: float | None
+    service_temperature_min: float | None
+    service_temperature_max: float | None
     bottle_format: str | None
     bottle_volume_l: float | None
     ploud_pid: str | None
-    ploud_reference_fields: JsonObject = field(
-        default_factory=lambda: cast(JsonObject, {})
-    )
 
 
 @dataclass(frozen=True, slots=True)
@@ -69,28 +72,21 @@ class Cellar:
     rack_items: dict[str, RackItem] = field(
         default_factory=lambda: dict[str, RackItem]()
     )
-    references: dict[str, dict[str, JsonObject]] = field(
-        default_factory=lambda: dict[str, dict[str, JsonObject]]()
-    )
 
     @property
     def total_bottles(self) -> int:
         """Return the total number of bottles currently in stock."""
-        return sum(
-            wine.bottles for wine in self.wines.values() if wine.bottles > 0
-        )
+        return sum(wine.bottles for wine in self.wines.values())
 
     @property
     def stocked_wines(self) -> int:
         """Return the number of wines with at least one bottle."""
-        return sum(1 for wine in self.wines.values() if wine.bottles > 0)
+        return len(self.wines)
 
     @property
     def occupied_positions(self) -> int:
         """Return positions assigned to stocked wines in existing racks."""
-        stocked_ids = {
-            wine.id for wine in self.wines.values() if wine.bottles > 0
-        }
+        stocked_ids = set(self.wines)
         return sum(
             1
             for item in self.rack_items.values()
@@ -115,10 +111,13 @@ class Cellar:
                 "country": wine.country,
                 "grapes": wine.grapes,
                 "cuvee": wine.cuvee,
+                "comment": wine.comment,
+                "alcohol_percent": wine.alcohol_percent,
+                "service_temperature_min": wine.service_temperature_min,
+                "service_temperature_max": wine.service_temperature_max,
                 "bottle_format": wine.bottle_format,
                 "bottle_volume_l": wine.bottle_volume_l,
                 "ploud_pid": wine.ploud_pid,
-                "ploud_reference_fields": wine.ploud_reference_fields,
             }
             for wine_id, wine in self.wines.items()
         }
@@ -136,25 +135,21 @@ class Cellar:
             }
             for item_id, item in self.rack_items.items()
         }
-        references: dict[str, JsonValue] = {
-            collection: cast(JsonValue, records)
-            for collection, records in self.references.items()
-        }
         return {
-            "version": STORAGE_VERSION,
+            "version": _CELLAR_DATA_VERSION,
             "cursor": self.cursor,
             "last_sync": self.last_sync,
             "initialized": self.initialized,
             "wines": wines,
             "racks": racks,
             "rack_items": rack_items,
-            "references": references,
         }
 
     @classmethod
     def from_storage(cls, data: JsonObject) -> Cellar:
-        """Restore a snapshot from persistent storage."""
-        if data.get("version") != STORAGE_VERSION:
+        """Restore and migrate a persisted cellar snapshot."""
+        data_version = _int(data.get("version"))
+        if data_version not in (1, _CELLAR_DATA_VERSION):
             raise ValueError("Unsupported Ploc Cellar storage version")
 
         cellar = cls(
@@ -162,9 +157,16 @@ class Cellar:
             last_sync=_str(data.get("last_sync")),
             initialized=data.get("initialized") is True,
         )
+        removed_wine_ids: set[str] = set()
         for key, raw in _as_dict(data.get("wines")).items():
-            if isinstance(raw, dict):
-                cellar.wines[key] = _wine_from_dict(raw, key)
+            if not isinstance(raw, dict):
+                continue
+            wine = _wine_from_dict(raw, key)
+            if wine.bottles > 0:
+                cellar.wines[key] = wine
+            else:
+                removed_wine_ids.add(wine.id)
+
         for key, raw in _as_dict(data.get("racks")).items():
             if isinstance(raw, dict):
                 cellar.racks[key] = Rack(
@@ -173,16 +175,10 @@ class Cellar:
                 )
         for key, raw in _as_dict(data.get("rack_items")).items():
             if isinstance(raw, dict):
-                cellar.rack_items[key] = _rack_item_from_dict(raw, key)
+                item = _rack_item_from_dict(raw, key)
+                if item.wine_id not in removed_wine_ids:
+                    cellar.rack_items[key] = item
 
-        references: dict[str, dict[str, JsonObject]] = {}
-        for name, collection in _as_dict(data.get("references")).items():
-            references[name] = {
-                identifier: _as_dict(record)
-                for identifier, record in _as_dict(collection).items()
-                if isinstance(record, dict)
-            }
-        cellar.references = references
         return cellar
 
 
@@ -202,6 +198,14 @@ def _as_dict(value: object) -> JsonObject:
 def _str(value: object) -> str | None:
     """Return a string value."""
     return value if isinstance(value, str) else None
+
+
+def _optional_str(value: object) -> str | None:
+    """Normalize an optional text value."""
+    if not isinstance(value, str):
+        return None
+    normalized = value.strip()
+    return normalized or None
 
 
 def _int(value: object) -> int | None:
@@ -231,8 +235,21 @@ def _float(value: object) -> float | None:
     return parsed if parsed is not None and math.isfinite(parsed) else None
 
 
+def _positive_float(value: object) -> float | None:
+    """Return a positive finite value; PLOUD uses zero for missing data."""
+    parsed = _float(value)
+    return parsed if parsed is not None and parsed > 0 else None
+
+
 def _wine_from_dict(raw: JsonObject, key: str) -> Wine:
-    """Restore a wine from a stored JSON object."""
+    """Restore a wine, migrating fields from the legacy reference dictionary."""
+    legacy_fields = _as_dict(raw.get("ploud_reference_fields"))
+
+    def value(name: str, legacy_name: str) -> object:
+        if name in raw:
+            return raw[name]
+        return legacy_fields.get(legacy_name)
+
     color_rgb = None
     rgb = raw.get("color_rgb")
     if isinstance(rgb, (list, tuple)) and len(rgb) == 3:
@@ -247,23 +264,40 @@ def _wine_from_dict(raw: JsonObject, key: str) -> Wine:
         ):
             color_rgb = (red, green, blue)
 
+    vintage = _int(raw.get("vintage"))
+    if vintage is None:
+        vintage = _int(legacy_fields.get("vi"))
+    if vintage is not None and vintage <= 0:
+        vintage = None
+
+    bottles = max(0, _int(raw.get("bottles")) or _int(legacy_fields.get("bo")) or 0)
+
     return Wine(
         id=_str(raw.get("id")) or key,
         name=_str(raw.get("name")) or "",
-        bottles=_int(raw.get("bottles")) or 0,
-        vintage=_int(raw.get("vintage")),
-        appellation=_str(raw.get("appellation")),
-        color=_str(raw.get("color")),
+        bottles=bottles,
+        vintage=vintage,
+        appellation=_optional_str(raw.get("appellation")),
+        color=_optional_str(raw.get("color")),
         color_rgb=color_rgb,
-        classification=_str(raw.get("classification")),
-        region=_str(raw.get("region")),
-        country=_str(raw.get("country")),
-        grapes=_str(raw.get("grapes")),
-        cuvee=_str(raw.get("cuvee")),
-        bottle_format=_str(raw.get("bottle_format")),
-        bottle_volume_l=_float(raw.get("bottle_volume_l")),
-        ploud_pid=_str(raw.get("ploud_pid")),
-        ploud_reference_fields=_as_dict(raw.get("ploud_reference_fields")),
+        classification=_optional_str(raw.get("classification")),
+        region=_optional_str(raw.get("region")),
+        country=_optional_str(raw.get("country")),
+        grapes=_optional_str(value("grapes", "gr")),
+        cuvee=_optional_str(value("cuvee", "cu")),
+        comment=_optional_str(value("comment", "cs")),
+        alcohol_percent=_positive_float(legacy_fields.get("de"))
+        if "alcohol_percent" not in raw
+        else _positive_float(raw.get("alcohol_percent")),
+        service_temperature_min=_positive_float(legacy_fields.get("ti"))
+        if "service_temperature_min" not in raw
+        else _positive_float(raw.get("service_temperature_min")),
+        service_temperature_max=_positive_float(legacy_fields.get("to"))
+        if "service_temperature_max" not in raw
+        else _positive_float(raw.get("service_temperature_max")),
+        bottle_format=_optional_str(value("bottle_format", "bottle_format")),
+        bottle_volume_l=_positive_float(value("bottle_volume_l", "bottle_volume_l")),
+        ploud_pid=_optional_str(value("ploud_pid", "pid")),
     )
 
 
