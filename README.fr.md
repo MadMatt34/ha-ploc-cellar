@@ -14,7 +14,7 @@ Intégration personnalisée Home Assistant permettant de consulter une cave PLOC
 - PLOUD reste la source de vérité.
 - Synchronisation incrémentale en lecture seule via `POST https://ploud.ploc.co/v1/sync/exec`, avec `Objects={}`.
 - Le premier chargement utilise la valeur d'initialisation validée `LastSyncTime=1`. Les synchronisations suivantes utilisent le curseur client en millisecondes Unix.
-- Modèle local persistant : les références `Wine` reçues de PLOUD, les casiers et leurs emplacements. Le stock total PLOUD (`bottles`) est conservé séparément du stock en cave (`bottles_in_cellar`), calculé à partir du nombre de `RackItems` affectés au vin. Les bouteilles non placées (`bottles_to_store`) correspondent à la différence positive entre ces deux quantités. Les mouvements `Orders` sont conservés pour calculer un solde théorique et signaler les anomalies d'inventaire, sans jamais corriger les données PLOUD. Les caractéristiques, dont le domaine viticole, sont directement enregistrées dans chaque fiche vin. La collection `Owners` est utilisée temporairement pour résoudre les UUID des propriétaires ; aucune table de correspondance n'est conservée. Si un vin reçu dans un delta référence un propriétaire absent de ce delta, une synchronisation complète ponctuelle est déclenchée pour résoudre son nom.
+- Modèle local persistant : les références `Wine` reçues de PLOUD, les casiers et leurs emplacements. La valeur brute `Wine.bo` est conservée à titre informatif. Le stock effectif est reconstitué avec les mouvements `Orders` et les bouteilles physiquement placées (`RackItems`) selon la formule `max(0, solde des mouvements, bouteilles en cave)`. Les bouteilles non placées (`bottles_to_store`) correspondent à la différence entre le stock effectif et les bouteilles en cave. Les écarts entre le solde des mouvements et le stock effectif sont signalés séparément, sans jamais corriger les données PLOUD. Les caractéristiques, dont le domaine viticole, sont directement enregistrées dans chaque fiche vin. La collection `Owners` est utilisée temporairement pour résoudre les UUID des propriétaires ; aucune table de correspondance n'est conservée. Si un vin reçu dans un delta référence un propriétaire absent de ce delta, une synchronisation complète ponctuelle est déclenchée pour résoudre son nom.
 - Un seul capteur de synthèse ; aucune entité n'est créée pour chaque vin, casier ou emplacement.
 - Inventaire détaillé accessible à la demande avec l'action `ploc_cellar.get_inventory`.
 - Synchronisation immédiate à la demande avec l'action `ploc_cellar.sync`.
@@ -73,7 +73,7 @@ Ses attributs sont :
 | `total_stock_bottles` | Nombre total de bouteilles reconstitué |
 | `bottles_to_store` | Nombre de bouteilles non placées |
 | `inventory_error_wines` | Nombre de références avec des bouteilles non placées |
-| `inventory_error_count` | Nombre de références avec des bouteilles non placées |
+| `inventory_error_count` | Nombre d'anomalies de bouteilles non placées |
 | `movement_warning_wines` | Nombre de références avec une anomalie de mouvements |
 | `movement_warning_bottles` | Somme des écarts absolus entre mouvements et stock effectif |
 | `rack_count` | Nombre de casiers |
@@ -115,6 +115,7 @@ La réponse contient :
 - `matching_wines`, le nombre de vins correspondant aux filtres ;
 - `racks`, la liste des casiers ;
 - `wines`, uniquement les vins ayant un stock effectif positif, avec `bottles` (stock effectif reconstitué), `ploud_bottles` (valeur brute `Wine.bo`), `bottles_in_cellar` (en cave), `bottles_to_store` (non placées), `purchased`, `consumed`, `movement_balance`, `calculated_stock`, `inventory_errors` (bouteilles non placées) et `movement_warnings` (écarts entre le solde des mouvements et le stock effectif) ;
+- `movement_anomalies`, la liste dédiée des 7 références dont les mouvements ne correspondent pas au stock effectif, y compris les références à stock nul ;
 - `last_sync`, la date et l'heure de la dernière synchronisation réussie.
 
 Dans `inventory_errors`, la valeur `unplaced_bottles` signale une référence avec des bouteilles non placées. Les références avec un écart de mouvements sont listées séparément dans `movement_anomalies`, y compris lorsqu’elles ont un stock effectif nul ; elles ne sont donc pas ajoutées à la liste normale `wines`. `movement_warning_wines` compte ces références et `movement_warning_bottles` additionne les écarts absolus en bouteilles entre le solde des mouvements et le stock effectif. Les valeurs brutes `Wine.bo` restent informatives et ne déterminent ni les anomalies de mouvements ni le stock effectif. Aucune correction n’est envoyée à PLOUD. Les filtres ne modifient pas les totaux globaux. Chaque emplacement associé à un vin contient le nom et l'identifiant du casier, ainsi que la rangée et la colonne lorsqu'elles sont disponibles.
