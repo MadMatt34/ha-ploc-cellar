@@ -38,11 +38,12 @@ The legacy `ploud_reference_fields` dictionary is no longer part of the
 `Wine` model or newly persisted data. Its confirmed values are extracted during
 the storage migration.
 
-## Reference identifiers no longer synchronized
+## Reference collections
 
-The supplied snapshot contained these reference collections:
+The supplied data includes the six general reference collections below. The
+full synchronization response also returned 59 `Owners` records.
 
-| Collection | Records in snapshot | Legacy ID key | Expanded wine field |
+| Collection | Records | Legacy ID key | Expanded wine field |
 |---|---:|---|---|
 | `appellations` | 2,674 | `ap` | `appellation` |
 | `bottleFormats` | 17 | `vf` | `bottle_format`, `bottle_volume_l` |
@@ -50,14 +51,15 @@ The supplied snapshot contained these reference collections:
 | `colors` | 9 | `co` | `color`, `color_rgb` |
 | `countries` | 50 | `cn` | `country` |
 | `regions` | 406 | `rn` | `region` |
+| `Owners` | 59 | `id` | `ow` → `domain` |
 
-The integration consumes the expanded wine fields and does not parse or retain
-the six general reference collections. It additionally processes the `Owners`
-collection to resolve each wine `ow` UUID to its winery name. The resolved name
-is stored directly in the `Wine` record; a compact UUID-to-name lookup is kept
-locally for incremental Wine changes, but the full Owner records are not retained.
-The sync request remains `Objects={}`, so other reference records may still be
-included in the response; network traffic is not guaranteed to decrease.
+The integration consumes the expanded wine fields and does not retain the six
+general reference collections. It processes `Owners` to resolve each wine
+`ow` UUID to its winery name. The resolved name is stored directly in the
+`Wine` record; a compact UUID-to-name lookup is kept locally for incremental
+Wine changes, but the full Owner records are not retained. The sync request
+remains `Objects={}`, so other reference records may still be included in the
+response; network traffic is not guaranteed to decrease.
 
 The local RGB map reproduces all nine records from the supplied `colors`
 reference collection and is keyed by the wine's `co` color identifier:
