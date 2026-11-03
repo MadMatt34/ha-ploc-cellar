@@ -55,6 +55,9 @@
           },
           "stale": {
             "name": "Stale data"
+          },
+          "last_successful_sync": {
+            "name": "Last successful synchronization"
           }
         }
       }
