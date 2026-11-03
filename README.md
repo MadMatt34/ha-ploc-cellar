@@ -70,7 +70,6 @@ Its attributes are:
 |---|---|
 | `wine_references` | Number of Wine references in the catalogue |
 | `stocked_wines` | Number of wine references with at least one cellar position |
-| `total_stocked_wines` | Number of references with positive effective stock |
 | `total_stock_bottles` | Total reconstructed bottle count |
 | `bottles_to_store` | Number of unplaced bottles |
 | `inventory_error_wines` | Number of references with unplaced bottles |
@@ -109,7 +108,7 @@ response_variable: cellar
 
 The response contains:
 
-- global totals: `total_bottles` and `stocked_wines` describe the physical cellar contents; `total_stock_bottles` and `total_stocked_wines` describe reconstructed effective stock; `bottles_to_store`, `inventory_error_wines` and `inventory_error_count` report unplaced bottles and anomalies;
+- global totals: `total_bottles` and `stocked_wines` describe the physical cellar contents; `total_stock_bottles` describes reconstructed effective stock; `bottles_to_store`, `inventory_error_wines` and `inventory_error_count` report unplaced bottles and anomalies;
 - `rack_count`, `total_positions`, `occupied_positions` and `empty_positions`, the number of racks and the position breakdown;
 - `matching_wines`, the number of wines matching the filters;
 - `racks`, the list of racks;
