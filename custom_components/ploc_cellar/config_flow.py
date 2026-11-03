@@ -58,13 +58,13 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         errors: dict[str, str] = {}
         if user_input is not None:
             credentials = cast(ConfigFlowUserInput, user_input)
-            if not _is_valid_email(credentials["username"]):
-                errors["username"] = "invalid_email"
-            if "username" not in errors:
+            if not _is_valid_email(credentials["email"]):
+                errors["email"] = "invalid_email"
+            if "email" not in errors:
                 try:
                     token = await async_authenticate(
                         async_get_clientsession(self.hass),
-                        credentials["username"],
+                        credentials["email"],
                         credentials["password"],
                         get_default_ploud_language(self.hass),
                     )
@@ -92,7 +92,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             Any,
             vol.Schema(
                 {
-                    vol.Required("username"): selector.TextSelector(  # pyright: ignore[reportUnknownMemberType]
+                    vol.Required("email"): selector.TextSelector(  # pyright: ignore[reportUnknownMemberType]
                         selector.TextSelectorConfig(
                             type=selector.TextSelectorType.EMAIL,
                             autocomplete="username",
@@ -130,13 +130,13 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         if user_input is not None:
             credentials = cast(ReauthFlowInput, user_input)
             entry = self._get_reauth_entry()
-            if not _is_valid_email(credentials["username"]):
-                errors["username"] = "invalid_email"
+            if not _is_valid_email(credentials["email"]):
+                errors["email"] = "invalid_email"
             else:
                 try:
                     token = await async_authenticate(
                         async_get_clientsession(self.hass),
-                        credentials["username"],
+                        credentials["email"],
                         credentials["password"],
                         get_ploud_language(
                             self.hass, entry.options.get(CONF_LANGUAGE)
@@ -160,7 +160,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             Any,
             vol.Schema(
                 {
-                    vol.Required("username"): selector.TextSelector(  # pyright: ignore[reportUnknownMemberType]
+                    vol.Required("email"): selector.TextSelector(  # pyright: ignore[reportUnknownMemberType]
                         selector.TextSelectorConfig(
                             type=selector.TextSelectorType.EMAIL,
                             autocomplete="username",
