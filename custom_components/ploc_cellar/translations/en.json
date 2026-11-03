@@ -31,7 +31,7 @@
     "step": {
       "init": {
         "title": "Synchronization settings",
-        "description": "Set the interval between synchronizations and the language used for PLOUD responses.",
+        "description": "Set the synchronization interval and the PLOUD response language. Automatic mode uses the Home Assistant country (French for francophone countries, English otherwise). You can override it by selecting French or English.",
         "data": {
           "scan_interval": "Synchronization interval (minutes)",
           "language": "PLOUD response language"
