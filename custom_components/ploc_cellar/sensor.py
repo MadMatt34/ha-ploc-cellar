@@ -1,6 +1,4 @@
 """Single aggregate cellar sensor."""
-from functools import cached_property
-
 from homeassistant.components.sensor import SensorEntity
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.device_registry import DeviceInfo
@@ -35,12 +33,12 @@ class PlocCellarSensor(CoordinatorEntity[PlocCellarCoordinator], SensorEntity):
         # Setup guarantees a successful first refresh or a restored cellar snapshot.
         return True
 
-    @cached_property
+    @property
     def native_value(self) -> int:
         """Return the total number of bottles."""
         return self.coordinator.data.total_bottles
 
-    @cached_property
+    @property
     def extra_state_attributes(self) -> dict[str, int | bool | str | None]:
         """Expose aggregate attributes and the last successful synchronization."""
         cellar = self.coordinator.data
