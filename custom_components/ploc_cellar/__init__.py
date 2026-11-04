@@ -212,6 +212,8 @@ def _build_inventory_response(
         "matching_wines": len(inventory),
         "rack_count": len(cellar.racks),
         "occupied_positions": cellar.occupied_positions,
+        "orphaned_rack_positions": cellar.orphaned_rack_positions,
+        "orphaned_wine_positions": cellar.orphaned_wine_positions,
         "racks": racks,
         "wines": inventory,
         "last_sync": cellar.last_sync,
