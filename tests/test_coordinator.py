@@ -5,7 +5,8 @@ import asyncio
 from typing import Any, cast
 
 import pytest
-from homeassistant.exceptions import HomeAssistantError, UpdateFailed
+from homeassistant.exceptions import HomeAssistantError
+from homeassistant.helpers.update_coordinator import UpdateFailed
 
 from ploc_cellar import coordinator as coordinator_module
 from ploc_cellar.coordinator import PlocCellarCoordinator
