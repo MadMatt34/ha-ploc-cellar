@@ -599,9 +599,13 @@ async def async_sync(
 
 
 def apply_sync(
-    cellar: Cellar, objects: PLOUDCollections, next_cursor: int
+    cellar: Cellar,
+    objects: PLOUDCollections,
+    next_cursor: int,
+    *,
+    full_snapshot: bool = False,
 ) -> set[str]:
-    """Apply a PLOUD delta and return unresolved new Owner references."""
+    """Apply a PLOUD delta or complete snapshot and return unresolved Owners."""
     removed_wine_ids: set[str] = set()
     removed_rack_ids: set[str] = set()
     deleted_owner_ids: set[str] = set()
@@ -703,7 +707,9 @@ def apply_sync(
         row_key = next((key for key in ("rw", "row") if key in raw), None)
         column_key = next((key for key in ("cl", "column") if key in raw), None)
 
-        if previous is None and (rack_key is None or wine_key is None):
+        if previous is None and (
+            rack_key is None or (wine_key is None and not full_snapshot)
+        ):
             raise PloudIncompleteDelta(
                 f"New PLOUD RackItem {identifier} is missing its rack or wine field"
             )
