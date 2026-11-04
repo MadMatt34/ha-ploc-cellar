@@ -21,6 +21,9 @@ Intégration personnalisée Home Assistant permettant de consulter une cave PLOC
 - Une seule entrée de configuration Ploc Cellar par instance Home Assistant.
 - Aucune opération d'écriture n'est envoyée à PLOUD.
 
+Les règles détaillées de calcul du stock, de synchronisation et d'intégrité
+du stockage sont décrites dans la [spécification des algorithmes](docs/ALGORITHMES.md).
+
 ## Installation et première configuration
 
 1. Copier le dossier `custom_components/ploc_cellar` dans `<config>/custom_components/`.

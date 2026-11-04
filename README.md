@@ -21,6 +21,9 @@ A Home Assistant custom integration for a **read-only** view of a PLOC wine cell
 - One Ploc Cellar config entry is allowed per Home Assistant instance.
 - No write operations are sent to PLOUD.
 
+For detailed inventory formulas, synchronization rules and storage
+integrity guarantees, see the [algorithm specification in French](docs/ALGORITHMES.md).
+
 ## Installation and first-time setup
 
 1. Copy the `custom_components/ploc_cellar` folder into `<config>/custom_components/`.

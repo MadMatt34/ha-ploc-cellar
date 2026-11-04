@@ -15,6 +15,7 @@ from .const import CELLAR_DATA_VERSION, DOMAIN, STORAGE_KEY, STORAGE_VERSION
 from .models import Cellar, JsonValue
 from .ploud import (
     PloudAuthError,
+    PloudIncompleteDelta,
     PLOUDCollections,
     PloudError,
     apply_sync,
@@ -84,7 +85,20 @@ class PlocCellarCoordinator(DataUpdateCoordinator[Cellar]):
             )
 
         await self.store.async_save(data)
+        # Store.async_save queues a final write and returns without writing to
+        # disk when Home Assistant has already entered its stopping state.
+        # Store.async_load can then return that pending in-memory payload, so
+        # read-back equality alone is not proof of durability.
+        if self.hass.is_stopping:
+            raise HomeAssistantError(
+                "Home Assistant started stopping before the storage write completed"
+            )
+
         persisted = await self.store.async_load()
+        if self.hass.is_stopping:
+            raise HomeAssistantError(
+                "Home Assistant started stopping before storage verification completed"
+            )
         if persisted != data:
             raise HomeAssistantError(
                 "Ploc Cellar storage write could not be verified"
@@ -94,18 +108,36 @@ class PlocCellarCoordinator(DataUpdateCoordinator[Cellar]):
         """Restore the model and its matching incremental cursor."""
         try:
             stored = await self.store.async_load()
-            if stored is not None:
+            if stored is None:
+                return
+            try:
                 self.cellar = Cellar.from_storage(stored)
+            except ValueError as err:
                 if stored.get("version") != CELLAR_DATA_VERSION:
-                    try:
-                        await self._async_save_verified(self.cellar.to_storage())
-                    except (HomeAssistantError, OSError, TypeError, ValueError) as err:
-                        # Keep the migrated in-memory snapshot available. The
-                        # next successful sync will persist it transactionally.
-                        _LOGGER.warning(
-                            "Could not persist migrated Ploc Cellar storage: %s",
-                            err,
-                        )
+                    raise
+                # Do not trust or overwrite a truncated current-schema snapshot.
+                # Keep its file untouched and recover from a complete PLOUD
+                # snapshot before persisting a replacement.
+                self.cellar = Cellar(stale=True)
+                self._force_full_sync = True
+                _LOGGER.error(
+                    "Current Ploc Cellar storage is incomplete or invalid; "
+                    "the cached inventory is withheld and a full PLOUD sync "
+                    "will be required before replacing the stored snapshot: %s",
+                    err,
+                )
+                return
+
+            if stored.get("version") != CELLAR_DATA_VERSION:
+                try:
+                    await self._async_save_verified(self.cellar.to_storage())
+                except (HomeAssistantError, OSError, TypeError, ValueError) as err:
+                    # Keep the migrated in-memory snapshot available. The
+                    # next successful sync will persist it transactionally.
+                    _LOGGER.warning(
+                        "Could not persist migrated Ploc Cellar storage: %s",
+                        err,
+                    )
         except (HomeAssistantError, OSError, ValueError, TypeError) as err:
             raise HomeAssistantError(
                 translation_domain=DOMAIN,
@@ -146,24 +178,37 @@ class PlocCellarCoordinator(DataUpdateCoordinator[Cellar]):
             # A full PLOUD response is a snapshot, not a delta. Start from an
             # empty model so wines absent from that snapshot cannot survive.
             updated_cellar = Cellar() if full_sync else deepcopy(self.cellar)
-            unresolved_owner_ids = apply_sync(
-                updated_cellar, objects, next_cursor
-            )
+            recovery_reason: str | None = None
+            try:
+                unresolved_owner_ids = apply_sync(
+                    updated_cellar, objects, next_cursor
+                )
+            except PloudIncompleteDelta as err:
+                if full_sync:
+                    raise PloudError(
+                        "Full PLOUD snapshot contains incomplete records"
+                    ) from err
+                unresolved_owner_ids = set()
+                recovery_reason = "incomplete delta records"
 
-            has_orphaned_positions = bool(
-                updated_cellar.orphaned_rack_positions
-                or updated_cellar.orphaned_wine_positions
-            )
-            if (unresolved_owner_ids or has_orphaned_positions) and not full_sync:
-                reasons: list[str] = []
-                if unresolved_owner_ids:
-                    reasons.append("Owner references")
-                if has_orphaned_positions:
-                    reasons.append("RackItem references")
+            if not full_sync and recovery_reason is None:
+                has_orphaned_positions = bool(
+                    updated_cellar.orphaned_rack_positions
+                    or updated_cellar.orphaned_wine_positions
+                )
+                if unresolved_owner_ids or has_orphaned_positions:
+                    reasons: list[str] = []
+                    if unresolved_owner_ids:
+                        reasons.append("Owner references")
+                    if has_orphaned_positions:
+                        reasons.append("RackItem references")
+                    recovery_reason = " and ".join(reasons)
+
+            if recovery_reason is not None and not full_sync:
                 _LOGGER.info(
-                    "Incremental PLOUD update contains unresolved %s; "
-                    "requesting one full sync",
-                    " and ".join(reasons),
+                    "Incremental PLOUD update requires a complete snapshot "
+                    "(%s); requesting one full sync",
+                    recovery_reason,
                 )
                 # Keep retrying a complete snapshot if this recovery attempt
                 # fails; the preceding incremental delta is not committed.
@@ -180,9 +225,14 @@ class PlocCellarCoordinator(DataUpdateCoordinator[Cellar]):
                 # The fallback is also a complete snapshot: discard both the
                 # partial delta candidate and the previous committed model.
                 updated_cellar = Cellar()
-                unresolved_owner_ids = apply_sync(
-                    updated_cellar, objects, next_cursor
-                )
+                try:
+                    unresolved_owner_ids = apply_sync(
+                        updated_cellar, objects, next_cursor
+                    )
+                except PloudIncompleteDelta as err:
+                    raise PloudError(
+                        "Full PLOUD snapshot contains incomplete records"
+                    ) from err
                 full_sync = True
 
             try:

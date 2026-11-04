@@ -344,6 +344,10 @@ class Cellar:
         if data_version not in (1, 2, 3, 4, 5, CELLAR_DATA_VERSION):
             raise ValueError("Unsupported Ploc Cellar storage version")
 
+        is_current_schema = data_version == CELLAR_DATA_VERSION
+        if is_current_schema:
+            _validate_current_storage(data)
+
         stored_cursor = max(1, _int(data.get("cursor")) or 1)
         cellar = cls(
             # Older snapshots retained only wines with a positive PLOUD stock.
@@ -396,6 +400,196 @@ class Cellar:
             # PLOUD snapshot instead of continuing with an incomplete delta.
             cellar.cursor = 1
         return cellar
+
+
+def _validate_current_storage(data: JsonObject) -> None:
+    """Reject incomplete or malformed snapshots using the current schema."""
+    initialized = data.get("initialized")
+    cursor = data.get("cursor")
+    last_sync = data.get("last_sync")
+    if not isinstance(initialized, bool):
+        raise ValueError("Invalid initialized flag in current cellar storage")
+    if isinstance(cursor, bool) or not isinstance(cursor, int) or cursor < 1:
+        raise ValueError("Invalid cursor in current cellar storage")
+    if last_sync is not None and not isinstance(last_sync, str):
+        raise ValueError("Invalid last_sync value in current cellar storage")
+
+    collections: dict[str, dict[str, JsonObject]] = {}
+    for collection_name in ("wines", "racks", "rack_items", "orders"):
+        raw_collection = data.get(collection_name)
+        if not isinstance(raw_collection, dict):
+            raise ValueError(
+                f"Missing or invalid {collection_name} collection in current cellar storage"
+            )
+        records: dict[str, JsonObject] = {}
+        for key, raw_record in cast(dict[object, object], raw_collection).items():
+            if not isinstance(key, str) or not key:
+                raise ValueError(
+                    f"Invalid identifier in current cellar storage collection {collection_name}"
+                )
+            if not isinstance(raw_record, dict):
+                raise ValueError(
+                    f"Invalid record {key} in current cellar storage collection {collection_name}"
+                )
+            record = _as_dict(raw_record)
+            if len(record) != len(raw_record):
+                raise ValueError(
+                    f"Invalid field name in current cellar storage record {key}"
+                )
+            if record.get("id") != key:
+                raise ValueError(
+                    f"Record identifier does not match key in {collection_name}: {key}"
+                )
+            records[key] = record
+        collections[collection_name] = records
+
+    wine_fields = {
+        "id",
+        "name",
+        "bottles",
+        "bottles_in_cellar",
+        "vintage",
+        "appellation",
+        "color",
+        "color_rgb",
+        "classification",
+        "region",
+        "country",
+        "grapes",
+        "cuvee",
+        "comment",
+        "alcohol_percent",
+        "service_temperature_min",
+        "service_temperature_max",
+        "bottle_format",
+        "bottle_volume_l",
+        "ploud_pid",
+        "domain",
+        "owner_id",
+    }
+    text_fields = (
+        "appellation",
+        "color",
+        "classification",
+        "region",
+        "country",
+        "grapes",
+        "cuvee",
+        "comment",
+        "bottle_format",
+        "ploud_pid",
+        "domain",
+        "owner_id",
+    )
+    float_fields = (
+        "alcohol_percent",
+        "service_temperature_min",
+        "service_temperature_max",
+        "bottle_volume_l",
+    )
+    for identifier, wine in collections["wines"].items():
+        if not wine_fields.issubset(wine):
+            raise ValueError(
+                f"Incomplete Wine record in current cellar storage: {identifier}"
+            )
+        if not isinstance(wine.get("name"), str):
+            raise ValueError(
+                f"Invalid Wine name in current cellar storage: {identifier}"
+            )
+        for field_name in ("bottles", "bottles_in_cellar"):
+            value = wine.get(field_name)
+            if isinstance(value, bool) or not isinstance(value, int) or value < 0:
+                raise ValueError(
+                    f"Invalid {field_name} value in current cellar storage: {identifier}"
+                )
+        vintage = wine.get("vintage")
+        if vintage is not None and (
+            isinstance(vintage, bool) or not isinstance(vintage, int) or vintage <= 0
+        ):
+            raise ValueError(
+                f"Invalid Wine vintage in current cellar storage: {identifier}"
+            )
+        for field_name in text_fields:
+            value = wine.get(field_name)
+            if value is not None and not isinstance(value, str):
+                raise ValueError(
+                    f"Invalid Wine field {field_name} in current cellar storage: {identifier}"
+                )
+        for field_name in float_fields:
+            value = wine.get(field_name)
+            if value is not None:
+                parsed = _float(value)
+                if (
+                    isinstance(value, bool)
+                    or not isinstance(value, (int, float))
+                    or parsed is None
+                    or parsed <= 0
+                ):
+                    raise ValueError(
+                        f"Invalid Wine field {field_name} in current cellar storage: {identifier}"
+                    )
+        color_rgb = wine.get("color_rgb")
+        if color_rgb is not None:
+            if (
+                not isinstance(color_rgb, list)
+                or len(color_rgb) != 3
+                or any(
+                    isinstance(component, bool)
+                    or not isinstance(component, int)
+                    or not 0 <= component <= 255
+                    for component in color_rgb
+                )
+            ):
+                raise ValueError(
+                    f"Invalid Wine color_rgb in current cellar storage: {identifier}"
+                )
+
+    for identifier, rack in collections["racks"].items():
+        if not {"id", "name"}.issubset(rack) or not isinstance(rack.get("name"), str):
+            raise ValueError(
+                f"Incomplete Rack record in current cellar storage: {identifier}"
+            )
+
+    for identifier, item in collections["rack_items"].items():
+        if not {"id", "rack_id", "wine_id", "row", "column"}.issubset(item):
+            raise ValueError(
+                f"Incomplete RackItem record in current cellar storage: {identifier}"
+            )
+        rack_id = item.get("rack_id")
+        wine_id = item.get("wine_id")
+        if not isinstance(rack_id, str) or not rack_id:
+            raise ValueError(
+                f"Invalid RackItem rack_id in current cellar storage: {identifier}"
+            )
+        if not isinstance(wine_id, str):
+            raise ValueError(
+                f"Invalid RackItem wine_id in current cellar storage: {identifier}"
+            )
+        for field_name in ("row", "column"):
+            value = item.get(field_name)
+            if value is not None and (
+                isinstance(value, bool) or not isinstance(value, int)
+            ):
+                raise ValueError(
+                    f"Invalid RackItem {field_name} in current cellar storage: {identifier}"
+                )
+
+    for identifier, order in collections["orders"].items():
+        if not {"id", "wine_id", "incoming", "outgoing"}.issubset(order):
+            raise ValueError(
+                f"Incomplete Order record in current cellar storage: {identifier}"
+            )
+        wine_id = order.get("wine_id")
+        if not isinstance(wine_id, str) or not wine_id:
+            raise ValueError(
+                f"Invalid Order wine_id in current cellar storage: {identifier}"
+            )
+        for field_name in ("incoming", "outgoing"):
+            value = order.get(field_name)
+            if isinstance(value, bool) or not isinstance(value, int) or value < 0:
+                raise ValueError(
+                    f"Invalid Order {field_name} in current cellar storage: {identifier}"
+                )
 
 
 def _as_dict(value: object) -> JsonObject:
