@@ -127,6 +127,13 @@ class Cellar:
         ) + self.orphaned_wine_positions
 
     @property
+    def orphaned_order_count(self) -> int:
+        """Return movement records whose Wine reference is no longer available."""
+        return sum(
+            order.wine_id not in self.wines for order in self.orders.values()
+        )
+
+    @property
     def stocked_wines(self) -> int:
         """Return the number of wine references with bottles in the cellar."""
         return sum(wine.bottles_in_cellar > 0 for wine in self.wines.values())
