@@ -526,15 +526,41 @@ def apply_sync(
         if identifier in seen_rack_item_ids:
             raise PloudError(f"PLOUD returned duplicate RackItem ID: {identifier}")
         seen_rack_item_ids.add(identifier)
-        item = RackItem(
-            identifier,
-            _optional_text(raw.get("rk", raw.get("rack_id", raw.get("rack"))))
-            or "",
-            _optional_text(raw.get("wi", raw.get("wine_id", raw.get("wine"))))
-            or "",
-            _int(raw.get("rw", raw.get("row"))),
-            _int(raw.get("cl", raw.get("column"))),
+        previous = cellar.rack_items.get(identifier)
+
+        rack_key = next(
+            (key for key in ("rk", "rack_id", "rack") if key in raw),
+            None,
         )
+        wine_key = next(
+            (key for key in ("wi", "wine_id", "wine") if key in raw),
+            None,
+        )
+        row_key = next((key for key in ("rw", "row") if key in raw), None)
+        column_key = next((key for key in ("cl", "column") if key in raw), None)
+
+        rack_id = (
+            _optional_text(raw[rack_key]) or ""
+            if rack_key is not None
+            else previous.rack_id if previous is not None else ""
+        )
+        wine_id = (
+            _optional_text(raw[wine_key]) or ""
+            if wine_key is not None
+            else previous.wine_id if previous is not None else ""
+        )
+        row = (
+            _int(raw[row_key])
+            if row_key is not None
+            else previous.row if previous is not None else None
+        )
+        column = (
+            _int(raw[column_key])
+            if column_key is not None
+            else previous.column if previous is not None else None
+        )
+
+        item = RackItem(identifier, rack_id, wine_id, row, column)
         cellar.rack_items[item.id] = item
 
     for raw in _collection(objects, PLOUD_COLLECTION_ORDERS):
