@@ -63,10 +63,30 @@ class PlocCellarCoordinator(DataUpdateCoordinator[Cellar]):
         self.device = device
         self.language = language
         self.store: Store[dict[str, JsonValue]] = Store(
-            hass, STORAGE_VERSION, f"{STORAGE_KEY}.{entry.entry_id}"
+            hass,
+            STORAGE_VERSION,
+            f"{STORAGE_KEY}.{entry.entry_id}",
+            atomic_writes=True,
         )
         self.cellar = Cellar()
         self._force_full_sync = False
+
+    async def _async_save_verified(self, data: dict[str, JsonValue]) -> None:
+        """Persist a snapshot atomically and verify it can be read back.
+
+        Home Assistant Store.async_save logs some write errors instead of
+        propagating them. Reading the just-written payload back is therefore
+        required before committing the in-memory model or advancing its cursor.
+        """
+        if self.hass.is_stopping:
+            raise HomeAssistantError("Home Assistant is stopping; storage was not saved")
+
+        await self.store.async_save(data)
+        persisted = await self.store.async_load()
+        if persisted != data:
+            raise HomeAssistantError(
+                "Ploc Cellar storage write could not be verified"
+            )
 
     async def async_load(self) -> None:
         """Restore the model and its matching incremental cursor."""
@@ -76,7 +96,7 @@ class PlocCellarCoordinator(DataUpdateCoordinator[Cellar]):
                 self.cellar = Cellar.from_storage(stored)
                 if stored.get("version") != CELLAR_DATA_VERSION:
                     try:
-                        await self.store.async_save(self.cellar.to_storage())
+                        await self._async_save_verified(self.cellar.to_storage())
                     except (HomeAssistantError, OSError, TypeError, ValueError) as err:
                         # Keep the migrated in-memory snapshot available. The
                         # next successful sync will persist it transactionally.
@@ -150,6 +170,14 @@ class PlocCellarCoordinator(DataUpdateCoordinator[Cellar]):
                 )
                 full_sync = True
 
+            if full_sync:
+                try:
+                    updated_cellar.validate_rack_items()
+                except ValueError as err:
+                    raise PloudError(
+                        "Full PLOUD snapshot contains unresolved RackItem references"
+                    ) from err
+
             if unresolved_owner_ids:
                 _LOGGER.warning(
                     "Full PLOUD sync did not include %d referenced Owner record(s); "
@@ -174,7 +202,7 @@ class PlocCellarCoordinator(DataUpdateCoordinator[Cellar]):
             )
             updated_cellar.last_sync = datetime.now(UTC).isoformat()
             updated_cellar.stale = False
-            await self.store.async_save(updated_cellar.to_storage())
+            await self._async_save_verified(updated_cellar.to_storage())
             self.cellar = updated_cellar
             if full_sync:
                 self._force_full_sync = False
