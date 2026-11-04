@@ -115,6 +115,21 @@ def test_duplicate_owner_ids_are_rejected_case_insensitively() -> None:
         apply_sync(cellar, objects, 2)
 
 
+def test_numeric_owner_identifiers_are_normalized() -> None:
+    """Integer IDs are normalized consistently on both Owner sides."""
+    cellar = Cellar()
+    objects: PLOUDCollections = {
+        "Owners": [{"id": 17, "fullname": "Domaine des tests"}],
+        "Wines": [{"id": "wine-1", "bottles": 0, "owner_id": 17}],
+    }
+
+    apply_sync(cellar, objects, 2)
+
+    wine = cellar.wines["wine-1"]
+    assert wine.owner_id == "17"
+    assert wine.domain == "Domaine des tests"
+
+
 def test_invalid_owner_display_name_is_rejected() -> None:
     """A present non-text Owner name must not be interpreted as an empty name."""
     cellar = Cellar()
@@ -223,8 +238,9 @@ def test_deleted_wine_keeps_historical_orders_as_orphans() -> None:
         "DeletedObjects": [{"id": "deleted-wine", "type": "wine"}],
     }
 
-    apply_sync(cellar, objects, 2)
+    unresolved = apply_sync(cellar, objects, 2)
 
+    assert unresolved == set()
     assert "historical-order" in cellar.orders
     assert cellar.orphaned_order_count == 1
     assert cellar.stock_for(cellar.wines["known-wine"]).movement_balance == 3
