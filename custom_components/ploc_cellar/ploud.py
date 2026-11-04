@@ -539,26 +539,18 @@ def apply_sync(
         row_key = next((key for key in ("rw", "row") if key in raw), None)
         column_key = next((key for key in ("cl", "column") if key in raw), None)
 
-        rack_id = (
-            _optional_text(raw[rack_key]) or ""
-            if rack_key is not None
-            else previous.rack_id if previous is not None else ""
-        )
-        wine_id = (
-            _optional_text(raw[wine_key]) or ""
-            if wine_key is not None
-            else previous.wine_id if previous is not None else ""
-        )
-        row = (
-            _int(raw[row_key])
-            if row_key is not None
-            else previous.row if previous is not None else None
-        )
-        column = (
-            _int(raw[column_key])
-            if column_key is not None
-            else previous.column if previous is not None else None
-        )
+        rack_id = previous.rack_id if previous is not None else ""
+        wine_id = previous.wine_id if previous is not None else ""
+        row = previous.row if previous is not None else None
+        column = previous.column if previous is not None else None
+        if rack_key is not None:
+            rack_id = _optional_text(raw[rack_key]) or ""
+        if wine_key is not None:
+            wine_id = _optional_text(raw[wine_key]) or ""
+        if row_key is not None:
+            row = _int(raw[row_key])
+        if column_key is not None:
+            column = _int(raw[column_key])
 
         item = RackItem(identifier, rack_id, wine_id, row, column)
         cellar.rack_items[item.id] = item
