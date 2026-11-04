@@ -68,6 +68,9 @@
           "orphaned_wine_positions": {
             "name": "Positions with unknown wines"
           },
+          "orphaned_order_count": {
+            "name": "Movements with unknown wines"
+          },
           "stale": {
             "name": "Stale data"
           },
