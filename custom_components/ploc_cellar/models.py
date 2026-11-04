@@ -252,16 +252,22 @@ class Cellar:
         """Return all physical RackItems assigned to a wine."""
         return sum(bool(item.wine_id) for item in self.rack_items.values())
 
-    def validate_rack_items(self) -> None:
-        """Reject RackItems that cannot be reconciled with the current PLOUD model."""
+    def validate_rack_items(self, *, allow_unresolved: bool = False) -> None:
+        """Validate RackItem identity and, when requested, all object references."""
         for item_id, item in self.rack_items.items():
             if not item_id or item.id != item_id:
                 raise ValueError(f"Invalid RackItem identifier: {item_id!r}")
-            if not item.rack_id or item.rack_id not in self.racks:
+            if not item.rack_id:
+                raise ValueError(f"RackItem {item_id} has no rack reference")
+            if not allow_unresolved and item.rack_id not in self.racks:
                 raise ValueError(
                     f"RackItem {item_id} references an unknown rack: {item.rack_id!r}"
                 )
-            if item.wine_id and item.wine_id not in self.wines:
+            if (
+                not allow_unresolved
+                and item.wine_id
+                and item.wine_id not in self.wines
+            ):
                 raise ValueError(
                     f"RackItem {item_id} references an unknown wine: {item.wine_id!r}"
                 )
