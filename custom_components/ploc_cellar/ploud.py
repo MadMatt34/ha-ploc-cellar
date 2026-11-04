@@ -795,8 +795,17 @@ def apply_sync(
                 f"New PLOUD Order {identifier} is missing required movement fields"
             )
 
+        raw_order_wine_id = raw[wine_key] if wine_key is not None else None
+        if (
+            wine_key is not None
+            and raw_order_wine_id is not None
+            and not isinstance(raw_order_wine_id, str)
+        ):
+            raise PloudError(
+                f"PLOUD returned an invalid Order record: {identifier}"
+            )
         wine_id = (
-            _reference_id(raw[wine_key])
+            _reference_id(raw_order_wine_id)
             if wine_key is not None
             else previous.wine_id if previous is not None else None
         )

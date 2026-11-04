@@ -320,6 +320,19 @@ def test_legacy_cache_without_orders_marks_stock_unknown() -> None:
     assert cellar.stock_for(cellar.wines[wine_id]).bottles_to_store is None
 
 
+
+
+def test_order_rejects_non_text_wine_reference() -> None:
+    """Order references remain text identifiers; numeric IDs are Owner-only."""
+    cellar = Cellar()
+    objects: PLOUDCollections = {
+        "Orders": [{"id": "order-1", "wi": 17, "in": 1, "ot": 0}],
+    }
+
+    with pytest.raises(PloudError, match="invalid Order record"):
+        apply_sync(cellar, objects, 2)
+
+
 def test_deleted_wine_keeps_historical_orders_as_orphans() -> None:
     """Orders survive Wine deletion and remain outside known-wine stock."""
     cellar = Cellar(

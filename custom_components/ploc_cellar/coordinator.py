@@ -120,17 +120,22 @@ class PlocCellarCoordinator(DataUpdateCoordinator[Cellar]):
                 self.cellar = Cellar.from_storage(stored)
             except ValueError as err:
                 if stored.get("version") not in (
+                    1,
+                    2,
+                    3,
+                    4,
+                    5,
                     ORDERS_STORAGE_VERSION,
                     CELLAR_DATA_VERSION,
                 ):
                     raise
-                # Do not trust or overwrite a truncated current-schema snapshot.
+                # Do not trust or overwrite a malformed known snapshot.
                 # Keep its file untouched and recover from a complete PLOUD
                 # snapshot before persisting a replacement.
                 self.cellar = Cellar(stale=True)
                 self._force_full_sync = True
                 _LOGGER.error(
-                    "Current Ploc Cellar storage is incomplete or invalid; "
+                    "Stored Ploc Cellar data is incomplete or invalid; "
                     "the cached inventory is withheld and a full PLOUD sync "
                     "will be required before replacing the stored snapshot: %s",
                     err,

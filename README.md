@@ -120,12 +120,13 @@ response_variable: cellar
 
 The response contains:
 
-- global totals: `total_bottles` counts all physically occupied positions; `stocked_wines` counts known Wine references with at least one position; `total_stock_bottles` also includes occupied positions whose Wine reference is temporarily unknown; `orphaned_order_count` counts retained movements for unknown or deleted wines (these movements are excluded from known-wine stock calculations); `bottles_to_store`, `inventory_error_wines` and `inventory_error_count` describe known unplaced bottles;
+- global totals: `total_bottles` counts all physically occupied positions; `stocked_wines` counts known Wine references with at least one position; `total_stock_bottles` also includes occupied positions whose Wine reference is temporarily unknown; `orphaned_order_count` counts retained movements for unknown or deleted wines (these movements are excluded from known-wine stock calculations); `bottles_to_store`, `inventory_error_wines` and `inventory_error_count` describe known unplaced bottles. These Orders-derived values are `null` while `stock_reconstruction_complete` is false;
 - `rack_count`, `total_positions`, `occupied_positions` and `empty_positions`, the number of racks and the position breakdown; `orphaned_rack_positions` and `orphaned_wine_positions` report temporarily unresolved Rack or Wine references;
 - `matching_wines`, the number of wines matching the filters;
 - `racks`, the list of racks;
 - `wines`, normally only wines with positive effective stock. If reconstruction is incomplete, only known wines with physical bottles in rack positions are returned; their stock-derived quantities and diagnostics are `null`, as are global stock-derived totals;
-- `movement_anomalies`, the dedicated list of the 7 references whose movements do not match effective stock, including zero-stock references;
+- `movement_anomalies`, the dedicated list of references whose movements do not match effective stock, including zero-stock references; it is `null` while stock reconstruction is incomplete;
+- `stock_reconstruction_complete`, whether a complete Orders snapshot is available;
 - `last_sync`, the date and time of the last successful synchronization.
 
 `inventory_errors` contains `unplaced_bottles` when a reference has bottles that are not assigned to a rack. References with movement discrepancies are listed separately in `movement_anomalies`, including those with zero effective stock; they are therefore not included in the normal `wines` list. `movement_warning_wines` counts these references and `movement_warning_bottles` sums the absolute bottle differences between movement balance and effective stock. Raw `Wine.bo` values are informational and do not determine effective stock or movement anomalies. No correction is sent to PLOUD. Filters do not change the global totals. Each wine location contains its rack name and ID, plus row and column when available.
