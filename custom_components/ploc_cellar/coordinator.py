@@ -150,10 +150,20 @@ class PlocCellarCoordinator(DataUpdateCoordinator[Cellar]):
                 updated_cellar, objects, next_cursor
             )
 
-            if unresolved_owner_ids and not full_sync:
+            has_orphaned_positions = bool(
+                updated_cellar.orphaned_rack_positions
+                or updated_cellar.orphaned_wine_positions
+            )
+            if (unresolved_owner_ids or has_orphaned_positions) and not full_sync:
+                reasons: list[str] = []
+                if unresolved_owner_ids:
+                    reasons.append("Owner references")
+                if has_orphaned_positions:
+                    reasons.append("RackItem references")
                 _LOGGER.info(
-                    "An incremental PLOUD update references an Owner missing "
-                    "from the delta; requesting one full sync to resolve winery names"
+                    "Incremental PLOUD update contains unresolved %s; "
+                    "requesting one full sync",
+                    " and ".join(reasons),
                 )
                 objects, next_cursor = await async_sync(
                     self.session,
