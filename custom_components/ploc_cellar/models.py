@@ -105,11 +105,10 @@ class Cellar:
 
     @property
     def total_bottles(self) -> int:
-        """Return all occupied physical positions in known racks.
+        """Return all occupied physical positions, including unresolved references.
 
-        This is deliberately derived from RackItems rather than Wine records:
-        a legacy snapshot may contain an occupied position whose Wine reference
-        is not available locally until the next full synchronization.
+        RackItems are physical bottle positions. This count must not depend on
+        whether the Wine or Rack metadata is temporarily available locally.
         """
         return self.occupied_positions
 
@@ -156,11 +155,8 @@ class Cellar:
 
     @property
     def empty_positions(self) -> int:
-        """Return empty positions belonging to a known rack."""
-        return sum(
-            not item.wine_id and item.rack_id in self.racks
-            for item in self.rack_items.values()
-        )
+        """Return all physical RackItems without a wine assignment."""
+        return self.total_positions - self.occupied_positions
 
     @property
     def orphaned_rack_positions(self) -> int:
@@ -173,9 +169,7 @@ class Cellar:
     def orphaned_wine_positions(self) -> int:
         """Return occupied positions whose Wine reference is unavailable."""
         return sum(
-            bool(item.wine_id)
-            and item.rack_id in self.racks
-            and item.wine_id not in self.wines
+            bool(item.wine_id) and item.wine_id not in self.wines
             for item in self.rack_items.values()
         )
 
@@ -245,7 +239,7 @@ class Cellar:
         """Recalculate each wine's in-cellar quantity from assigned RackItems."""
         counts: dict[str, int] = {}
         for item in self.rack_items.values():
-            if item.wine_id in self.wines and item.rack_id in self.racks:
+            if item.wine_id in self.wines:
                 counts[item.wine_id] = counts.get(item.wine_id, 0) + 1
 
         for wine_id, wine in tuple(self.wines.items()):
@@ -255,11 +249,8 @@ class Cellar:
 
     @property
     def occupied_positions(self) -> int:
-        """Return occupied positions in known racks, including unresolved wines."""
-        return sum(
-            bool(item.wine_id) and item.rack_id in self.racks
-            for item in self.rack_items.values()
-        )
+        """Return all physical RackItems assigned to a wine."""
+        return sum(bool(item.wine_id) for item in self.rack_items.values())
 
     def validate_rack_items(self) -> None:
         """Reject RackItems that cannot be reconciled with the current PLOUD model."""
