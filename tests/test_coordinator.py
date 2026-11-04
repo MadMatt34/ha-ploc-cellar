@@ -6,10 +6,8 @@ from typing import Any, cast
 
 import pytest
 from homeassistant.exceptions import HomeAssistantError
-from homeassistant.helpers.update_coordinator import UpdateFailed
-
 from ploc_cellar import coordinator as coordinator_module
-from ploc_cellar.coordinator import PlocCellarCoordinator
+from ploc_cellar.coordinator import PlocCellarCoordinator, UpdateFailed
 from ploc_cellar.models import Cellar, JsonValue, RackItem
 from ploc_cellar.ploud import PLOUDCollections, PloudError
 
