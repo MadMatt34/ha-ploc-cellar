@@ -196,6 +196,14 @@ def _reference_id(value: object) -> str | None:
     raise PloudError("PLOUD returned an invalid reference ID")
 
 
+def _object_id(raw: JsonObject, object_type: str) -> str:
+    """Return a required PLOUD object ID normalized as trimmed text."""
+    value = raw.get("id")
+    if not isinstance(value, str) or not value.strip():
+        raise PloudError(f"PLOUD returned an invalid {object_type} ID")
+    return value.strip()
+
+
 def _parse_color_rgb(value: object) -> tuple[int, int, int] | None:
     """Parse a validated RGB triplet."""
     if not isinstance(value, (list, tuple)):
@@ -253,9 +261,7 @@ def _parse_wine(
         cast(JsonObject, stored_fields) if isinstance(stored_fields, dict) else {}
     )
 
-    wine_id = raw.get("id")
-    if not isinstance(wine_id, str) or not wine_id.strip():
-        raise PloudError("PLOUD returned a wine without a valid ID")
+    wine_id = _object_id(raw, "Wine")
 
     # Missing count fields in an existing partial update must not reset raw
     # PLOUD metadata. A new Wine still needs an initial count value.
@@ -296,12 +302,17 @@ def _parse_wine(
         )
 
     has_name, name_value = _source_field(raw, fields, "name", "nm")
-    if has_name:
-        if name_value is not None and not isinstance(name_value, str):
-            raise PloudError(f"PLOUD returned an invalid name for wine {wine_id}")
-        name = _optional_text(name_value) or ""
+    if not has_name:
+        if previous is None:
+            raise PloudIncompleteDelta(
+                f"New PLOUD Wine {wine_id} is missing its name"
+            )
+        name = previous.name
+    elif name_value is not None and not isinstance(name_value, str):
+        raise PloudError(f"PLOUD returned an invalid name for wine {wine_id}")
     else:
-        name = previous.name if previous is not None else ""
+        # An explicitly empty name remains a valid clear operation.
+        name = _optional_text(name_value) or ""
 
     has_vintage, vintage_value = _source_field(raw, fields, "vintage", "vi")
     if not has_vintage:
@@ -613,13 +624,11 @@ def apply_sync(
 
     seen_wine_ids: set[str] = set()
     for raw in _collection(objects, PLOUD_COLLECTION_WINES):
-        raw_id = raw.get("id")
-        if not isinstance(raw_id, str) or not raw_id.strip():
-            raise PloudError("PLOUD returned a wine without a valid ID")
-        if raw_id in seen_wine_ids:
-            raise PloudError(f"PLOUD returned duplicate Wine ID: {raw_id}")
-        seen_wine_ids.add(raw_id)
-        previous = cellar.wines.get(raw_id)
+        identifier = _object_id(raw, "Wine")
+        if identifier in seen_wine_ids:
+            raise PloudError(f"PLOUD returned duplicate Wine ID: {identifier}")
+        seen_wine_ids.add(identifier)
+        previous = cellar.wines.get(identifier)
         wine = _parse_wine(
             raw,
             owner_names=owner_names,
@@ -645,10 +654,7 @@ def apply_sync(
 
     seen_rack_ids: set[str] = set()
     for raw in _collection(objects, PLOUD_COLLECTION_RACKS):
-        raw_identifier = raw.get("id")
-        if not isinstance(raw_identifier, str) or not raw_identifier.strip():
-            raise PloudError("PLOUD returned a Rack without a valid ID")
-        identifier = raw_identifier.strip()
+        identifier = _object_id(raw, "Rack")
         if identifier in seen_rack_ids:
             raise PloudError(f"PLOUD returned duplicate Rack ID: {identifier}")
         seen_rack_ids.add(identifier)
@@ -672,9 +678,7 @@ def apply_sync(
 
     seen_rack_item_ids: set[str] = set()
     for raw in _collection(objects, PLOUD_COLLECTION_RACK_ITEMS):
-        identifier = raw.get("id")
-        if not isinstance(identifier, str) or not identifier.strip():
-            raise PloudError("PLOUD returned a RackItem without a valid ID")
+        identifier = _object_id(raw, "RackItem")
         if identifier in seen_rack_item_ids:
             raise PloudError(f"PLOUD returned duplicate RackItem ID: {identifier}")
         seen_rack_item_ids.add(identifier)
@@ -753,9 +757,7 @@ def apply_sync(
 
     seen_order_ids: set[str] = set()
     for raw in _collection(objects, PLOUD_COLLECTION_ORDERS):
-        identifier = raw.get("id")
-        if not isinstance(identifier, str) or not identifier.strip():
-            raise PloudError("PLOUD returned an Order without a valid ID")
+        identifier = _object_id(raw, "Order")
         if identifier in seen_order_ids:
             raise PloudError(f"PLOUD returned duplicate Order ID: {identifier}")
         seen_order_ids.add(identifier)
