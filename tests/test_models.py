@@ -2,7 +2,6 @@
 from __future__ import annotations
 
 import pytest
-
 from ploc_cellar.models import Cellar, Order, Rack, RackItem, Wine
 
 
