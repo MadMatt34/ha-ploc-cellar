@@ -105,8 +105,13 @@ class Cellar:
 
     @property
     def total_bottles(self) -> int:
-        """Return the number of bottles assigned to cellar positions."""
-        return sum(wine.bottles_in_cellar for wine in self.wines.values())
+        """Return all occupied physical positions in known racks.
+
+        This is deliberately derived from RackItems rather than Wine records:
+        a legacy snapshot may contain an occupied position whose Wine reference
+        is not available locally until the next full synchronization.
+        """
+        return self.occupied_positions
 
     @property
     def wine_references(self) -> int:
@@ -117,10 +122,10 @@ class Cellar:
 
     @property
     def total_stock_bottles(self) -> int:
-        """Return reconstructed total stock from movements and rack positions."""
+        """Return reconstructed stock, including occupied positions with unknown wines."""
         return sum(
             self.stock_for(wine).effective_stock for wine in self.wines.values()
-        )
+        ) + self.orphaned_wine_positions
 
     @property
     def stocked_wines(self) -> int:
@@ -146,13 +151,33 @@ class Cellar:
 
     @property
     def total_positions(self) -> int:
-        """Return the number of physical rack positions, occupied or empty."""
+        """Return all PLOUD RackItems, including positions with unresolved racks."""
         return len(self.rack_items)
 
     @property
     def empty_positions(self) -> int:
-        """Return the number of physical rack positions without a wine."""
-        return max(0, self.total_positions - self.occupied_positions)
+        """Return empty positions belonging to a known rack."""
+        return sum(
+            not item.wine_id and item.rack_id in self.racks
+            for item in self.rack_items.values()
+        )
+
+    @property
+    def orphaned_rack_positions(self) -> int:
+        """Return positions whose referenced rack is not available locally."""
+        return sum(
+            item.rack_id not in self.racks for item in self.rack_items.values()
+        )
+
+    @property
+    def orphaned_wine_positions(self) -> int:
+        """Return occupied positions whose Wine reference is unavailable."""
+        return sum(
+            bool(item.wine_id)
+            and item.rack_id in self.racks
+            and item.wine_id not in self.wines
+            for item in self.rack_items.values()
+        )
 
     def stock_for(self, wine: Wine) -> WineStock:
         """Reconstruct stock from movements, never below the physical cellar count.
@@ -230,12 +255,25 @@ class Cellar:
 
     @property
     def occupied_positions(self) -> int:
-        """Return rack positions with a wine assignment in existing racks."""
+        """Return occupied positions in known racks, including unresolved wines."""
         return sum(
-            1
+            bool(item.wine_id) and item.rack_id in self.racks
             for item in self.rack_items.values()
-            if item.wine_id and item.rack_id in self.racks
         )
+
+    def validate_rack_items(self) -> None:
+        """Reject RackItems that cannot be reconciled with the current PLOUD model."""
+        for item_id, item in self.rack_items.items():
+            if not item_id or item.id != item_id:
+                raise ValueError(f"Invalid RackItem identifier: {item_id!r}")
+            if not item.rack_id or item.rack_id not in self.racks:
+                raise ValueError(
+                    f"RackItem {item_id} references an unknown rack: {item.rack_id!r}"
+                )
+            if item.wine_id and item.wine_id not in self.wines:
+                raise ValueError(
+                    f"RackItem {item_id} references an unknown wine: {item.wine_id!r}"
+                )
 
     def to_storage(self) -> JsonObject:
         """Serialize the snapshot to JSON-compatible data."""
@@ -329,21 +367,28 @@ class Cellar:
 
         for key, raw in _as_dict(data.get("racks")).items():
             if isinstance(raw, dict):
-                cellar.racks[key] = Rack(
+                rack = Rack(
                     id=_str(raw.get("id")) or key,
                     name=_str(raw.get("name")) or "",
                 )
+                if rack.id in cellar.racks:
+                    raise ValueError(f"Duplicate rack ID in stored cellar: {rack.id}")
+                cellar.racks[rack.id] = rack
         for key, raw in _as_dict(data.get("rack_items")).items():
             if isinstance(raw, dict):
                 item = _rack_item_from_dict(raw, key)
-                # Preserve the assignment even when an older snapshot lacks
-                # the corresponding Wine reference; the full-sync migration
-                # will restore the complete Wine collection.
-                cellar.rack_items[key] = item
+                if item.id in cellar.rack_items:
+                    raise ValueError(f"Duplicate RackItem ID in stored cellar: {item.id}")
+                # Preserve unresolved rack and wine references in a restored
+                # snapshot. Their counts are exposed separately, and the forced
+                # full sync repairs them without misreporting them as empty slots.
+                cellar.rack_items[item.id] = item
 
         for key, raw in _as_dict(data.get("orders")).items():
             if isinstance(raw, dict):
                 order = _order_from_dict(raw, key)
+                if order.id in cellar.orders:
+                    raise ValueError(f"Duplicate order ID in stored cellar: {order.id}")
                 cellar.orders[order.id] = order
 
         cellar.refresh_bottles_in_cellar()
