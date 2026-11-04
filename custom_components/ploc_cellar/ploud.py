@@ -518,19 +518,24 @@ def apply_sync(
             _optional_text(raw.get("nm", raw.get("name"))) or "",
         )
 
+    seen_rack_item_ids: set[str] = set()
     for raw in _collection(objects, PLOUD_COLLECTION_RACK_ITEMS):
         identifier = raw.get("id")
-        if isinstance(identifier, str):
-            item = RackItem(
-                identifier,
-                _optional_text(raw.get("rk", raw.get("rack_id", raw.get("rack"))))
-                or "",
-                _optional_text(raw.get("wi", raw.get("wine_id", raw.get("wine"))))
-                or "",
-                _int(raw.get("rw", raw.get("row"))),
-                _int(raw.get("cl", raw.get("column"))),
-            )
-            cellar.rack_items[item.id] = item
+        if not isinstance(identifier, str) or not identifier.strip():
+            raise PloudError("PLOUD returned a RackItem without a valid ID")
+        if identifier in seen_rack_item_ids:
+            raise PloudError(f"PLOUD returned duplicate RackItem ID: {identifier}")
+        seen_rack_item_ids.add(identifier)
+        item = RackItem(
+            identifier,
+            _optional_text(raw.get("rk", raw.get("rack_id", raw.get("rack"))))
+            or "",
+            _optional_text(raw.get("wi", raw.get("wine_id", raw.get("wine"))))
+            or "",
+            _int(raw.get("rw", raw.get("row"))),
+            _int(raw.get("cl", raw.get("column"))),
+        )
+        cellar.rack_items[item.id] = item
 
     for raw in _collection(objects, PLOUD_COLLECTION_ORDERS):
         identifier = raw.get("id")
