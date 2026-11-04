@@ -852,7 +852,7 @@ def apply_sync(
             for wine_id, wine in tuple(cellar.wines.items()):
                 if (
                     wine.owner_id is not None
-                    and wine.owner_id.casefold() == object_id.casefold()
+                    and wine.owner_id == object_id
                 ):
                     cellar.wines[wine_id] = replace(wine, domain=None)
             continue
