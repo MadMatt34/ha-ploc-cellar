@@ -112,7 +112,7 @@ response_variable: cellar
 
 The response contains:
 
-- global totals: `total_bottles` and `stocked_wines` describe the physical cellar contents; `total_stock_bottles` describes reconstructed effective stock; `bottles_to_store`, `inventory_error_wines` and `inventory_error_count` report unplaced bottles and anomalies;
+- global totals: `total_bottles` counts all physically occupied positions; `stocked_wines` counts known Wine references with at least one position; `total_stock_bottles` also includes occupied positions whose Wine reference is temporarily unknown; `bottles_to_store`, `inventory_error_wines` and `inventory_error_count` describe known unplaced bottles;
 - `rack_count`, `total_positions`, `occupied_positions` and `empty_positions`, the number of racks and the position breakdown; `orphaned_rack_positions` and `orphaned_wine_positions` report temporarily unresolved Rack or Wine references;
 - `matching_wines`, the number of wines matching the filters;
 - `racks`, the list of racks;
