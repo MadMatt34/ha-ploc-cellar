@@ -15,9 +15,9 @@ from .const import CELLAR_DATA_VERSION, DOMAIN, STORAGE_KEY, STORAGE_VERSION
 from .models import Cellar, JsonValue
 from .ploud import (
     PloudAuthError,
-    PloudIncompleteDelta,
     PLOUDCollections,
     PloudError,
+    PloudIncompleteDelta,
     apply_sync,
     async_sync,
 )
@@ -179,6 +179,7 @@ class PlocCellarCoordinator(DataUpdateCoordinator[Cellar]):
             # empty model so wines absent from that snapshot cannot survive.
             updated_cellar = Cellar() if full_sync else deepcopy(self.cellar)
             recovery_reason: str | None = None
+            unresolved_owner_ids: set[str]
             try:
                 unresolved_owner_ids = apply_sync(
                     updated_cellar, objects, next_cursor

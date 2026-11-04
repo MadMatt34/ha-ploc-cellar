@@ -117,12 +117,6 @@ def _optional_text(value: object) -> str | None:
     return normalized or None
 
 
-def _positive_float(value: object) -> float | None:
-    """Parse a positive finite float; PLOUD uses zero for missing values."""
-    parsed = _float(value)
-    return parsed if parsed is not None and parsed > 0 else None
-
-
 def _source_field(
     raw: JsonObject,
     fields: JsonObject,
@@ -199,18 +193,6 @@ def _reference_id(value: object) -> str | None:
         return str(value)
     return None
 
-
-def _source_reference_id(
-    raw: JsonObject,
-    fields: JsonObject,
-    *names: str,
-) -> tuple[bool, str | None]:
-    """Read a reference while distinguishing an explicit empty value."""
-    for source in (raw, fields):
-        for name in names:
-            if name in source:
-                return True, _reference_id(source[name])
-    return False, None
 
 def _parse_color_rgb(value: object) -> tuple[int, int, int] | None:
     """Parse a validated RGB triplet."""
@@ -563,7 +545,8 @@ async def async_sync(
             continue
         if normalized_name in seen_collection_names:
             raise PloudError(
-                f"PLOUD returned duplicate collection names differing only by case: {name}"
+                "PLOUD returned duplicate collection names differing only "
+                f"by case: {name}"
             )
         seen_collection_names.add(normalized_name)
         if not isinstance(values, list):
@@ -621,7 +604,7 @@ def apply_sync(
         if raw_id in seen_wine_ids:
             raise PloudError(f"PLOUD returned duplicate Wine ID: {raw_id}")
         seen_wine_ids.add(raw_id)
-        previous = cellar.wines.get(raw_id) if isinstance(raw_id, str) else None
+        previous = cellar.wines.get(raw_id)
         wine = _parse_wine(
             raw,
             owner_names=owner_names,

@@ -419,20 +419,24 @@ def _validate_current_storage(data: JsonObject) -> None:
         raw_collection = data.get(collection_name)
         if not isinstance(raw_collection, dict):
             raise ValueError(
-                f"Missing or invalid {collection_name} collection in current cellar storage"
+                f"Missing or invalid {collection_name} collection "
+                "in current cellar storage"
             )
         records: dict[str, JsonObject] = {}
         for key, raw_record in cast(dict[object, object], raw_collection).items():
             if not isinstance(key, str) or not key:
                 raise ValueError(
-                    f"Invalid identifier in current cellar storage collection {collection_name}"
+                    f"Invalid identifier in current cellar storage collection "
+                    f"{collection_name}"
                 )
             if not isinstance(raw_record, dict):
                 raise ValueError(
-                    f"Invalid record {key} in current cellar storage collection {collection_name}"
+                    f"Invalid record {key} in current cellar storage collection "
+                    f"{collection_name}"
                 )
-            record = _as_dict(raw_record)
-            if len(record) != len(raw_record):
+            record_mapping = cast(dict[object, object], raw_record)
+            record = _as_dict(record_mapping)
+            if len(record) != len(record_mapping):
                 raise ValueError(
                     f"Invalid field name in current cellar storage record {key}"
                 )
@@ -500,7 +504,8 @@ def _validate_current_storage(data: JsonObject) -> None:
             value = wine.get(field_name)
             if isinstance(value, bool) or not isinstance(value, int) or value < 0:
                 raise ValueError(
-                    f"Invalid {field_name} value in current cellar storage: {identifier}"
+                    f"Invalid {field_name} value in current cellar storage: "
+                    f"{identifier}"
                 )
         vintage = wine.get("vintage")
         if vintage is not None and (
@@ -513,7 +518,8 @@ def _validate_current_storage(data: JsonObject) -> None:
             value = wine.get(field_name)
             if value is not None and not isinstance(value, str):
                 raise ValueError(
-                    f"Invalid Wine field {field_name} in current cellar storage: {identifier}"
+                    f"Invalid Wine field {field_name} in current cellar storage: "
+                    f"{identifier}"
                 )
         for field_name in float_fields:
             value = wine.get(field_name)
@@ -526,7 +532,8 @@ def _validate_current_storage(data: JsonObject) -> None:
                     or parsed <= 0
                 ):
                     raise ValueError(
-                        f"Invalid Wine field {field_name} in current cellar storage: {identifier}"
+                        f"Invalid Wine field {field_name} in current cellar storage: "
+                        f"{identifier}"
                     )
         color_rgb = wine.get("color_rgb")
         if color_rgb is not None:
@@ -571,7 +578,8 @@ def _validate_current_storage(data: JsonObject) -> None:
                 isinstance(value, bool) or not isinstance(value, int)
             ):
                 raise ValueError(
-                    f"Invalid RackItem {field_name} in current cellar storage: {identifier}"
+                    f"Invalid RackItem {field_name} in current cellar storage: "
+                    f"{identifier}"
                 )
 
     for identifier, order in collections["orders"].items():
@@ -588,7 +596,8 @@ def _validate_current_storage(data: JsonObject) -> None:
             value = order.get(field_name)
             if isinstance(value, bool) or not isinstance(value, int) or value < 0:
                 raise ValueError(
-                    f"Invalid Order {field_name} in current cellar storage: {identifier}"
+                    f"Invalid Order {field_name} in current cellar storage: "
+                    f"{identifier}"
                 )
 
 
