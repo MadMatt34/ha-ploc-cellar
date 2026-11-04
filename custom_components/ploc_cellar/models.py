@@ -257,9 +257,9 @@ class Cellar:
         for item_id, item in self.rack_items.items():
             if not item_id or item.id != item_id:
                 raise ValueError(f"Invalid RackItem identifier: {item_id!r}")
-            if not item.rack_id:
-                raise ValueError(f"RackItem {item_id} has no rack reference")
-            if not allow_unresolved and item.rack_id not in self.racks:
+            if not allow_unresolved and (
+                not item.rack_id or item.rack_id not in self.racks
+            ):
                 raise ValueError(
                     f"RackItem {item_id} references an unknown rack: {item.rack_id!r}"
                 )
