@@ -2,9 +2,8 @@
 from __future__ import annotations
 
 import pytest
-
 from ploc_cellar.models import Cellar, Order, Rack, RackItem, Wine
-from ploc_cellar.ploud import PloudError, PloudIncompleteDelta, apply_sync
+from ploc_cellar.ploud import PloudIncompleteDelta, apply_sync
 
 
 def _wine(wine_id: str) -> Wine:
