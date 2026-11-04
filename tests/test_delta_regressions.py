@@ -94,12 +94,53 @@ def test_partial_rack_item_delta_preserves_unmentioned_references() -> None:
     assert cellar.wines["wine"].bottles_in_cellar == 1
 
 
-def test_new_rack_item_without_references_requests_full_sync() -> None:
-    """A new physical position must identify both its rack and wine field."""
+def test_new_rack_item_without_rack_requests_full_sync() -> None:
+    """A new physical position must identify the rack it belongs to."""
     cellar = Cellar()
 
     with pytest.raises(PloudIncompleteDelta):
-        apply_sync(cellar, {"RackItems": [{"id": "slot", "rw": 1}]}, 123)
+        apply_sync(
+            cellar,
+            {"RackItems": [{"id": "slot", "wi": "", "rw": 1}]},
+            123,
+        )
+
+    assert cellar.rack_items == {}
+
+
+def test_full_snapshot_rack_item_without_wine_is_an_empty_position() -> None:
+    """A full snapshot may omit the wine reference for an empty position."""
+    cellar = Cellar(
+        racks={"rack": Rack(id="rack", name="Cave")},
+    )
+
+    apply_sync(
+        cellar,
+        {"RackItems": [{"id": "slot", "rk": "rack", "rw": 1, "cl": 2}]},
+        123,
+        full_snapshot=True,
+    )
+
+    assert cellar.rack_items["slot"] == RackItem(
+        id="slot",
+        rack_id="rack",
+        wine_id="",
+        row=1,
+        column=2,
+    )
+    assert cellar.empty_positions == 1
+
+
+def test_incremental_new_rack_item_without_wine_still_requests_full_sync() -> None:
+    """A partial delta cannot silently turn a missing wine field into an empty slot."""
+    cellar = Cellar()
+
+    with pytest.raises(PloudIncompleteDelta):
+        apply_sync(
+            cellar,
+            {"RackItems": [{"id": "slot", "rk": "rack", "rw": 1}]},
+            123,
+        )
 
     assert cellar.rack_items == {}
 
