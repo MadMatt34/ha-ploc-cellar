@@ -55,6 +55,8 @@ class PlocCellarSensor(CoordinatorEntity[PlocCellarCoordinator], SensorEntity):
             "total_positions": cellar.total_positions,
             "empty_positions": cellar.empty_positions,
             "occupied_positions": cellar.occupied_positions,
+            "orphaned_rack_positions": cellar.orphaned_rack_positions,
+            "orphaned_wine_positions": cellar.orphaned_wine_positions,
             "stale": cellar.stale,
             "last_successful_sync": cellar.last_sync,
         }
