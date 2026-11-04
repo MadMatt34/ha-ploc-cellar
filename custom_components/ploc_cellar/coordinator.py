@@ -196,7 +196,7 @@ class PlocCellarCoordinator(DataUpdateCoordinator[Cellar]):
             unresolved_owner_ids: set[str]
             try:
                 unresolved_owner_ids = apply_sync(
-                    updated_cellar, objects, next_cursor
+                    updated_cellar, objects, next_cursor, full_snapshot=full_sync
                 )
             except PloudIncompleteDelta as err:
                 if full_sync:
@@ -242,7 +242,7 @@ class PlocCellarCoordinator(DataUpdateCoordinator[Cellar]):
                 updated_cellar = Cellar()
                 try:
                     unresolved_owner_ids = apply_sync(
-                        updated_cellar, objects, next_cursor
+                        updated_cellar, objects, next_cursor, full_snapshot=True
                     )
                 except PloudIncompleteDelta as err:
                     raise PloudError(
