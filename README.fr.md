@@ -112,7 +112,7 @@ response_variable: cave
 
 La réponse contient :
 
-- les totaux globaux : `total_bottles` et `stocked_wines` décrivent le contenu physique des casiers ; `total_stock_bottles` décrit le stock effectif reconstitué ; `bottles_to_store`, `inventory_error_wines` et `inventory_error_count` donnent les quantités non placées et les anomalies ;
+- les totaux globaux : `total_bottles` compte toutes les positions physiques occupées ; `stocked_wines` compte les références Wine connues ayant au moins une position ; `total_stock_bottles` inclut aussi les positions occupées dont la référence Wine est temporairement inconnue ; `bottles_to_store`, `inventory_error_wines` et `inventory_error_count` décrivent les bouteilles connues non placées ;
 - `rack_count`, `total_positions`, `occupied_positions` et `empty_positions`, le nombre de casiers et le détail des emplacements ; `orphaned_rack_positions` et `orphaned_wine_positions` signalent les références de casier ou de vin temporairement inconnues ;
 - `matching_wines`, le nombre de vins correspondant aux filtres ;
 - `racks`, la liste des casiers ;
