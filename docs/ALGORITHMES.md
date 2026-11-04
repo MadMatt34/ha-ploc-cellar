@@ -95,6 +95,8 @@ Deux compteurs d'intégrité sont distincts :
   correspond à aucun casier local connu.
 - `orphaned_wine_positions` compte les positions occupées dont le
   `wine_id` ne correspond à aucune référence Wine locale connue.
+- `orphaned_order_count` compte les mouvements `Order` conservés dont le
+  `wine_id` ne correspond plus à une référence Wine locale connue.
 
 Une position orpheline de vin reste une bouteille physique : elle est incluse
 dans `occupied_positions`, `total_bottles` et
@@ -209,8 +211,16 @@ occupée. Elle provoque une récupération par synchronisation complète lorsqu'
 arrive dans un delta. Si l'instantané complet ne résout pas cette référence,
 il est rejeté.
 
-Une référence vers un Owner absent du delta peut également provoquer une
-synchronisation complète afin de résoudre le nom du domaine viticole.
+Un `Order` dont le `wine_id` n'existe plus dans la collection `Wines` est
+conservé comme historique de mouvements, notamment lorsqu'un vin a été supprimé
+sans suppression correspondante de ses commandes. Il ne contribue au stock
+d'aucun vin connu, ne crée pas de référence Wine artificielle et ne déclenche
+pas de synchronisation complète à lui seul. Le compteur
+`orphaned_order_count` rend ces commandes visibles. Une suppression explicite
+de l'Order dans `DeletedObjects` reste appliquée normalement.
+
+Une référence vers un Owner absent ou incomplet dans le delta peut provoquer
+une synchronisation complète afin de résoudre le nom du domaine viticole.
 
 Les suppressions ont une sémantique explicite :
 
