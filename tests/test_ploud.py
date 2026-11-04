@@ -1,9 +1,8 @@
 """Unit tests for PLOUD delta parsing and inventory integrity."""
 from __future__ import annotations
 
-from ploc_cellar.models import Cellar, Order, Rack, Wine
-
 import pytest
+from ploc_cellar.models import Cellar, Order, Rack, Wine
 from ploc_cellar.ploud import (
     PLOUDCollections,
     PloudError,
