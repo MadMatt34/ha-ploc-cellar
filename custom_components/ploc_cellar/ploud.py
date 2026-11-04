@@ -381,8 +381,8 @@ def _parse_wine(
         domain = previous.domain
     else:
         domain = None
-    if owner_id is not None and owner_id.casefold() in owner_names:
-        domain = owner_names[owner_id.casefold()]
+    if owner_id is not None and owner_id in owner_names:
+        domain = owner_names[owner_id]
 
     return Wine(
         id=wine_id,
@@ -616,7 +616,7 @@ def apply_sync(
         owner_id = _deleted_id(raw)
         if owner_id is None:
             raise PloudError("PLOUD returned an Owner without a valid ID")
-        owner_key = owner_id.casefold()
+        owner_key = owner_id
         if owner_key in seen_owner_ids:
             raise PloudError(f"PLOUD returned duplicate Owner ID: {owner_id}")
         seen_owner_ids.add(owner_key)
@@ -626,7 +626,7 @@ def apply_sync(
         owner_records_seen.add(owner_key)
         owner_names[owner_key] = owner_name
         for wine_id, wine in tuple(cellar.wines.items()):
-            if wine.owner_id is not None and wine.owner_id.casefold() == owner_key:
+            if wine.owner_id is not None and wine.owner_id == owner_key:
                 if wine.domain != owner_name:
                     cellar.wines[wine_id] = replace(wine, domain=owner_name)
 
@@ -645,15 +645,15 @@ def apply_sync(
         if (
             wine.owner_id is not None
             and wine.domain is None
-            and wine.owner_id.casefold() not in owner_records_seen
+            and wine.owner_id not in owner_records_seen
             and (
                 previous is None
                 or previous.owner_id is None
-                or previous.owner_id.casefold() != wine.owner_id.casefold()
+                or previous.owner_id != wine.owner_id
                 or previous.domain is not None
             )
         ):
-            unresolved_owner_ids.add(wine.owner_id.casefold())
+            unresolved_owner_ids.add(wine.owner_id)
         # Keep every Wine reference, including zero-total-stock wines. A later
         # RackItem delta may assign one to a cellar position without repeating
         # its Wine object in the same response.
@@ -844,11 +844,11 @@ def apply_sync(
             not normalized_kind
             and any(
                 wine.owner_id is not None
-                and wine.owner_id.casefold() == object_id.casefold()
+                and wine.owner_id == object_id
                 for wine in cellar.wines.values()
             )
         ):
-            deleted_owner_ids.add(object_id.casefold())
+            deleted_owner_ids.add(object_id)
             for wine_id, wine in tuple(cellar.wines.items()):
                 if (
                     wine.owner_id is not None
