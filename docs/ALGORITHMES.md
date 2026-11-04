@@ -177,14 +177,19 @@ La règle générale est :
 - **Nouvel objet incomplet** : ne pas inventer les champs manquants ; demander
   un instantané complet.
 
-Cette règle s'applique aux caractéristiques Wine, aux mouvements Order et aux
-positions RackItem.
+Cette règle s'applique aux caractéristiques Wine, aux métadonnées Rack, aux
+mouvements Order et aux positions RackItem.
 
 Pour un `Wine`, les caractéristiques, le nom, le millésime, le propriétaire
 et la valeur informative de stock sont préservés quand ils sont absents du
 delta. Les champs descriptifs explicitement vides peuvent être effacés. Un
 nouveau Wine doit notamment fournir son identifiant et une valeur de stock
 initiale ; si cette dernière manque, le delta est considéré incomplet.
+
+Pour un `Rack` déjà connu, l'absence de `nm` ou `name` préserve le nom
+précédent. Un nouveau Rack doit fournir son nom ; sinon, le delta est considéré
+incomplet. Une valeur explicitement vide ou nulle efface le nom ; une valeur
+d'un type incorrect rejette la réponse.
 
 Pour un `RackItem` déjà connu, l'absence de `rk`, `wi`, `rw` ou `cl`
 préserve la valeur précédente. Une chaîne vide ou une valeur nulle explicite
@@ -197,10 +202,22 @@ Pour un `Order` déjà connu, les champs `wi`, `in` et `ot` absents sont
 conservés depuis l'objet précédent. Un nouvel Order doit fournir ces trois
 champs. Les quantités doivent être des entiers positifs ou nuls.
 
+Pour un `Wine`, un millésime négatif ou une valeur numérique négative
+(alcoométrie, températures ou volume) rejette la réponse. La valeur zéro reste
+interprétée comme une absence de donnée pour ces champs optionnels. Un
+`owner_id` doit être une chaîne ou un entier ; une valeur nulle ou vide efface
+la référence, tandis qu'un autre type rejette la réponse.
+
+Pour un `Owner`, l'identifiant doit être présent. Le champ de nom peut être
+absent dans un delta, mais cet Owner n'est alors pas considéré comme résolu :
+un Wine nouvellement associé à cet Owner provoque une récupération complète.
+Un nom explicitement vide ou nul efface le domaine ; un nom d'un type incorrect
+rejette la réponse.
+
 ### 5.3 Identifiants en doublon
 
 Une même réponse ne peut pas contenir deux fois le même identifiant Wine,
-Rack, RackItem ou Order. Deux noms de collections pris en charge qui ne
+Owner, Rack, RackItem ou Order. Deux noms de collections pris en charge qui ne
 diffèrent que par la casse (par exemple `Wines` et `wines`) sont également
 rejetés : aucune collection ne doit être ignorée silencieusement.
 
@@ -219,8 +236,10 @@ pas de synchronisation complète à lui seul. Le compteur
 `orphaned_order_count` rend ces commandes visibles. Une suppression explicite
 de l'Order dans `DeletedObjects` reste appliquée normalement.
 
-Une référence vers un Owner absent ou incomplet dans le delta peut provoquer
-une synchronisation complète afin de résoudre le nom du domaine viticole.
+Une référence vers un Owner absent du delta ou dont le champ de nom est
+incomplet peut provoquer une synchronisation complète afin de résoudre le nom
+du domaine viticole. Les doublons d'identifiant Owner, comparés sans tenir
+compte de la casse, sont rejetés.
 
 Les suppressions ont une sémantique explicite :
 
