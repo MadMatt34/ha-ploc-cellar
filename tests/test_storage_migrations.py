@@ -91,7 +91,9 @@ def test_legacy_migration_normalizes_uuid_keys_and_references() -> None:
     wines = stored["wines"]
     racks = stored["racks"]
     items = stored["rack_items"]
-    assert isinstance(wines, dict) and isinstance(racks, dict) and isinstance(items, dict)
+    assert isinstance(wines, dict)
+    assert isinstance(racks, dict)
+    assert isinstance(items, dict)
     wine_record = wines.pop("wine")
     rack_record = racks.pop("rack")
     item_record = items.pop("slot")
