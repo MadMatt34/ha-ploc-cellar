@@ -85,6 +85,7 @@ Ses attributs sont :
 | `occupied_positions` | Nombre d'emplacements ayant un `wine_id` non vide |
 | `orphaned_rack_positions` | Nombre de positions référençant un casier inconnu |
 | `orphaned_wine_positions` | Nombre de positions occupées référençant un vin inconnu |
+| `orphaned_order_count` | Nombre de mouvements conservés référençant un vin inconnu |
 | `stale` | Indique que la dernière synchronisation a échoué |
 | `last_successful_sync` | Date et heure de la dernière synchronisation réussie (format ISO 8601) |
 
@@ -115,7 +116,7 @@ response_variable: cave
 
 La réponse contient :
 
-- les totaux globaux : `total_bottles` compte toutes les positions physiques occupées ; `stocked_wines` compte les références Wine connues ayant au moins une position ; `total_stock_bottles` inclut aussi les positions occupées dont la référence Wine est temporairement inconnue ; `bottles_to_store`, `inventory_error_wines` et `inventory_error_count` décrivent les bouteilles connues non placées ;
+- les totaux globaux : `total_bottles` compte toutes les positions physiques occupées ; `stocked_wines` compte les références Wine connues ayant au moins une position ; `total_stock_bottles` inclut aussi les positions occupées dont la référence Wine est temporairement inconnue ; `orphaned_order_count` compte les mouvements conservés pour des vins inconnus ou supprimés (ils sont exclus des calculs de stock des vins connus) ; `bottles_to_store`, `inventory_error_wines` et `inventory_error_count` décrivent les bouteilles connues non placées ;
 - `rack_count`, `total_positions`, `occupied_positions` et `empty_positions`, le nombre de casiers et le détail des emplacements ; `orphaned_rack_positions` et `orphaned_wine_positions` signalent les références de casier ou de vin temporairement inconnues ;
 - `matching_wines`, le nombre de vins correspondant aux filtres ;
 - `racks`, la liste des casiers ;
@@ -141,7 +142,7 @@ Le jeton d'accès PLOUD et l'identifiant UUID de l'appareil sont conservés dans
 
 L'inventaire local et son curseur de synchronisation associé sont enregistrés avec le `Store` persistant de Home Assistant. Les changements reçus sont appliqués à une copie du modèle puis enregistrés avant de remplacer le modèle en mémoire : un échec d'écriture ne fait donc pas avancer le curseur actif.
 
-L'intégration envoie uniquement les paramètres nécessaires à la synchronisation et un objet `Objects` vide. Elle ne transmet aucun objet de cave et n'effectue aucune modification de la cave. La collection `Owners` est traitée uniquement en mémoire pour renseigner `Wine.domain`. Les mouvements `Orders` sont conservés localement afin de calculer les diagnostics d'inventaire. Si un propriétaire référencé par un nouveau vin manque dans le delta, le coordinateur effectue une seule synchronisation complète pour résoudre son nom.
+L'intégration envoie uniquement les paramètres nécessaires à la synchronisation et un objet `Objects` vide. Elle ne transmet aucun objet de cave et n'effectue aucune modification de la cave. La collection `Owners` est traitée uniquement en mémoire pour renseigner `Wine.domain`. Les mouvements `Orders` sont conservés localement afin de calculer les diagnostics d'inventaire. Les commandes dont la référence Wine n'existe plus sont conservées comme historique et comptées dans `orphaned_order_count`, mais ne contribuent au stock d'aucun vin connu. Si un propriétaire référencé par un nouveau vin manque dans le delta, le coordinateur effectue une seule synchronisation complète pour résoudre son nom.
 
 ## Validation
 
