@@ -79,7 +79,9 @@ Its attributes are:
 | `rack_count` | Number of racks |
 | `total_positions` | Total number of physical rack positions |
 | `empty_positions` | Number of empty rack positions |
-| `occupied_positions` | Number of positions occupied by stocked wines |
+| `occupied_positions` | Number of positions with a non-empty `wine_id` |
+| `orphaned_rack_positions` | Number of positions referencing an unknown rack |
+| `orphaned_wine_positions` | Number of occupied positions referencing an unknown wine |
 | `stale` | Indicates that the latest synchronization failed |
 | `last_successful_sync` | Date and time of the last successful synchronization (ISO 8601) |
 
@@ -111,7 +113,7 @@ response_variable: cellar
 The response contains:
 
 - global totals: `total_bottles` and `stocked_wines` describe the physical cellar contents; `total_stock_bottles` describes reconstructed effective stock; `bottles_to_store`, `inventory_error_wines` and `inventory_error_count` report unplaced bottles and anomalies;
-- `rack_count`, `total_positions`, `occupied_positions` and `empty_positions`, the number of racks and the position breakdown;
+- `rack_count`, `total_positions`, `occupied_positions` and `empty_positions`, the number of racks and the position breakdown; `orphaned_rack_positions` and `orphaned_wine_positions` report temporarily unresolved Rack or Wine references;
 - `matching_wines`, the number of wines matching the filters;
 - `racks`, the list of racks;
 - `wines`, only wines with positive effective stock, including `bottles` (reconstructed effective stock), `ploud_bottles` (raw `Wine.bo` value), `bottles_in_cellar` (in-cellar), `bottles_to_store` (unplaced), `purchased`, `consumed`, `movement_balance`, `calculated_stock`, `inventory_errors` (unplaced bottles) and `movement_warnings` (differences between movement balance and effective stock);
