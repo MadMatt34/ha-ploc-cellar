@@ -62,6 +62,12 @@
           "occupied_positions": {
             "name": "Emplacements occupés"
           },
+          "orphaned_rack_positions": {
+            "name": "Emplacements avec casier inconnu"
+          },
+          "orphaned_wine_positions": {
+            "name": "Emplacements avec vin inconnu"
+          },
           "stale": {
             "name": "Données périmées"
           },
