@@ -14,7 +14,7 @@ A Home Assistant custom integration for a **read-only** view of a PLOC wine cell
 - PLOUD remains the source of truth.
 - Read-only incremental synchronization through `POST https://ploud.ploc.co/v1/sync/exec`, using `Objects={}`.
 - Initial synchronization uses the validated bootstrap value `LastSyncTime=1`. Later synchronizations use the client-maintained Unix-millisecond cursor.
-- Persistent local model containing the `Wine` references returned by PLOUD, racks and rack positions. PLOUD's declared stock (`Wine.bo`) is retained as raw data. Effective stock is reconstructed from `Orders` movements and physically placed bottles (`RackItems`): `max(0, Orders balance, bottles in cellar)`. This rule reproduces the `Stock` column of the supplied reference CSV for all 116 wine references analyzed. Unplaced bottles (`bottles_to_store`) are the difference between this effective stock and the in-cellar quantity. Differences between `Wine.bo` and the reconstructed value are exposed as movement warnings; PLOUD data is never modified. Wine characteristics, including the winery name, are stored directly in each wine record. The `Owners` collection is used transiently to resolve owner UUIDs; no Owner lookup table is persisted. If an incremental Wine update references an Owner absent from the delta, one full synchronization is requested to resolve it.
+- Persistent local model containing the `Wine` references returned by PLOUD, racks and rack positions. PLOUD's declared stock (`Wine.bo`) is retained as raw data. Effective stock is reconstructed from `Orders` movements and physically placed bottles (`RackItems`): `max(0, Orders balance, bottles in cellar)`. This rule reproduces the `Stock` column of the supplied reference CSV for all 116 wine references analyzed. Unplaced bottles (`bottles_to_store`) are the difference between this effective stock and the in-cellar quantity. Differences between the Order movement balance and the reconstructed effective stock are exposed as movement warnings; PLOUD data is never modified. Wine characteristics, including the winery name, are stored directly in each wine record. The `Owners` collection is used transiently to resolve owner UUIDs; no Owner lookup table is persisted. If an incremental Wine update references an Owner absent from the delta, one full synchronization is requested to resolve it.
 - One compact summary sensor; no entity is created for each wine, rack or position.
 - Detailed inventory is returned on demand by the `ploc_cellar.get_inventory` action.
 - Immediate synchronization is available through the `ploc_cellar.sync` action.
@@ -85,6 +85,7 @@ Its attributes are:
 | `occupied_positions` | Number of positions with a non-empty `wine_id` |
 | `orphaned_rack_positions` | Number of positions referencing an unknown rack |
 | `orphaned_wine_positions` | Number of occupied positions referencing an unknown wine |
+| `orphaned_order_count` | Number of retained movements referencing an unknown wine |
 | `stale` | Indicates that the latest synchronization failed |
 | `last_successful_sync` | Date and time of the last successful synchronization (ISO 8601) |
 
@@ -115,7 +116,7 @@ response_variable: cellar
 
 The response contains:
 
-- global totals: `total_bottles` counts all physically occupied positions; `stocked_wines` counts known Wine references with at least one position; `total_stock_bottles` also includes occupied positions whose Wine reference is temporarily unknown; `bottles_to_store`, `inventory_error_wines` and `inventory_error_count` describe known unplaced bottles;
+- global totals: `total_bottles` counts all physically occupied positions; `stocked_wines` counts known Wine references with at least one position; `total_stock_bottles` also includes occupied positions whose Wine reference is temporarily unknown; `orphaned_order_count` counts retained movements for unknown or deleted wines (these movements are excluded from known-wine stock calculations); `bottles_to_store`, `inventory_error_wines` and `inventory_error_count` describe known unplaced bottles;
 - `rack_count`, `total_positions`, `occupied_positions` and `empty_positions`, the number of racks and the position breakdown; `orphaned_rack_positions` and `orphaned_wine_positions` report temporarily unresolved Rack or Wine references;
 - `matching_wines`, the number of wines matching the filters;
 - `racks`, the list of racks;
@@ -141,7 +142,7 @@ The PLOUD access token and device UUID are stored in the Home Assistant config e
 
 The local inventory and its matching synchronization cursor are stored through Home Assistant's persistent `Store`. Received changes are applied to a candidate model and saved before replacing the in-memory model, so a failed storage write does not advance the active cursor.
 
-The integration sends only the parameters required for synchronization and an empty `Objects` field. It does not send cellar objects or perform cellar modifications. PLOUD may still include reference collections in its response; the integration ignores collections it does not need. The `Owners` collection is processed only in memory to update `Wine.domain`. `Orders` movements are stored locally to calculate inventory diagnostics. If an incremental Wine update references an Owner missing from the delta, the coordinator performs one full synchronization for resolution.
+The integration sends only the parameters required for synchronization and an empty `Objects` field. It does not send cellar objects or perform cellar modifications. PLOUD may still include reference collections in its response; the integration ignores collections it does not need. The `Owners` collection is processed only in memory to update `Wine.domain`. `Orders` movements are stored locally to calculate inventory diagnostics. Orders whose Wine reference is no longer present are retained as history and counted in `orphaned_order_count`, but do not contribute to any known Wine stock. If an incremental Wine update references an Owner missing from the delta, the coordinator performs one full synchronization for resolution.
 
 ## Validation
 
