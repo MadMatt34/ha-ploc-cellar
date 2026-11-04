@@ -165,6 +165,9 @@ class PlocCellarCoordinator(DataUpdateCoordinator[Cellar]):
                     "requesting one full sync",
                     " and ".join(reasons),
                 )
+                # Keep retrying a complete snapshot if this recovery attempt
+                # fails; the preceding incremental delta is not committed.
+                self._force_full_sync = True
                 objects, next_cursor = await async_sync(
                     self.session,
                     server=self.server,
@@ -193,18 +196,6 @@ class PlocCellarCoordinator(DataUpdateCoordinator[Cellar]):
                     else "PLOUD delta contains invalid RackItem identifiers"
                 )
                 raise PloudError(message) from err
-
-            if (
-                updated_cellar.orphaned_rack_positions
-                or updated_cellar.orphaned_wine_positions
-            ):
-                _LOGGER.warning(
-                    "PLOUD %s sync retains unresolved RackItem references: "
-                    "%d positions with unknown racks, %d with unknown wines",
-                    "full" if full_sync else "incremental",
-                    updated_cellar.orphaned_rack_positions,
-                    updated_cellar.orphaned_wine_positions,
-                )
 
             if unresolved_owner_ids:
                 _LOGGER.warning(
