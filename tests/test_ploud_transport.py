@@ -4,9 +4,8 @@ from __future__ import annotations
 import asyncio
 from typing import Any, cast
 
-from aiohttp import ClientConnectionError, ClientSession, ClientTimeout, FormData
-
 import pytest
+from aiohttp import ClientConnectionError, ClientSession, ClientTimeout, FormData
 
 from ploc_cellar.ploud import PloudAuthError, PloudError, async_sync
 
