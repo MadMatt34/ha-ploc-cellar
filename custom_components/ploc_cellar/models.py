@@ -4,13 +4,25 @@ from __future__ import annotations
 import math
 from dataclasses import dataclass, field, replace
 from typing import cast
+from uuid import UUID
 
 from homeassistant.util.json import JsonObjectType, JsonValueType
 
-from .const import CELLAR_DATA_VERSION
+from .const import CELLAR_DATA_VERSION, ORDERS_STORAGE_VERSION
 
 type JsonValue = JsonValueType
 type JsonObject = JsonObjectType
+
+
+def normalize_identifier(value: str) -> str:
+    """Trim an identifier and canonicalize UUIDs without changing opaque IDs."""
+    normalized = value.strip()
+    if not normalized:
+        return ""
+    try:
+        return str(UUID(normalized))
+    except ValueError:
+        return normalized
 
 
 @dataclass(frozen=True, slots=True)
@@ -76,13 +88,14 @@ class Order:
 class WineStock:
     """Reconstructed stock quantities and diagnostics for one wine."""
 
-    purchased: int
-    consumed: int
-    movement_balance: int
-    calculated_stock: int
+    purchased: int | None
+    consumed: int | None
+    movement_balance: int | None
+    calculated_stock: int | None
+    # Before Orders are complete, this is only the known physical lower bound.
     effective_stock: int
-    bottles_to_store: int
-    movement_difference_bottles: int
+    bottles_to_store: int | None
+    movement_difference_bottles: int | None
     inventory_errors: tuple[str, ...]
     movement_warnings: tuple[str, ...]
 
@@ -95,6 +108,8 @@ class Cellar:
     # Include this timestamp in equality so successful no-op syncs notify listeners.
     last_sync: str | None = field(default=None)
     initialized: bool = field(default=False, compare=False)
+    # True only after a complete Orders snapshot has been successfully applied.
+    stock_reconstruction_complete: bool = False
     stale: bool = field(default=False)
     wines: dict[str, Wine] = field(default_factory=lambda: dict[str, Wine]())
     racks: dict[str, Rack] = field(default_factory=lambda: dict[str, Rack]())
@@ -113,22 +128,28 @@ class Cellar:
         return self.occupied_positions
 
     @property
-    def wine_references(self) -> int:
-        """Return the number of wine references with a positive effective stock."""
+    def wine_references(self) -> int | None:
+        """Return positive-stock references, or None until Orders are complete."""
+        if not self.stock_reconstruction_complete:
+            return None
         return sum(
             self.stock_for(wine).effective_stock > 0 for wine in self.wines.values()
         )
 
     @property
-    def total_stock_bottles(self) -> int:
-        """Return reconstructed stock, including unresolved occupied positions."""
+    def total_stock_bottles(self) -> int | None:
+        """Return reconstructed stock, or None until Orders are complete."""
+        if not self.stock_reconstruction_complete:
+            return None
         return sum(
             self.stock_for(wine).effective_stock for wine in self.wines.values()
         ) + self.orphaned_wine_positions
 
     @property
-    def orphaned_order_count(self) -> int:
-        """Return movement records whose Wine reference is no longer available."""
+    def orphaned_order_count(self) -> int | None:
+        """Return orphaned movements, or None before Orders are complete."""
+        if not self.stock_reconstruction_complete:
+            return None
         return sum(
             order.wine_id not in self.wines for order in self.orders.values()
         )
@@ -139,18 +160,22 @@ class Cellar:
         return sum(wine.bottles_in_cellar > 0 for wine in self.wines.values())
 
     @property
-    def movement_warning_wines(self) -> int:
-        """Return the number of wine references with inconsistent movements."""
+    def movement_warning_wines(self) -> int | None:
+        """Return movement anomalies, or None until Orders are complete."""
+        if not self.stock_reconstruction_complete:
+            return None
         return sum(
             bool(self.stock_for(wine).movement_warnings)
             for wine in self.wines.values()
         )
 
     @property
-    def movement_warning_bottles(self) -> int:
-        """Return the absolute bottle discrepancy across anomalous references."""
+    def movement_warning_bottles(self) -> int | None:
+        """Return movement discrepancies, or None until Orders are complete."""
+        if not self.stock_reconstruction_complete:
+            return None
         return sum(
-            self.stock_for(wine).movement_difference_bottles
+            self.stock_for(wine).movement_difference_bottles or 0
             for wine in self.wines.values()
             if self.stock_for(wine).movement_warnings
         )
@@ -186,8 +211,22 @@ class Cellar:
         PLOUD's Wine.bo can overstate the stock in the supplied cellar data.
         The Android application's stock evaluation is reproduced by taking
         the greater of the non-negative movement balance and the number of
-        bottles already assigned to rack positions.
+        bottles already assigned to rack positions. Before a complete Orders
+        snapshot is available, only the physical lower bound is known.
         """
+        if not self.stock_reconstruction_complete:
+            return WineStock(
+                purchased=None,
+                consumed=None,
+                movement_balance=None,
+                calculated_stock=None,
+                effective_stock=wine.bottles_in_cellar,
+                bottles_to_store=None,
+                movement_difference_bottles=None,
+                inventory_errors=(),
+                movement_warnings=(),
+            )
+
         purchased = 0
         consumed = 0
         for order in self.orders.values():
@@ -220,23 +259,29 @@ class Cellar:
         )
 
     @property
-    def total_bottles_to_store(self) -> int:
-        """Return the number of reconstructed bottles not assigned to a rack."""
+    def total_bottles_to_store(self) -> int | None:
+        """Return unplaced bottles, or None until Orders are complete."""
+        if not self.stock_reconstruction_complete:
+            return None
         return sum(
-            self.stock_for(wine).bottles_to_store for wine in self.wines.values()
+            self.stock_for(wine).bottles_to_store or 0 for wine in self.wines.values()
         )
 
     @property
-    def inventory_error_wines(self) -> int:
-        """Return the number of references with bottles not placed in a rack."""
+    def inventory_error_wines(self) -> int | None:
+        """Return unplaced references, or None until Orders are complete."""
+        if not self.stock_reconstruction_complete:
+            return None
         return sum(
             bool(self.stock_for(wine).inventory_errors)
             for wine in self.wines.values()
         )
 
     @property
-    def inventory_error_count(self) -> int:
-        """Return the number of references affected by unplaced bottles."""
+    def inventory_error_count(self) -> int | None:
+        """Return inventory errors, or None until Orders are complete."""
+        if not self.stock_reconstruction_complete:
+            return None
         return sum(
             len(self.stock_for(wine).inventory_errors)
             for wine in self.wines.values()
@@ -338,6 +383,7 @@ class Cellar:
             "cursor": self.cursor,
             "last_sync": self.last_sync,
             "initialized": self.initialized,
+            "stock_reconstruction_complete": self.stock_reconstruction_complete,
             "wines": wines,
             "racks": racks,
             "rack_items": rack_items,
@@ -348,21 +394,43 @@ class Cellar:
     def from_storage(cls, data: JsonObject) -> Cellar:
         """Restore and migrate a persisted cellar snapshot."""
         data_version = _int(data.get("version"))
-        if data_version not in (1, 2, 3, 4, 5, CELLAR_DATA_VERSION):
+        if data_version not in (
+            1, 2, 3, 4, 5, ORDERS_STORAGE_VERSION, CELLAR_DATA_VERSION
+        ):
             raise ValueError("Unsupported Ploc Cellar storage version")
 
-        is_current_schema = data_version == CELLAR_DATA_VERSION
-        if is_current_schema:
-            _validate_current_storage(data)
-
         stored_cursor = max(1, _int(data.get("cursor")) or 1)
+        if data_version in (ORDERS_STORAGE_VERSION, CELLAR_DATA_VERSION):
+            _validate_current_storage(
+                data,
+                require_stock_reconstruction=data_version == CELLAR_DATA_VERSION,
+                require_canonical_identifiers=data_version == CELLAR_DATA_VERSION,
+            )
+
+        if data_version == CELLAR_DATA_VERSION:
+            stock_reconstruction_complete = (
+                data.get("stock_reconstruction_complete") is True
+            )
+        elif data_version == ORDERS_STORAGE_VERSION:
+            # Version 6 persisted Orders. A cursor above 1 proves that a full
+            # snapshot had already been committed; cursor 1 means it had not.
+            stock_reconstruction_complete = stored_cursor > 1
+        else:
+            # Versions 1-5 did not persist a complete Orders history.
+            stock_reconstruction_complete = False
+
         cellar = cls(
-            # Older snapshots retained only wines with a positive PLOUD stock.
-            # Force one full sync to restore every Wine reference and derive
-            # in-cellar quantities from the current RackItems collection.
-            cursor=1 if data_version < CELLAR_DATA_VERSION else stored_cursor,
+            # Upgrade the schema and force a new snapshot, but retain trustworthy
+            # cached Orders so their stock calculation remains usable offline.
+            cursor=(
+                1
+                if data_version < CELLAR_DATA_VERSION
+                or not stock_reconstruction_complete
+                else stored_cursor
+            ),
             last_sync=_str(data.get("last_sync")),
             initialized=data.get("initialized") is True,
+            stock_reconstruction_complete=stock_reconstruction_complete,
         )
 
         for key, raw in _as_dict(data.get("wines")).items():
@@ -376,7 +444,7 @@ class Cellar:
         for key, raw in _as_dict(data.get("racks")).items():
             if isinstance(raw, dict):
                 rack = Rack(
-                    id=_str(raw.get("id")) or key,
+                    id=_stored_id(raw.get("id"), key, "Rack"),
                     name=_str(raw.get("name")) or "",
                 )
                 if rack.id in cellar.racks:
@@ -409,8 +477,13 @@ class Cellar:
         return cellar
 
 
-def _validate_current_storage(data: JsonObject) -> None:
-    """Reject incomplete or malformed snapshots using the current schema."""
+def _validate_current_storage(
+    data: JsonObject,
+    *,
+    require_stock_reconstruction: bool = True,
+    require_canonical_identifiers: bool = True,
+) -> None:
+    """Reject incomplete or malformed snapshots using the selected schema."""
     initialized = data.get("initialized")
     cursor = data.get("cursor")
     last_sync = data.get("last_sync")
@@ -420,6 +493,16 @@ def _validate_current_storage(data: JsonObject) -> None:
         raise ValueError("Invalid cursor in current cellar storage")
     if last_sync is not None and not isinstance(last_sync, str):
         raise ValueError("Invalid last_sync value in current cellar storage")
+    if require_stock_reconstruction:
+        complete = data.get("stock_reconstruction_complete")
+        if not isinstance(complete, bool):
+            raise ValueError(
+                "Invalid stock reconstruction flag in current cellar storage"
+            )
+        if not complete and cursor != 1:
+            raise ValueError(
+                "Incomplete stock reconstruction must use a full-sync cursor"
+            )
 
     collections: dict[str, dict[str, JsonObject]] = {}
     for collection_name in ("wines", "racks", "rack_items", "orders"):
@@ -450,6 +533,10 @@ def _validate_current_storage(data: JsonObject) -> None:
             if record.get("id") != key:
                 raise ValueError(
                     f"Record identifier does not match key in {collection_name}: {key}"
+                )
+            if require_canonical_identifiers and normalize_identifier(key) != key:
+                raise ValueError(
+                    f"Non-canonical identifier in {collection_name}: {key}"
                 )
             records[key] = record
         collections[collection_name] = records
@@ -528,6 +615,16 @@ def _validate_current_storage(data: JsonObject) -> None:
                     f"Invalid Wine field {field_name} in current cellar storage: "
                     f"{identifier}"
                 )
+            if (
+                field_name == "owner_id"
+                and require_canonical_identifiers
+                and isinstance(value, str)
+                and normalize_identifier(value) != value
+            ):
+                raise ValueError(
+                    f"Non-canonical Wine owner_id in current cellar storage: "
+                    f"{identifier}"
+                )
         for field_name in float_fields:
             value = wine.get(field_name)
             if value is not None:
@@ -579,6 +676,14 @@ def _validate_current_storage(data: JsonObject) -> None:
             raise ValueError(
                 f"Invalid RackItem wine_id in current cellar storage: {identifier}"
             )
+        if require_canonical_identifiers and (
+            normalize_identifier(rack_id) != rack_id
+            or normalize_identifier(wine_id) != wine_id
+        ):
+            raise ValueError(
+                f"Non-canonical RackItem reference in current cellar storage: "
+                f"{identifier}"
+            )
         for field_name in ("row", "column"):
             value = item.get(field_name)
             if value is not None and (
@@ -598,6 +703,13 @@ def _validate_current_storage(data: JsonObject) -> None:
         if not isinstance(wine_id, str) or not wine_id:
             raise ValueError(
                 f"Invalid Order wine_id in current cellar storage: {identifier}"
+            )
+        if (
+            require_canonical_identifiers
+            and normalize_identifier(wine_id) != wine_id
+        ):
+            raise ValueError(
+                f"Non-canonical Order wine_id in current cellar storage: {identifier}"
             )
         for field_name in ("incoming", "outgoing"):
             value = order.get(field_name)
@@ -632,6 +744,22 @@ def _optional_str(value: object) -> str | None:
         return None
     normalized = value.strip()
     return normalized or None
+
+
+def _optional_id(value: object) -> str | None:
+    """Normalize an optional UUID or opaque identifier."""
+    if not isinstance(value, str):
+        return None
+    normalized = normalize_identifier(value)
+    return normalized or None
+
+
+def _stored_id(value: object, key: str, object_type: str) -> str:
+    """Normalize a stored object ID, rejecting empty identifiers."""
+    identifier = normalize_identifier(_str(value) or key)
+    if not identifier:
+        raise ValueError(f"Invalid stored {object_type} identifier: {key!r}")
+    return identifier
 
 
 def _int(value: object) -> int | None:
@@ -719,7 +847,7 @@ def _wine_from_dict(raw: JsonObject, key: str) -> Wine:
         raise ValueError(f"Invalid in-cellar bottle count in stored wine {key}")
 
     return Wine(
-        id=_str(raw.get("id")) or key,
+        id=_stored_id(raw.get("id"), key, "Wine"),
         name=_str(raw.get("name")) or "",
         bottles=bottles,
         bottles_in_cellar=parsed_bottles_in_cellar,
@@ -746,7 +874,7 @@ def _wine_from_dict(raw: JsonObject, key: str) -> Wine:
         bottle_volume_l=_positive_float(value("bottle_volume_l", "bottle_volume_l")),
         ploud_pid=_optional_str(value("ploud_pid", "pid")),
         domain=_optional_str(value("domain", "domain")),
-        owner_id=_optional_str(value("owner_id", "ow")),
+        owner_id=_optional_id(value("owner_id", "ow")),
     )
 
 
@@ -756,11 +884,11 @@ def _order_from_dict(raw: JsonObject, key: str) -> Order:
     outgoing = _int(raw.get("outgoing"))
     if incoming is None or outgoing is None or incoming < 0 or outgoing < 0:
         raise ValueError(f"Invalid stock movement in stored order {key}")
-    wine_id = _str(raw.get("wine_id"))
+    wine_id = _optional_id(raw.get("wine_id"))
     if not wine_id:
         raise ValueError(f"Invalid wine reference in stored order {key}")
     return Order(
-        id=_str(raw.get("id")) or key,
+        id=_stored_id(raw.get("id"), key, "Order"),
         wine_id=wine_id,
         incoming=incoming,
         outgoing=outgoing,
@@ -770,9 +898,9 @@ def _order_from_dict(raw: JsonObject, key: str) -> Order:
 def _rack_item_from_dict(raw: JsonObject, key: str) -> RackItem:
     """Restore a rack position from a stored JSON object."""
     return RackItem(
-        id=_str(raw.get("id")) or key,
-        rack_id=_str(raw.get("rack_id")) or "",
-        wine_id=_str(raw.get("wine_id")) or "",
+        id=_stored_id(raw.get("id"), key, "RackItem"),
+        rack_id=_optional_id(raw.get("rack_id")) or "",
+        wine_id=_optional_id(raw.get("wine_id")) or "",
         row=_int(raw.get("row")),
         column=_int(raw.get("column")),
     )

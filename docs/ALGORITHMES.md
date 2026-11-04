@@ -99,9 +99,11 @@ Trois compteurs d'intégrité sont distincts :
   `wine_id` ne correspond plus à une référence Wine locale connue.
 
 Une position orpheline de vin reste une bouteille physique : elle est incluse
-dans `occupied_positions`, `total_bottles` et
-`total_stock_bottles`. Elle n'est jamais convertie silencieusement en
-emplacement vide.
+dans `occupied_positions` et `total_bottles`. Elle est également ajoutée à
+`total_stock_bottles` lorsque la reconstitution du stock est complète. Si
+l'historique Orders n'est pas disponible, `total_stock_bottles` vaut `null`
+plutôt que de présenter un total partiel comme un total exact. Elle n'est
+jamais convertie silencieusement en emplacement vide.
 
 Les filtres de recherche et de couleur de l'action `get_inventory` ne
 modifient jamais les totaux globaux.
@@ -109,7 +111,9 @@ modifient jamais les totaux globaux.
 ## 4. Diagnostics séparés
 
 Les bouteilles non placées et les écarts de mouvements sont deux diagnostics
-indépendants.
+indépendants. Ils ne peuvent être calculés que lorsque l'historique Orders est
+complet. Avant cela, les quantités et compteurs qui en dépendent valent
+`null` ; la quantité physiquement placée reste connue.
 
 ### 4.1 Bouteilles non placées
 
@@ -221,7 +225,23 @@ Owner, Rack, RackItem ou Order. Deux noms de collections pris en charge qui ne
 diffèrent que par la casse (par exemple `Wines` et `wines`) sont également
 rejetés : aucune collection ne doit être ignorée silencieusement.
 
-### 5.4 Références inconnues et suppressions explicites
+### 5.4 Normalisation des identifiants
+
+Les identifiants UUID sont convertis en forme canonique minuscule et avec
+tirets, qu'ils proviennent d'un objet, d'une référence croisée ou de
+`DeletedObjects`. Cette règle s'applique aux Wine, Rack, RackItem, Order et
+Owner. Les espaces périphériques sont supprimés avant la normalisation.
+Les identifiants qui ne sont pas des UUID restent opaques : ils sont seulement
+rognés et leur casse est conservée. Les identifiants et références restaurés
+depuis un ancien stockage sont normalisés de la même façon avant de reconstruire
+les dictionnaires du modèle.
+
+Les nouvelles écritures du stockage exigent cette représentation canonique.
+Une migration qui détecte deux clés devenant identiques après normalisation est
+rejetée et le cache est récupéré par un instantané complet, plutôt que de
+fusionner arbitrairement les enregistrements.
+
+### 5.5 Références inconnues et suppressions explicites
 
 Une référence RackItem vers un Wine inconnu est conservée comme position
 occupée. Elle provoque une récupération par synchronisation complète lorsqu'elle
@@ -255,15 +275,27 @@ Les suppressions ont une sémantique explicite :
 ## 6. Stockage persistant et transaction
 
 La version du schéma de cave est stockée séparément de la version enveloppe
-Home Assistant. Le schéma courant est la version 6.
+Home Assistant. Le schéma courant est la version 7. La version 6 est la
+première à persister les mouvements Orders.
 
 Au chargement :
 
 - Les schémas historiques pris en charge sont migrés et leur curseur est
   ramené à `1` pour forcer un instantané complet.
+- Pour les versions 1 à 5, l'historique Orders complet n'est pas disponible :
+  le cache physique est conservé, mais `stock_reconstruction_complete` vaut
+  `false`.
+- Pour la version 6, l'historique Orders est considéré complet si le curseur
+  stocké est supérieur à `1`. Un curseur égal à `1` signifie que le premier
+  instantané n'avait pas encore été validé.
+- Le stockage est converti en version 7 ; les identifiants UUID et toutes
+  leurs références sont normalisés. Le drapeau de disponibilité Orders est
+  conservé séparément du curseur remis à `1`.
 - Le schéma courant doit contenir les quatre collections persistées
   (`wines`, `racks`, `rack_items`, `orders`) sous forme de dictionnaires,
-  ainsi que des enregistrements complets et typés.
+  ainsi que des enregistrements complets et typés. Il contient également le
+  drapeau `stock_reconstruction_complete`; lorsqu'il vaut `false`, le curseur
+  doit rester à `1`.
 - Un stockage courant incomplet ou mal formé n'est pas interprété comme une
   collection vide. L'inventaire cache est mis de côté en mémoire et une
   synchronisation complète est exigée. Le fichier existant n'est remplacé
@@ -285,6 +317,30 @@ Pour chaque synchronisation :
 En cas d'échec réseau, de validation ou de persistance, le dernier modèle
 validé et son curseur restent actifs ; l'intégration marque l'inventaire comme
 périmé (`stale = true`).
+
+### Cache hors ligne sans historique Orders
+
+Les versions 1 à 5 ne conservaient pas les mouvements permettant de
+reconstituer le stock effectif. La valeur brute `Wine.bo` ne peut pas servir
+de remplacement : elle peut surestimer le stock réel. Pour éviter à la fois
+une estimation artificielle et une sous-déclaration présentée comme exacte,
+les données connues restent accessibles mais les résultats dépendant des
+mouvements sont temporairement indisponibles :
+
+- `total_bottles`, les positions occupées et les quantités physiquement
+  placées restent exacts ;
+- `stock_reconstruction_complete` vaut `false` ;
+- `wine_references`, `total_stock_bottles`, `bottles_to_store`, les
+  compteurs d'erreurs d'inventaire, les compteurs d'anomalies de mouvements et
+  `orphaned_order_count` valent `null` ;
+- l'action `get_inventory` retourne les vins connus physiquement placés,
+  mais laisse leurs champs calculés et diagnostics à `null` ;
+- un instantané PLOUD complet réussi marque le stock comme reconstitué et
+  réactive tous les calculs.
+
+Un cache version 6 qui contient déjà un instantané Orders complet garde ses
+calculs pendant une panne, même si la migration vers la version 7 force un
+nouvel instantané pour actualiser les identifiants.
 
 ### Arrêt de Home Assistant pendant une sauvegarde
 

@@ -11,7 +11,13 @@ from homeassistant.exceptions import ConfigEntryAuthFailed, HomeAssistantError
 from homeassistant.helpers.storage import Store
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
-from .const import CELLAR_DATA_VERSION, DOMAIN, STORAGE_KEY, STORAGE_VERSION
+from .const import (
+    CELLAR_DATA_VERSION,
+    DOMAIN,
+    ORDERS_STORAGE_VERSION,
+    STORAGE_KEY,
+    STORAGE_VERSION,
+)
 from .models import Cellar, JsonValue
 from .ploud import (
     PloudAuthError,
@@ -113,7 +119,10 @@ class PlocCellarCoordinator(DataUpdateCoordinator[Cellar]):
             try:
                 self.cellar = Cellar.from_storage(stored)
             except ValueError as err:
-                if stored.get("version") != CELLAR_DATA_VERSION:
+                if stored.get("version") not in (
+                    ORDERS_STORAGE_VERSION,
+                    CELLAR_DATA_VERSION,
+                ):
                     raise
                 # Do not trust or overwrite a truncated current-schema snapshot.
                 # Keep its file untouched and recover from a complete PLOUD
@@ -247,6 +256,11 @@ class PlocCellarCoordinator(DataUpdateCoordinator[Cellar]):
                     else "PLOUD delta contains invalid RackItem identifiers"
                 )
                 raise PloudError(message) from err
+
+            if full_sync:
+                # A full snapshot contains the authoritative complete Orders
+                # collection, so stock-derived values are now safe to publish.
+                updated_cellar.stock_reconstruction_complete = True
 
             if unresolved_owner_ids:
                 _LOGGER.warning(

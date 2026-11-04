@@ -90,7 +90,12 @@ def test_owner_without_name_is_not_marked_as_resolved() -> None:
     objects: PLOUDCollections = {
         "Owners": [{"id": "owner-1"}],
         "Wines": [
-            {"id": "wine-1", "bottles": 1, "owner_id": "owner-1"},
+            {
+                "id": "wine-1",
+                "name": "Vin de test",
+                "bottles": 1,
+                "owner_id": "owner-1",
+            },
         ],
     }
 
@@ -119,7 +124,9 @@ def test_numeric_owner_identifiers_are_normalized() -> None:
     cellar = Cellar()
     objects: PLOUDCollections = {
         "Owners": [{"id": 17, "fullname": "Domaine des tests"}],
-        "Wines": [{"id": "wine-1", "bottles": 0, "owner_id": 17}],
+        "Wines": [
+            {"id": "wine-1", "name": "Vin de test", "bottles": 0, "owner_id": 17}
+        ],
     }
 
     apply_sync(cellar, objects, 2)
@@ -157,6 +164,7 @@ def test_negative_optional_wine_values_are_rejected(
     cellar = Cellar()
     wine_record: dict[str, int | float | str] = {
         "id": "wine-1",
+        "name": "Vin de test",
         "bottles": 0,
         field: value,
     }
@@ -173,6 +181,7 @@ def test_zero_optional_wine_values_mean_no_value() -> None:
         "Wines": [
             {
                 "id": "wine-1",
+                "name": "Vin de test",
                 "bottles": 0,
                 "vintage": 0,
                 "alcohol_percent": 0.0,
@@ -211,9 +220,110 @@ def test_invalid_owner_reference_type_is_rejected() -> None:
     assert cellar.wines["wine-1"].domain == "Domaine précédent"
 
 
+
+
+def test_new_wine_without_name_requires_full_sync() -> None:
+    """A new Wine without name or nm is an incomplete delta."""
+    cellar = Cellar()
+    objects: PLOUDCollections = {
+        "Wines": [{"id": "wine-1", "bottles": 0}],
+    }
+
+    with pytest.raises(PloudIncompleteDelta, match="missing its name"):
+        apply_sync(cellar, objects, 2)
+
+
+def test_uuid_identifiers_are_canonicalized_across_collections() -> None:
+    """UUIDs normalize identically in object IDs and cross-collection references."""
+    wine_id = "aabbccdd-1234-5678-9abc-def012345678"
+    rack_id = "00112233-4455-6677-8899-aabbccddeeff"
+    rack_item_id = "11112222-3333-4444-aaaa-bbbbccccdddd"
+    order_id = "99998888-7777-6666-5555-444433332222"
+    cellar = Cellar()
+    objects: PLOUDCollections = {
+        "Wines": [
+            {
+                "id": f" {wine_id.upper()} ",
+                "name": "Vin UUID",
+                "bottles": 0,
+            }
+        ],
+        "Racks": [{"id": rack_id.upper(), "nm": "Cave"}],
+        "RackItems": [
+            {
+                "id": rack_item_id.upper(),
+                "rk": rack_id.upper(),
+                "wi": wine_id.upper(),
+            }
+        ],
+        "Orders": [
+            {
+                "id": order_id.upper(),
+                "wi": wine_id.upper(),
+                "in": 4,
+                "ot": 1,
+            }
+        ],
+    }
+
+    apply_sync(cellar, objects, 2)
+
+    assert set(cellar.wines) == {wine_id}
+    assert set(cellar.racks) == {rack_id}
+    assert set(cellar.rack_items) == {rack_item_id}
+    assert cellar.rack_items[rack_item_id].rack_id == rack_id
+    assert cellar.rack_items[rack_item_id].wine_id == wine_id
+    assert set(cellar.orders) == {order_id}
+    assert cellar.orders[order_id].wine_id == wine_id
+
+
+def test_legacy_cache_without_orders_marks_stock_unknown() -> None:
+    """A pre-Orders cache remains useful offline without inventing stock values."""
+    wine_id = "aabbccdd-1234-5678-9abc-def012345678"
+    rack_id = "00112233-4455-6677-8899-aabbccddeeff"
+    item_id = "11112222-3333-4444-aaaa-bbbbccccdddd"
+    stored = {
+        "version": 5,
+        "cursor": 123456,
+        "last_sync": "2026-11-01T12:00:00+00:00",
+        "initialized": True,
+        "wines": {
+            wine_id.upper(): {
+                "id": wine_id.upper(),
+                "name": "Vin historique",
+                "bottles": 3,
+            }
+        },
+        "racks": {rack_id.upper(): {"id": rack_id.upper(), "name": "Cave"}},
+        "rack_items": {
+            item_id.upper(): {
+                "id": item_id.upper(),
+                "rack_id": rack_id.upper(),
+                "wine_id": wine_id.upper(),
+                "row": 1,
+                "column": 1,
+            }
+        },
+    }
+
+    cellar = Cellar.from_storage(stored)
+
+    assert cellar.initialized is True
+    assert cellar.cursor == 1
+    assert cellar.stock_reconstruction_complete is False
+    assert set(cellar.wines) == {wine_id}
+    assert set(cellar.racks) == {rack_id}
+    assert cellar.rack_items[item_id].wine_id == wine_id
+    assert cellar.total_bottles == 1
+    assert cellar.total_stock_bottles is None
+    assert cellar.total_bottles_to_store is None
+    assert cellar.stock_for(cellar.wines[wine_id]).bottles_to_store is None
+
+
 def test_deleted_wine_keeps_historical_orders_as_orphans() -> None:
     """Orders survive Wine deletion and remain outside known-wine stock."""
     cellar = Cellar(
+        stock_reconstruction_complete=True,
         wines={
             "deleted-wine": _wine("deleted-wine"),
             "known-wine": _wine("known-wine"),

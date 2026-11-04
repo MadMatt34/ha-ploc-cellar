@@ -94,33 +94,40 @@ def _build_inventory_response(
     normalized_search = search.casefold().strip()
     normalized_color = color.casefold().strip()
     inventory: list[JsonValueType] = []
-    movement_anomalies: list[JsonValueType] = []
+    movement_anomalies: list[JsonValueType] | None = (
+        [] if cellar.stock_reconstruction_complete else None
+    )
 
-    for wine in sorted(
-        cellar.wines.values(),
-        key=lambda item: (item.name.casefold(), item.vintage or 0),
-    ):
-        stock = cellar.stock_for(wine)
-        if not stock.movement_warnings:
-            continue
-        movement_anomalies.append(
-            {
-                "id": wine.id,
-                "name": wine.name,
-                "domain": wine.domain,
-                "vintage": wine.vintage,
-                "effective_stock": stock.effective_stock,
-                "movement_balance": stock.movement_balance,
-                "movement_difference_bottles": stock.movement_difference_bottles,
-                "movement_warnings": list(stock.movement_warnings),
-            }
-        )
+    if movement_anomalies is not None:
+        for wine in sorted(
+            cellar.wines.values(),
+            key=lambda item: (item.name.casefold(), item.vintage or 0),
+        ):
+            stock = cellar.stock_for(wine)
+            if not stock.movement_warnings:
+                continue
+            movement_anomalies.append(
+                {
+                    "id": wine.id,
+                    "name": wine.name,
+                    "domain": wine.domain,
+                    "vintage": wine.vintage,
+                    "effective_stock": stock.effective_stock,
+                    "movement_balance": stock.movement_balance,
+                    "movement_difference_bottles": stock.movement_difference_bottles,
+                    "movement_warnings": list(stock.movement_warnings),
+                }
+            )
 
     stocked_wines = sorted(
         (
             wine
             for wine in cellar.wines.values()
-            if cellar.stock_for(wine).effective_stock > 0
+            if (
+                cellar.stock_for(wine).effective_stock > 0
+                if cellar.stock_reconstruction_complete
+                else wine.bottles_in_cellar > 0
+            )
         ),
         key=lambda wine: (wine.name.casefold(), wine.vintage or 0),
     )
@@ -158,8 +165,16 @@ def _build_inventory_response(
                 "id": wine.id,
                 "name": wine.name,
                 "domain": wine.domain,
-                "bottles": stock.effective_stock,
-                "effective_stock": stock.effective_stock,
+                "bottles": (
+                    stock.effective_stock
+                    if cellar.stock_reconstruction_complete
+                    else None
+                ),
+                "effective_stock": (
+                    stock.effective_stock
+                    if cellar.stock_reconstruction_complete
+                    else None
+                ),
                 "ploud_bottles": wine.bottles,
                 "bottles_in_cellar": wine.bottles_in_cellar,
                 "bottles_to_store": stock.bottles_to_store,
@@ -168,8 +183,16 @@ def _build_inventory_response(
                 "movement_balance": stock.movement_balance,
                 "calculated_stock": stock.calculated_stock,
                 "movement_difference_bottles": stock.movement_difference_bottles,
-                "inventory_errors": list(stock.inventory_errors),
-                "movement_warnings": list(stock.movement_warnings),
+                "inventory_errors": (
+                    list(stock.inventory_errors)
+                    if cellar.stock_reconstruction_complete
+                    else None
+                ),
+                "movement_warnings": (
+                    list(stock.movement_warnings)
+                    if cellar.stock_reconstruction_complete
+                    else None
+                ),
                 "vintage": wine.vintage,
                 "appellation": wine.appellation,
                 "color": wine.color,
@@ -201,6 +224,7 @@ def _build_inventory_response(
         "stocked_wines": cellar.stocked_wines,
         "wine_references": cellar.wine_references,
         "total_stock_bottles": cellar.total_stock_bottles,
+        "stock_reconstruction_complete": cellar.stock_reconstruction_complete,
         "total_positions": cellar.total_positions,
         "empty_positions": cellar.empty_positions,
         "bottles_to_store": cellar.total_bottles_to_store,

@@ -17,6 +17,7 @@ A Home Assistant custom integration for a **read-only** view of a PLOC wine cell
 - Persistent local model containing the `Wine` references returned by PLOUD, racks and rack positions. PLOUD's declared stock (`Wine.bo`) is retained as raw data. Effective stock is reconstructed from `Orders` movements and physically placed bottles (`RackItems`): `max(0, Orders balance, bottles in cellar)`. This rule reproduces the `Stock` column of the supplied reference CSV for all 116 wine references analyzed. Unplaced bottles (`bottles_to_store`) are the difference between this effective stock and the in-cellar quantity. Differences between the Order movement balance and the reconstructed effective stock are exposed as movement warnings; PLOUD data is never modified. Wine characteristics, including the winery name, are stored directly in each wine record. The `Owners` collection is used transiently to resolve owner UUIDs; no Owner lookup table is persisted. If an incremental Wine update references an Owner absent from the delta, or an Owner record without a display-name field, one full synchronization is requested to resolve it.
 - One compact summary sensor; no entity is created for each wine, rack or position.
 - Detailed inventory is returned on demand by the `ploc_cellar.get_inventory` action.
+- UUIDs are normalized to their canonical lowercase form across Wine, Rack, RackItem, Order, Owner and deletion references; opaque non-UUID identifiers are trimmed without changing case.
 - Immediate synchronization is available through the `ploc_cellar.sync` action.
 - One Ploc Cellar config entry is allowed per Home Assistant instance.
 - No write operations are sent to PLOUD.
@@ -71,7 +72,7 @@ Its attributes are:
 
 | Attribute ID | Description |
 |---|---|
-| `wine_references` | Number of references with positive effective stock |
+| `wine_references` | Number of references with positive effective stock (null until Orders are complete) |
 | `stocked_wines` | Number of wine references with at least one cellar position |
 | `total_stock_bottles` | Total reconstructed bottle count |
 | `bottles_to_store` | Number of unplaced bottles |
@@ -87,9 +88,12 @@ Its attributes are:
 | `orphaned_wine_positions` | Number of occupied positions referencing an unknown wine |
 | `orphaned_order_count` | Number of retained movements referencing an unknown wine |
 | `stale` | Indicates that the latest synchronization failed |
+| `stock_reconstruction_complete` | Indicates whether a complete Orders snapshot is available |
 | `last_successful_sync` | Date and time of the last successful synchronization (ISO 8601) |
 
 Attribute labels are translated using the Home Assistant language. If synchronization fails, the last known local inventory is retained and `stale` indicates that the data may be outdated. A successful synchronization resets this flag to `false`.
+
+When an older cache predates persisted Orders, physical rack positions remain visible offline, but stock-derived totals and per-wine movement quantities are returned as `null` until a complete PLOUD snapshot succeeds. The integration never substitutes raw `Wine.bo` for the missing movement history. Caches that already contain a complete Orders snapshot remain fully calculable while offline.
 
 The full wine list is deliberately not stored in sensor attributes. It remains in persistent storage and is returned only when requested.
 
@@ -120,7 +124,7 @@ The response contains:
 - `rack_count`, `total_positions`, `occupied_positions` and `empty_positions`, the number of racks and the position breakdown; `orphaned_rack_positions` and `orphaned_wine_positions` report temporarily unresolved Rack or Wine references;
 - `matching_wines`, the number of wines matching the filters;
 - `racks`, the list of racks;
-- `wines`, only wines with positive effective stock, including `bottles` (reconstructed effective stock), `ploud_bottles` (raw `Wine.bo` value), `bottles_in_cellar` (in-cellar), `bottles_to_store` (unplaced), `purchased`, `consumed`, `movement_balance`, `calculated_stock`, `inventory_errors` (unplaced bottles) and `movement_warnings` (differences between movement balance and effective stock);
+- `wines`, normally only wines with positive effective stock. If reconstruction is incomplete, only known wines with physical bottles in rack positions are returned; their stock-derived quantities and diagnostics are `null`, as are global stock-derived totals;
 - `movement_anomalies`, the dedicated list of the 7 references whose movements do not match effective stock, including zero-stock references;
 - `last_sync`, the date and time of the last successful synchronization.
 
@@ -146,6 +150,6 @@ The integration sends only the parameters required for synchronization and an em
 
 ## Validation
 
-CI runs Ruff and Hassfest and performs strict Pyright type analysis against the latest stable Home Assistant release available from PyPI.
+CI runs Ruff, Hassfest, strict Pyright type analysis against the latest stable Home Assistant release available from PyPI, the unit test suite with pytest, and HACS integration validation.
 
 These static checks do not replace end-to-end testing against a real Home Assistant instance and the PLOUD cellar.

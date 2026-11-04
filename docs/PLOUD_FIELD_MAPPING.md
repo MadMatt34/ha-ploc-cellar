@@ -221,11 +221,15 @@ labels are used instead. They are not persisted as separate model attributes.
   `Store.async_save()` may log some write errors without raising them, the
   integration reads the payload back and compares it with the candidate before
   committing the new in-memory state.
-- The persistent cellar payload uses schema version 6. Earlier supported
-  schemas are migrated when loaded. Version 6 persists normalized Order
-  movements, which are populated from the next full PLOUD synchronization.
-  The migration retains existing wine characteristics, rack data and the last
-  successful synchronization timestamp. The migrated payload is saved
-  immediately when possible; if verification fails, the migrated in-memory
-  model remains usable and its cursor is reset to request a full sync.
+- The persistent cellar payload uses schema version 7. Version 6 was the
+  first schema to persist Order movements; a version-6 snapshot with a cursor
+  above 1 is treated as having a complete Orders history. Versions 1-5, and
+  version 6 with cursor 1, are migrated with stock reconstruction marked
+  incomplete until a complete PLOUD snapshot succeeds. Their physical rack
+  positions remain available offline, but calculated stock and movement
+  diagnostics are returned as null. Raw Wine.bo is never used as a substitute
+  for missing Orders. UUID identifiers and cross-references are canonicalized
+  during migration. The migrated payload is saved immediately when possible;
+  if verification fails, the migrated in-memory model remains usable and its
+  cursor is reset to request a full sync.
 - The synchronization remains read-only and continues to send `Objects={}`.

@@ -94,6 +94,9 @@
           },
           "movement_warning_bottles": {
             "name": "Bottles with movement discrepancies"
+          },
+          "stock_reconstruction_complete": {
+            "name": "Stock reconstruction complete"
           }
         }
       }

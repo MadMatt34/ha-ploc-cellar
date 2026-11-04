@@ -94,6 +94,9 @@
           },
           "movement_warning_bottles": {
             "name": "Bouteilles en anomalie de mouvements"
+          },
+          "stock_reconstruction_complete": {
+            "name": "Reconstitution du stock complète"
           }
         }
       }

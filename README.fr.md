@@ -17,6 +17,7 @@ Intégration personnalisée Home Assistant permettant de consulter une cave PLOC
 - Modèle local persistant : les références `Wine` reçues de PLOUD, les casiers et leurs emplacements. La valeur brute `Wine.bo` est conservée à titre informatif. Le stock effectif est reconstitué avec les mouvements `Orders` et les bouteilles physiquement placées (`RackItems`) selon la formule `max(0, solde des mouvements, bouteilles en cave)`. Les bouteilles non placées (`bottles_to_store`) correspondent à la différence entre le stock effectif et les bouteilles en cave. Les écarts entre le solde des mouvements et le stock effectif sont signalés séparément, sans jamais corriger les données PLOUD. Les caractéristiques, dont le domaine viticole, sont directement enregistrées dans chaque fiche vin. La collection `Owners` est utilisée temporairement pour résoudre les UUID des propriétaires ; aucune table de correspondance n'est conservée. Si un vin reçu dans un delta référence un propriétaire absent de ce delta, ou un Owner dont l'enregistrement ne contient pas de champ de nom, une synchronisation complète ponctuelle est déclenchée pour résoudre son nom.
 - Un seul capteur de synthèse ; aucune entité n'est créée pour chaque vin, casier ou emplacement.
 - Inventaire détaillé accessible à la demande avec l'action `ploc_cellar.get_inventory`.
+- Les UUID sont normalisés sous leur forme canonique minuscule pour les vins, casiers, positions, mouvements, propriétaires et suppressions ; les identifiants non UUID sont débarrassés des espaces périphériques sans changement de casse.
 - Synchronisation immédiate à la demande avec l'action `ploc_cellar.sync`.
 - Une seule entrée de configuration Ploc Cellar par instance Home Assistant.
 - Aucune opération d'écriture n'est envoyée à PLOUD.
@@ -71,7 +72,7 @@ Ses attributs sont :
 
 | Identifiant | Description |
 |---|---|
-| `wine_references` | Nombre de références ayant un stock effectif positif |
+| `wine_references` | Nombre de références ayant un stock effectif positif (null tant que les Orders ne sont pas complets) |
 | `stocked_wines` | Nombre de références ayant au moins une position en cave |
 | `total_stock_bottles` | Nombre total de bouteilles reconstitué |
 | `bottles_to_store` | Nombre de bouteilles non placées |
@@ -87,9 +88,12 @@ Ses attributs sont :
 | `orphaned_wine_positions` | Nombre de positions occupées référençant un vin inconnu |
 | `orphaned_order_count` | Nombre de mouvements conservés référençant un vin inconnu |
 | `stale` | Indique que la dernière synchronisation a échoué |
+| `stock_reconstruction_complete` | Indique si un instantané complet des mouvements Orders est disponible |
 | `last_successful_sync` | Date et heure de la dernière synchronisation réussie (format ISO 8601) |
 
 Les libellés des attributs sont traduits selon la langue de Home Assistant. En cas d'échec de synchronisation, le dernier inventaire local connu est conservé et l'attribut `stale` indique que les données peuvent être périmées. Une synchronisation réussie remet cet indicateur à `false`.
+
+Lorsqu'un ancien cache ne contient pas encore les mouvements Orders, les positions physiques restent visibles hors ligne, mais les totaux et quantités qui dépendent des mouvements sont renvoyés à `null` jusqu'à la réussite d'un instantané PLOUD complet. L'intégration ne remplace jamais l'historique manquant par la valeur brute `Wine.bo`. Les caches qui disposent déjà d'un historique Orders complet restent calculables hors ligne.
 
 La liste complète des vins n'est volontairement pas placée dans les attributs du capteur. Elle reste dans le stockage persistant et n'est renvoyée que sur demande.
 
@@ -120,7 +124,7 @@ La réponse contient :
 - `rack_count`, `total_positions`, `occupied_positions` et `empty_positions`, le nombre de casiers et le détail des emplacements ; `orphaned_rack_positions` et `orphaned_wine_positions` signalent les références de casier ou de vin temporairement inconnues ;
 - `matching_wines`, le nombre de vins correspondant aux filtres ;
 - `racks`, la liste des casiers ;
-- `wines`, uniquement les vins ayant un stock effectif positif, avec `bottles` (stock effectif reconstitué), `ploud_bottles` (valeur brute `Wine.bo`), `bottles_in_cellar` (en cave), `bottles_to_store` (non placées), `purchased`, `consumed`, `movement_balance`, `calculated_stock`, `inventory_errors` (bouteilles non placées) et `movement_warnings` (écarts entre le solde des mouvements et le stock effectif) ;
+- `wines`, normalement uniquement les vins dont le stock effectif est positif. Si la reconstitution est incomplète, seuls les vins connus avec des bouteilles physiquement placées sont renvoyés ; leurs quantités et diagnostics dépendant du stock valent `null`, comme les totaux globaux qui dépendent des mouvements ;
 - `movement_anomalies`, la liste dédiée des 7 références dont les mouvements ne correspondent pas au stock effectif, y compris les références à stock nul ;
 - `last_sync`, la date et l'heure de la dernière synchronisation réussie.
 
@@ -146,6 +150,6 @@ L'intégration envoie uniquement les paramètres nécessaires à la synchronisat
 
 ## Validation
 
-La CI vérifie le code avec Ruff et Hassfest et exécute Pyright en mode strict contre la dernière version stable de Home Assistant disponible sur PyPI.
+La CI vérifie le code avec Ruff et Hassfest, exécute Pyright en mode strict contre la dernière version stable de Home Assistant disponible sur PyPI ainsi que la suite unitaire pytest, et valide la structure HACS de l'intégration.
 
 Ces contrôles statiques ne remplacent pas les essais de bout en bout avec une instance Home Assistant réelle et la cave PLOUD.

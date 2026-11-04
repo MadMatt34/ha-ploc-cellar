@@ -26,7 +26,15 @@ from .const import (
     PLOUD_SYNC_PATH,
     PLOUD_VERSION,
 )
-from .models import Cellar, JsonObject, Order, Rack, RackItem, Wine
+from .models import (
+    Cellar,
+    JsonObject,
+    Order,
+    Rack,
+    RackItem,
+    Wine,
+    normalize_identifier,
+)
 
 type PLOUDCollections = dict[str, list[JsonObject]]
 
@@ -190,7 +198,7 @@ def _reference_id(value: object) -> str | None:
     if isinstance(value, bool):
         raise PloudError("PLOUD returned an invalid reference ID")
     if isinstance(value, str):
-        return value.strip() or None
+        return normalize_identifier(value) or None
     if isinstance(value, int):
         return str(value)
     raise PloudError("PLOUD returned an invalid reference ID")
@@ -201,7 +209,7 @@ def _object_id(raw: JsonObject, object_type: str) -> str:
     value = raw.get("id")
     if not isinstance(value, str) or not value.strip():
         raise PloudError(f"PLOUD returned an invalid {object_type} ID")
-    return value.strip()
+    return normalize_identifier(value)
 
 
 def _parse_color_rgb(value: object) -> tuple[int, int, int] | None:
@@ -461,7 +469,7 @@ def _deleted_id(raw: JsonObject) -> str | None:
     for key in ("id", "Id", "ID"):
         value = raw.get(key)
         if isinstance(value, str):
-            normalized = value.strip()
+            normalized = normalize_identifier(value)
             if normalized:
                 return normalized
         elif isinstance(value, int) and not isinstance(value, bool):
@@ -711,7 +719,12 @@ def apply_sync(
                 raise PloudError(
                     f"PLOUD returned an invalid rack ID for RackItem {identifier}"
                 )
-            rack_id = raw_rack_id.strip()
+            rack_reference = _reference_id(raw_rack_id)
+            if rack_reference is None:
+                raise PloudError(
+                    f"PLOUD returned an invalid rack ID for RackItem {identifier}"
+                )
+            rack_id = rack_reference
 
         if wine_key is not None:
             raw_wine_id = raw[wine_key]
@@ -720,7 +733,7 @@ def apply_sync(
             ):
                 wine_id = ""
             elif isinstance(raw_wine_id, str):
-                wine_id = raw_wine_id.strip()
+                wine_id = _reference_id(raw_wine_id) or ""
             else:
                 raise PloudError(
                     f"PLOUD returned an invalid wine ID for RackItem {identifier}"
@@ -783,7 +796,7 @@ def apply_sync(
             )
 
         wine_id = (
-            _optional_text(raw[wine_key])
+            _reference_id(raw[wine_key])
             if wine_key is not None
             else previous.wine_id if previous is not None else None
         )
