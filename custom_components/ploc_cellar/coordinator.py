@@ -79,7 +79,9 @@ class PlocCellarCoordinator(DataUpdateCoordinator[Cellar]):
         required before committing the in-memory model or advancing its cursor.
         """
         if self.hass.is_stopping:
-            raise HomeAssistantError("Home Assistant is stopping; storage was not saved")
+            raise HomeAssistantError(
+                "Home Assistant is stopping; storage was not saved"
+            )
 
         await self.store.async_save(data)
         persisted = await self.store.async_load()
@@ -170,13 +172,17 @@ class PlocCellarCoordinator(DataUpdateCoordinator[Cellar]):
                 )
                 full_sync = True
 
-            if full_sync:
-                try:
-                    updated_cellar.validate_rack_items()
-                except ValueError as err:
-                    raise PloudError(
-                        "Full PLOUD snapshot contains unresolved RackItem references"
-                    ) from err
+            try:
+                updated_cellar.validate_rack_items(
+                    allow_unresolved=not full_sync
+                )
+            except ValueError as err:
+                message = (
+                    "Full PLOUD snapshot contains unresolved RackItem references"
+                    if full_sync
+                    else "PLOUD delta contains invalid RackItem identifiers"
+                )
+                raise PloudError(message) from err
 
             if unresolved_owner_ids:
                 _LOGGER.warning(
