@@ -62,6 +62,12 @@
           "occupied_positions": {
             "name": "Occupied positions"
           },
+          "orphaned_rack_positions": {
+            "name": "Positions with unknown racks"
+          },
+          "orphaned_wine_positions": {
+            "name": "Positions with unknown wines"
+          },
           "stale": {
             "name": "Stale data"
           },
