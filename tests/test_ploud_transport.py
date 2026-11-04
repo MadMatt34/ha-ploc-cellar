@@ -4,8 +4,8 @@ from __future__ import annotations
 import asyncio
 from typing import Any, cast
 
+import aiohttp
 import pytest
-from aiohttp import ClientConnectionError, ClientSession, ClientTimeout, FormData
 
 from ploc_cellar.ploud import PloudAuthError, PloudError, async_sync
 
@@ -55,14 +55,14 @@ class _FakeSession:
         )
         self.request_error = request_error
         self.request_url: str | None = None
-        self.request_timeout: ClientTimeout | None = None
+        self.request_timeout: aiohttp.ClientTimeout | None = None
 
     def post(
         self,
         url: str,
         *,
-        data: FormData,
-        timeout: ClientTimeout,
+        data: aiohttp.FormData,
+        timeout: aiohttp.ClientTimeout,
     ) -> _FakeResponse:
         """Capture request details and return the configured response."""
         self.request_url = url
@@ -76,7 +76,7 @@ def _run_sync(session: _FakeSession) -> tuple[dict[str, list[dict[str, Any]]], i
     """Run one sync request through the public transport function."""
     return asyncio.run(
         async_sync(
-            cast(ClientSession, session),
+            cast(aiohttp.ClientSession, session),
             server="https://ploud.example/",
             token="test-token",
             device="device-identifier",
@@ -227,7 +227,7 @@ def test_sync_wraps_request_timeout() -> None:
 def test_sync_wraps_network_errors() -> None:
     """aiohttp connection failures are converted to PLOUD errors."""
     session = _FakeSession(
-        request_error=ClientConnectionError("connection refused")
+        request_error=aiohttp.ClientConnectionError("connection refused")
     )
 
     with pytest.raises(PloudError, match="sync request failed"):
