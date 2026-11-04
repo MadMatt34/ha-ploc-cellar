@@ -68,6 +68,9 @@
           "orphaned_wine_positions": {
             "name": "Emplacements avec vin inconnu"
           },
+          "orphaned_order_count": {
+            "name": "Mouvements avec vin inconnu"
+          },
           "stale": {
             "name": "Données périmées"
           },
