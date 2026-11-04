@@ -505,13 +505,18 @@ def apply_sync(
         cellar.wines[wine.id] = wine
         removed_wine_ids.discard(wine.id)
 
+    seen_rack_ids: set[str] = set()
     for raw in _collection(objects, PLOUD_COLLECTION_RACKS):
         identifier = raw.get("id")
-        if isinstance(identifier, str):
-            cellar.racks[identifier] = Rack(
-                identifier,
-                _optional_text(raw.get("nm", raw.get("name"))) or "",
-            )
+        if not isinstance(identifier, str) or not identifier.strip():
+            raise PloudError("PLOUD returned a Rack without a valid ID")
+        if identifier in seen_rack_ids:
+            raise PloudError(f"PLOUD returned duplicate Rack ID: {identifier}")
+        seen_rack_ids.add(identifier)
+        cellar.racks[identifier] = Rack(
+            identifier,
+            _optional_text(raw.get("nm", raw.get("name"))) or "",
+        )
 
     for raw in _collection(objects, PLOUD_COLLECTION_RACK_ITEMS):
         identifier = raw.get("id")
