@@ -117,7 +117,9 @@ Order model.
 | `rw` | `RackItem.row` | Row coordinate | Confirmed |
 | `cl` | `RackItem.column` | Column coordinate | Confirmed |
 
-One occupied RackItem represents one bottle position. The in-cellar quantity is the number of `RackItems` associated with the wine and a known rack. The total number of positions is the number of `RackItems` records (occupied and empty); empty positions are total positions minus occupied positions.
+Each RackItem represents one physical position. A non-empty `wine_id` makes that position occupied, even while its Wine or Rack reference is temporarily unavailable. The in-cellar quantity for a known Wine is the number of RackItems carrying that Wine ID; it does not depend on Rack metadata. The total number of positions is the number of RackItems records, and empty positions are total positions minus occupied positions.
+
+The integration exposes two additional integrity counters: `orphaned_rack_positions` counts RackItems whose Rack ID is not currently known, and `orphaned_wine_positions` counts occupied RackItems whose Wine ID is not currently known. An orphaned Wine position still counts as one physical bottle in `total_bottles` and `total_stock_bottles`; it is not silently counted as empty or discarded. Incremental deltas may temporarily contain unresolved references, which remain visible through these counters. A complete PLOUD snapshot must resolve every RackItem reference; otherwise the snapshot is rejected and the previous inventory is retained.
 
 ### Stock values and formulas
 
@@ -132,12 +134,17 @@ Analysis of the supplied `Vins.csv`, `Caves.csv` and full PLOUD snapshot establi
 | `consumed` | Sum of `Order.ot` for the Wine UUID | Total recorded outgoing movements |
 | `movement_balance` | `purchased - consumed` | Signed balance of recorded movements |
 | `calculated_stock` | `max(0, movement_balance)` | Movement balance with the application's zero lower bound |
-| `bottles_in_cellar` | Count of associated occupied `RackItems` | Number of bottles assigned to rack positions |
+| `bottles_in_cellar` | Count of RackItems whose `wine_id` matches this Wine ID | Number of physical bottles assigned to this reference, including positions whose Rack metadata is temporarily unresolved |
 | `bottles` / `effective_stock` | `max(calculated_stock, bottles_in_cellar)` | Reconstructed total stock; matches the CSV `Stock` column |
-| `bottles_to_store` | `effective_stock - bottles_in_cellar` | Bottles not assigned to a rack |
-| `wine_references` | Count of references with `effective_stock > 0` | Active inventory reference count; zero-stock catalogue records are retained internally but not exposed in the inventory |
+| `bottles_to_store` | `effective_stock - bottles_in_cellar` | Bottles not assigned to a RackItem |
+| `wine_references` | Count of references with `effective_stock > 0` | Active known inventory reference count; zero-stock catalogue records are retained internally but not exposed in the normal inventory |
+| `total_bottles` | `occupied_positions` | Count of all occupied physical RackItems, including temporarily unresolved Wine or Rack references |
 | `total_positions` | Number of RackItem records | All physical positions, occupied or empty |
-| `empty_positions` | `total_positions - occupied_positions` | Empty physical positions |
+| `occupied_positions` | Count of RackItems with a non-empty `wine_id` | All occupied physical positions |
+| `empty_positions` | `total_positions - occupied_positions` | Physical positions without a Wine assignment |
+| `orphaned_rack_positions` | Count of RackItems with an unknown `rack_id` | Position references whose Rack metadata is unavailable |
+| `orphaned_wine_positions` | Count of occupied RackItems with an unknown `wine_id` | Physical bottles whose Wine record is unavailable |
+| `total_stock_bottles` | Sum of known Wine effective stocks plus `orphaned_wine_positions` | Preserves physical bottles from unresolved Wine references in the global total |
 
 The raw `Wine.bo` value is deliberately not substituted for reconstructed stock. In the supplied snapshot it totals 128 bottles, whereas the CSV stock totals 108. The reconstruction formula totals 108 and matches all 116 CSV reference quantities. RackItem counts match the CSV `Stock (en cave)` values for all 116 references. The CSV baseline is therefore:
 
@@ -192,10 +199,11 @@ labels are used instead. They are not persisted as separate model attributes.
 ## Synchronization and storage behavior
 
 - All Wine records, including zero-stock records, remain in the synchronized model because future deltas may update them. The normal inventory response exposes only wines with positive effective stock. Movement-anomaly references are exposed separately in `movement_anomalies`, even when their effective stock is zero.
-- A wine update with `bottles = 0` removes the wine from the inventory and
-  clears the `wine_id` from its rack positions while preserving each physical
-  slot's ID, rack, row and column.
-- A deleted wine also frees its assigned positions without deleting the slots.
+- A Wine update with `bottles = 0` changes only the raw PLOUD bottle-count
+  field. It does not delete the Wine record or clear any RackItem assignment;
+  `Wine.bo` is informational and is not the source of effective stock.
+- An explicitly deleted Wine frees its assigned positions by clearing the
+  `wine_id`, while preserving each physical slot's ID, Rack, row and column.
 - Deleting a rack removes its rack positions.
 - Empty rack slots (rack items with an empty `wine_id`) are retained.
 - The persistent cellar payload uses schema version 6. Earlier supported
