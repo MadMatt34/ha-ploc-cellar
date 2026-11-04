@@ -205,12 +205,27 @@ labels are used instead. They are not persisted as separate model attributes.
 - An explicitly deleted Wine frees its assigned positions by clearing the
   `wine_id`, while preserving each physical slot's ID, Rack, row and column.
 - Deleting a rack removes its rack positions.
-- Empty rack slots (rack items with an empty `wine_id`) are retained.
+- Empty rack slots (RackItems with an empty `wine_id`) are retained.
+- Incremental deltas may temporarily reference a Rack or Wine that is not
+  present in the same response. Those positions are retained and reported by
+  `orphaned_rack_positions` or `orphaned_wine_positions`; they still count as
+  physical positions and occupied bottles. A complete snapshot must resolve
+  every RackItem reference or it is rejected without replacing the previous
+  inventory.
+- Synchronization is applied to a candidate model. The current model and
+  cursor are replaced only after the candidate passes validation and its
+  serialized payload has been saved and read back successfully. A sync,
+  validation or persistence failure leaves the last committed model and
+  cursor in place and marks its data as stale.
+- Home Assistant Store writes use atomic file replacement. Since
+  `Store.async_save()` may log some write errors without raising them, the
+  integration reads the payload back and compares it with the candidate before
+  committing the new in-memory state.
 - The persistent cellar payload uses schema version 6. Earlier supported
   schemas are migrated when loaded. Version 6 persists normalized Order
   movements, which are populated from the next full PLOUD synchronization.
   The migration retains existing wine characteristics, rack data and the last
   successful synchronization timestamp. The migrated payload is saved
-  immediately when possible; if that save fails, the migrated in-memory model
-  remains usable and the next successful sync retries persistence.
+  immediately when possible; if verification fails, the migrated in-memory
+  model remains usable and its cursor is reset to request a full sync.
 - The synchronization remains read-only and continues to send `Objects={}`.
