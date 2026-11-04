@@ -79,7 +79,9 @@ Ses attributs sont :
 | `rack_count` | Nombre de casiers |
 | `total_positions` | Nombre total d'emplacements physiques |
 | `empty_positions` | Nombre d'emplacements vides |
-| `occupied_positions` | Nombre d'emplacements occupés par des vins en stock |
+| `occupied_positions` | Nombre d'emplacements ayant un `wine_id` non vide |
+| `orphaned_rack_positions` | Nombre de positions référençant un casier inconnu |
+| `orphaned_wine_positions` | Nombre de positions occupées référençant un vin inconnu |
 | `stale` | Indique que la dernière synchronisation a échoué |
 | `last_successful_sync` | Date et heure de la dernière synchronisation réussie (format ISO 8601) |
 
@@ -111,7 +113,7 @@ response_variable: cave
 La réponse contient :
 
 - les totaux globaux : `total_bottles` et `stocked_wines` décrivent le contenu physique des casiers ; `total_stock_bottles` décrit le stock effectif reconstitué ; `bottles_to_store`, `inventory_error_wines` et `inventory_error_count` donnent les quantités non placées et les anomalies ;
-- `rack_count`, `total_positions`, `occupied_positions` et `empty_positions`, le nombre de casiers et le détail des emplacements ;
+- `rack_count`, `total_positions`, `occupied_positions` et `empty_positions`, le nombre de casiers et le détail des emplacements ; `orphaned_rack_positions` et `orphaned_wine_positions` signalent les références de casier ou de vin temporairement inconnues ;
 - `matching_wines`, le nombre de vins correspondant aux filtres ;
 - `racks`, la liste des casiers ;
 - `wines`, uniquement les vins ayant un stock effectif positif, avec `bottles` (stock effectif reconstitué), `ploud_bottles` (valeur brute `Wine.bo`), `bottles_in_cellar` (en cave), `bottles_to_store` (non placées), `purchased`, `consumed`, `movement_balance`, `calculated_stock`, `inventory_errors` (bouteilles non placées) et `movement_warnings` (écarts entre le solde des mouvements et le stock effectif) ;
