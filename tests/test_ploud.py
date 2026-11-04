@@ -3,8 +3,8 @@ from __future__ import annotations
 
 import pytest
 
-from custom_components.ploc_cellar.models import Cellar, Order, Rack, Wine
-from custom_components.ploc_cellar.ploud import (
+from ploc_cellar.models import Cellar, Order, Rack, Wine
+from ploc_cellar.ploud import (
     PLOUDCollections,
     PloudError,
     PloudIncompleteDelta,
