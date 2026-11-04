@@ -89,7 +89,7 @@ Soit `R` l'ensemble de tous les `RackItems`.
 | `total_stock_bottles` | Somme des stocks effectifs connus + `orphaned_wine_positions` |
 | `rack_count` | Nombre de références Rack connues |
 
-Deux compteurs d'intégrité sont distincts :
+Trois compteurs d'intégrité sont distincts :
 
 - `orphaned_rack_positions` compte les positions dont le `rack_id` ne
   correspond à aucun casier local connu.
