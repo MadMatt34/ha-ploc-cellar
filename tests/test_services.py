@@ -4,10 +4,8 @@ from __future__ import annotations
 from typing import cast
 
 from homeassistant.util.json import JsonObjectType
-
-from ploc_cellar.models import Cellar, Order, Rack, RackItem, Wine
-
 from ploc_cellar import _build_inventory_response
+from ploc_cellar.models import Cellar, Order, Rack, RackItem, Wine
 
 
 def _wine(
