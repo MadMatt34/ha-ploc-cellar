@@ -5,9 +5,8 @@ import asyncio
 from typing import Any, cast
 
 import aiohttp
-import pytest
-
 from ploc_cellar.ploud import PloudAuthError, PloudError, async_sync
+import pytest
 
 
 class _FakeResponse:
