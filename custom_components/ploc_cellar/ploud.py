@@ -446,11 +446,15 @@ def _collection(objects: PLOUDCollections, name: str) -> list[JsonObject]:
 
 
 def _deleted_id(raw: JsonObject) -> str | None:
-    """Extract the ID of a deleted PLOUD object."""
+    """Extract and normalize the ID of a PLOUD object."""
     for key in ("id", "Id", "ID"):
         value = raw.get(key)
-        if isinstance(value, str) and value:
-            return value
+        if isinstance(value, str):
+            normalized = value.strip()
+            if normalized:
+                return normalized
+        elif isinstance(value, int) and not isinstance(value, bool):
+            return str(value)
     return None
 
 
