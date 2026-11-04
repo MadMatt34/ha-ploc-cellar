@@ -108,16 +108,48 @@ def test_owner_without_name_is_not_marked_as_resolved() -> None:
 def test_duplicate_owner_ids_are_rejected_case_insensitively() -> None:
     """Owner UUIDs differing only by case still identify the same Owner."""
     cellar = Cellar()
+    owner_id = "aabbccdd-1234-5678-9abc-def012345678"
     objects: PLOUDCollections = {
         "Owners": [
-            {"id": "owner-1", "fullname": "Domaine"},
-            {"id": "OWNER-1", "fullname": "Autre domaine"},
+            {"id": owner_id.upper(), "fullname": "Domaine"},
+            {"id": owner_id, "fullname": "Autre domaine"},
         ],
     }
 
     with pytest.raises(PloudError, match="duplicate Owner ID"):
         apply_sync(cellar, objects, 2)
 
+
+
+def test_opaque_owner_identifiers_preserve_case() -> None:
+    """Opaque Owner IDs are case-sensitive just like other opaque IDs."""
+    cellar = Cellar()
+    objects: PLOUDCollections = {
+        "Owners": [
+            {"id": "owner-a", "fullname": "Domaine A"},
+            {"id": "OWNER-A", "fullname": "Domaine B"},
+        ],
+        "Wines": [
+            {
+                "id": "wine-a",
+                "name": "Vin A",
+                "bottles": 0,
+                "owner_id": "owner-a",
+            },
+            {
+                "id": "wine-b",
+                "name": "Vin B",
+                "bottles": 0,
+                "owner_id": "OWNER-A",
+            },
+        ],
+    }
+
+    unresolved = apply_sync(cellar, objects, 2)
+
+    assert unresolved == set()
+    assert cellar.wines["wine-a"].domain == "Domaine A"
+    assert cellar.wines["wine-b"].domain == "Domaine B"
 
 def test_numeric_owner_identifiers_are_normalized() -> None:
     """Integer IDs are normalized consistently on both Owner sides."""
