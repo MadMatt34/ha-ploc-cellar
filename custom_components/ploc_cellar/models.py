@@ -121,7 +121,7 @@ class Cellar:
 
     @property
     def total_stock_bottles(self) -> int:
-        """Return reconstructed stock, including occupied positions with unknown wines."""
+        """Return reconstructed stock, including unresolved occupied positions."""
         return sum(
             self.stock_for(wine).effective_stock for wine in self.wines.values()
         ) + self.orphaned_wine_positions
@@ -375,7 +375,9 @@ class Cellar:
             if isinstance(raw, dict):
                 item = _rack_item_from_dict(raw, key)
                 if item.id in cellar.rack_items:
-                    raise ValueError(f"Duplicate RackItem ID in stored cellar: {item.id}")
+                    raise ValueError(
+                        f"Duplicate RackItem ID in stored cellar: {item.id}"
+                    )
                 # Preserve unresolved rack and wine references in a restored
                 # snapshot. Their counts are exposed separately, and the forced
                 # full sync repairs them without misreporting them as empty slots.
