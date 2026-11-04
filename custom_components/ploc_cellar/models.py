@@ -391,6 +391,10 @@ class Cellar:
                 cellar.orders[order.id] = order
 
         cellar.refresh_bottles_in_cellar()
+        if cellar.orphaned_rack_positions or cellar.orphaned_wine_positions:
+            # Resolve legacy or interrupted RackItem references from a complete
+            # PLOUD snapshot instead of continuing with an incomplete delta.
+            cellar.cursor = 1
         return cellar
 
 
