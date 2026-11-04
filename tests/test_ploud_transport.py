@@ -4,8 +4,8 @@ from __future__ import annotations
 import asyncio
 from typing import Any, cast
 
-import pytest
 from aiohttp import ClientConnectionError, ClientSession, ClientTimeout, FormData
+import pytest
 
 from ploc_cellar.ploud import PloudAuthError, PloudError, async_sync
 
@@ -133,7 +133,7 @@ def test_sync_rejects_non_object_json_payload(payload: object) -> None:
     """The top-level JSON response must be an object."""
     session = _FakeSession(_FakeResponse(payload=payload))
 
-    with pytest.raises(PloudError, match="invalid JSON|not a JSON object"):
+    with pytest.raises(PloudError, match=r"invalid JSON|not a JSON object"):
         _run_sync(session)
 
 
