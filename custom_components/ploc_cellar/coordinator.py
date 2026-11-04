@@ -298,10 +298,19 @@ class PlocCellarCoordinator(DataUpdateCoordinator[Cellar]):
             return updated_cellar
         except PloudAuthError as err:
             self.cellar.stale = True
+            _LOGGER.warning("PLOUD authentication failed: %s", err)
             raise ConfigEntryAuthFailed from err
         except (PloudError, HomeAssistantError, OSError) as err:
             self.cellar.stale = True
+            _LOGGER.exception("PLOUD synchronization failed: %s", err)
             raise UpdateFailed(str(err)) from err
+        except Exception:
+            # Keep unexpected parsing/model/storage failures visible in the
+            # integration log; DataUpdateCoordinator otherwise exposes only
+            # a generic failed-refresh status to manual service callers.
+            self.cellar.stale = True
+            _LOGGER.exception("Unexpected error during PLOUD synchronization")
+            raise
 
     async def async_force_full_sync(self) -> Cellar:
         """Request a complete PLOUD snapshot without clearing current data first."""
