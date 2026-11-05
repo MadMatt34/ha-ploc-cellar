@@ -62,42 +62,30 @@ Open **Settings → Devices & services → Ploc Cellar → Configure** to change
 
 Saving the options reloads the config entry. The PLOUD server endpoint cannot be changed through the integration.
 
-## Entity
+## Entities
 
-The integration creates one summary sensor:
+All 14 sensors are linked to the same **Ploc Cellar** device and updated by the same PLOUD coordinator. The integration does not create one entity per wine, rack or position.
 
-- `sensor.ploc_cellar_inventory`: number of bottles assigned to cellar positions (derived from `RackItems`).
+| Family | Entity ID | Meaning |
+|---|---|---|
+| Inventory | `sensor.ploc_cellar_bottles_in_stock` | Bottles physically assigned to cellar positions (occupied `RackItems`). |
+| Inventory | `sensor.ploc_cellar_bottles_stock_total` | Total reconstructed stock: movement stock or physical stock, whichever is greater, including unresolved occupied positions. |
+| Inventory | `sensor.ploc_cellar_wines_references` | Known wine references with positive effective stock. |
+| Inventory | `sensor.ploc_cellar_wines_in_stock` | Known wine references with at least one physical cellar position. |
+| Racks | `sensor.ploc_cellar_rack_count` | Number of known racks. |
+| Racks | `sensor.ploc_cellar_rack_positions_total` | Total physical rack positions. |
+| Racks | `sensor.ploc_cellar_rack_positions_available` | Empty rack positions. |
+| Diagnostics | `sensor.ploc_cellar_diagnostic_bottles_unalocated` | Reconstructed bottles not assigned to a rack position. |
+| Diagnostics | `sensor.ploc_cellar_diagnostic_wines_unlocated` | Wine references with unlocated stock. |
+| Diagnostics | `sensor.ploc_cellar_diagnostic_bottles_negative_movements` | Absolute total of negative incoming-minus-outgoing balances. |
+| Diagnostics | `sensor.ploc_cellar_diagnostic_wines_negative_movements` | Wine references with a negative movement balance. |
+| Diagnostics | `sensor.ploc_cellar_diagnostic_bottles_physical_surplus` | Physical bottles above non-negative movement stock. |
+| Diagnostics | `sensor.ploc_cellar_diagnostic_wines_physical_surplus` | Wine references with a physical surplus. |
+| Diagnostics | `sensor.ploc_cellar_diagnostic_last_successful_sync` | Timestamp of the last successful synchronization; its `stale` attribute is true when a later synchronization has failed. |
 
-Its attributes are:
+Movement-derived inventory and diagnostic sensors show `unknown` until a complete PLOUD `Orders` snapshot has been validated. Physical bottle and rack-position counts remain available. After a synchronization failure, the last successful timestamp is retained and the `stale` attribute on the last-sync sensor becomes true; a successful synchronization resets it to false.
 
-| Attribute ID | Description |
-|---|---|
-| `wine_references` | Number of references with positive effective stock (null until Orders are complete) |
-| `stocked_wines` | Number of wine references with at least one cellar position |
-| `total_stock_bottles` | Total reconstructed bottle count |
-| `unlocated_wines` | Number of references with stock not assigned to a rack position |
-| `unlocated_bottles` | Number of reconstructed bottles not assigned to a rack position |
-| `negative_movement_wines` | Number of references with a negative movement balance |
-| `negative_movement_bottles` | Sum of the absolute negative movement balances |
-| `physical_surplus_wines` | Number of references with more physical bottles than non-negative movement stock |
-| `physical_surplus_bottles` | Physical bottles above the non-negative movement stock |
-| `rack_count` | Number of racks |
-| `total_positions` | Total number of physical rack positions |
-| `empty_positions` | Number of empty rack positions |
-| `occupied_positions` | Number of positions with a non-empty `wine_id` |
-| `positions_without_rack` | Number of positions referencing an unknown rack |
-| `positions_with_unknown_wine` | Number of occupied positions referencing an unknown wine |
-| `orders_without_wine` | Number of retained movements referencing an unknown wine |
-| `stale` | Indicates that the latest synchronization failed |
-| `stock_reconstruction_complete` | Indicates whether a complete Orders snapshot is available |
-| `last_successful_sync` | Date and time of the last successful synchronization (ISO 8601) |
-
-Attribute labels are translated using the Home Assistant language. If synchronization fails, the last known local inventory is retained and `stale` indicates that the data may be outdated. A successful synchronization resets this flag to `false`.
-
-When an older cache predates persisted Orders, physical rack positions remain visible offline, but stock-derived totals and per-wine movement quantities are returned as `null` until a complete PLOUD snapshot succeeds. The integration never substitutes raw `Wine.bo` for the missing movement history. Caches that already contain a complete Orders snapshot remain fully calculable while offline.
-
-The full wine list is deliberately not stored in sensor attributes. It remains in persistent storage and is returned only when requested.
-
+The existing inventory sensor unique ID is retained. On upgrade, the default entity ID `sensor.ploc_cellar_inventory` is migrated to `sensor.ploc_cellar_bottles_in_stock`; a user-customized entity ID is left unchanged.
 ## Actions
 
 ### `ploc_cellar.get_inventory`

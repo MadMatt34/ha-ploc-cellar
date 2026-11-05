@@ -180,6 +180,18 @@ mouvements, la quantité physique, le stock effectif et les trois quantités de
 diagnostic. Cette liste vaut `null` tant que la reconstitution Orders est
 incomplète.
 
+Les agrégats sont exposés par des capteurs Home Assistant distincts, regroupés
+entre inventaire, casiers et diagnostics. Le capteur
+`sensor.ploc_cellar_bottles_in_stock` conserve l'identifiant unique historique
+et mesure les positions physiquement occupées ; le capteur
+`sensor.ploc_cellar_bottles_stock_total` mesure le stock effectif reconstitué.
+Les six capteurs de diagnostic reprennent les trois familles décrites ci-dessus,
+avec un compteur de bouteilles et un compteur de références pour chacune. Le
+capteur `sensor.ploc_cellar_diagnostic_last_successful_sync` fournit l'horodatage
+de la dernière synchronisation validée et porte l'attribut `stale`. La liste
+`wine_diagnostics` et les caractéristiques individuelles restent accessibles
+uniquement par l'action `get_inventory` ; aucun capteur n'est créé par vin.
+
 ## 5. Règles de synchronisation PLOUD
 
 ### 5.1 Synchronisation complète et incrémentale

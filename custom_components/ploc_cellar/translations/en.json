@@ -41,65 +41,50 @@
   },
   "entity": {
     "sensor": {
-      "inventory": {
-        "name": "Inventory",
+      "bottles_in_stock": {
+        "name": "Bottles in cellar"
+      },
+      "bottles_stock_total": {
+        "name": "Total stock bottles"
+      },
+      "wines_references": {
+        "name": "Wine references in stock"
+      },
+      "wines_in_stock": {
+        "name": "Wine references physically in cellar"
+      },
+      "rack_count": {
+        "name": "Number of racks"
+      },
+      "rack_positions_total": {
+        "name": "Total rack positions"
+      },
+      "rack_positions_available": {
+        "name": "Available rack positions"
+      },
+      "diagnostic_bottles_unalocated": {
+        "name": "Unlocated bottles"
+      },
+      "diagnostic_wines_unlocated": {
+        "name": "Wines with unlocated stock"
+      },
+      "diagnostic_bottles_negative_movements": {
+        "name": "Bottles with negative movement balance"
+      },
+      "diagnostic_wines_negative_movements": {
+        "name": "Wines with negative movement balance"
+      },
+      "diagnostic_bottles_physical_surplus": {
+        "name": "Bottles in physical surplus"
+      },
+      "diagnostic_wines_physical_surplus": {
+        "name": "Wines with physical surplus"
+      },
+      "diagnostic_last_successful_sync": {
+        "name": "Last successful synchronization",
         "state_attributes": {
-          "wine_references": {
-            "name": "Wine references"
-          },
-          "stocked_wines": {
-            "name": "Wines in cellar"
-          },
-          "rack_count": {
-            "name": "Number of racks"
-          },
-          "total_positions": {
-            "name": "Total positions"
-          },
-          "empty_positions": {
-            "name": "Empty positions"
-          },
-          "occupied_positions": {
-            "name": "Occupied positions"
-          },
           "stale": {
             "name": "Stale data"
-          },
-          "last_successful_sync": {
-            "name": "Last successful synchronization"
-          },
-          "total_stock_bottles": {
-            "name": "Total stock bottles"
-          },
-          "stock_reconstruction_complete": {
-            "name": "Stock reconstruction complete"
-          },
-          "unlocated_wines": {
-            "name": "Wines with unlocated stock"
-          },
-          "unlocated_bottles": {
-            "name": "Unlocated bottles"
-          },
-          "negative_movement_wines": {
-            "name": "Wines with negative movement balance"
-          },
-          "negative_movement_bottles": {
-            "name": "Negative movement bottle deficit"
-          },
-          "physical_surplus_wines": {
-            "name": "Wines with physical surplus"
-          },
-          "physical_surplus_bottles": {
-            "name": "Physical surplus bottles"
-          },
-          "positions_without_rack": {
-            "name": "Positions with unknown racks"
-          },
-          "positions_with_unknown_wine": {
-            "name": "Occupied positions with unknown wines"
-          },
-          "orders_without_wine": {
-            "name": "Orders with unknown wines"
           }
         }
       }

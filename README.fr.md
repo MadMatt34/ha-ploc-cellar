@@ -15,7 +15,7 @@ Intégration personnalisée Home Assistant permettant de consulter une cave PLOC
 - Synchronisation incrémentale en lecture seule via `POST https://ploud.ploc.co/v1/sync/exec`, avec `Objects={}`.
 - Le premier chargement utilise la valeur d'initialisation validée `LastSyncTime=1`. Les synchronisations suivantes utilisent le curseur client en millisecondes Unix.
 - Modèle local persistant : les références `Wine` reçues de PLOUD, les casiers et leurs emplacements. La valeur brute `Wine.bo` est conservée à titre informatif. Le stock effectif est reconstitué avec les mouvements `Orders` et les bouteilles physiquement placées (`RackItems`) selon la formule `max(0, solde des mouvements, bouteilles en cave)`. Les diagnostics distinguent le stock non localisé (`unlocated_bottles`), les soldes de mouvements négatifs (`negative_movement_bottles`) et les excédents physiques (`physical_surplus_bottles`). Un stock non localisé signifie que le solde issu des mouvements dépasse les bouteilles affectées à des emplacements ; cela ne prouve pas qu'une bouteille a été retirée sans mouvement de sortie déclaré. Les données PLOUD ne sont jamais modifiées. Les caractéristiques, dont le domaine viticole, sont directement enregistrées dans chaque fiche vin. La collection `Owners` est utilisée temporairement pour résoudre les UUID des propriétaires ; aucune table de correspondance n'est conservée. Si un vin reçu dans un delta référence un propriétaire absent de ce delta, ou un Owner dont l'enregistrement ne contient pas de champ de nom, une synchronisation complète ponctuelle est déclenchée pour résoudre son nom.
-- Un seul capteur de synthèse ; aucune entité n'est créée pour chaque vin, casier ou emplacement.
+- Quatorze capteurs répartis entre inventaire, casiers et diagnostics ; aucune entité individuelle n'est créée pour chaque vin, casier ou emplacement.
 - Inventaire détaillé accessible à la demande avec l'action `ploc_cellar.get_inventory`.
 - Les UUID sont normalisés sous leur forme canonique minuscule pour les vins, casiers, positions, mouvements, propriétaires et suppressions ; les identifiants non UUID sont débarrassés des espaces périphériques sans changement de casse.
 - Synchronisation immédiate à la demande avec l'action `ploc_cellar.sync`.
@@ -62,42 +62,30 @@ Dans **Paramètres → Appareils et services → Ploc Cellar → Configurer**, l
 
 L'enregistrement des options recharge l'entrée de configuration. L'adresse du serveur PLOUD n'est pas modifiable depuis l'intégration.
 
-## Entité
+## Entités
 
-L'intégration crée un capteur de synthèse :
+Les 14 capteurs sont rattachés au même appareil **Cave Ploc** et actualisés par le même coordinateur PLOUD. L’intégration ne crée pas d’entité individuelle pour chaque vin, casier ou emplacement.
 
-- `sensor.ploc_cellar_inventory` : nombre de bouteilles affectées à des emplacements de cave (calculé depuis les `RackItems`).
+| Famille | Identifiant d’entité | Signification |
+|---|---|---|
+| Inventaire | `sensor.ploc_cellar_bottles_in_stock` | Bouteilles physiquement affectées à des emplacements (positions `RackItems` occupées). |
+| Inventaire | `sensor.ploc_cellar_bottles_stock_total` | Stock total reconstitué : stock issu des mouvements ou stock physique, selon le plus élevé, avec les positions occupées dont le vin est inconnu. |
+| Inventaire | `sensor.ploc_cellar_wines_references` | Références de vins connues dont le stock effectif est positif. |
+| Inventaire | `sensor.ploc_cellar_wines_in_stock` | Références de vins connues ayant au moins une position physique en cave. |
+| Casiers | `sensor.ploc_cellar_rack_count` | Nombre de casiers connus. |
+| Casiers | `sensor.ploc_cellar_rack_positions_total` | Nombre total d’emplacements physiques. |
+| Casiers | `sensor.ploc_cellar_rack_positions_available` | Nombre d’emplacements vides. |
+| Diagnostics | `sensor.ploc_cellar_diagnostic_bottles_unalocated` | Bouteilles reconstituées qui ne sont affectées à aucun emplacement. |
+| Diagnostics | `sensor.ploc_cellar_diagnostic_wines_unlocated` | Références de vins avec du stock non localisé. |
+| Diagnostics | `sensor.ploc_cellar_diagnostic_bottles_negative_movements` | Somme des soldes entrées-sorties négatifs, en valeur absolue. |
+| Diagnostics | `sensor.ploc_cellar_diagnostic_wines_negative_movements` | Références de vins avec un solde de mouvements négatif. |
+| Diagnostics | `sensor.ploc_cellar_diagnostic_bottles_physical_surplus` | Bouteilles physiques au-delà du stock non négatif issu des mouvements. |
+| Diagnostics | `sensor.ploc_cellar_diagnostic_wines_physical_surplus` | Références de vins présentant un excédent physique. |
+| Diagnostics | `sensor.ploc_cellar_diagnostic_last_successful_sync` | Date et heure de la dernière synchronisation réussie ; son attribut `stale` passe à true lorsqu’une synchronisation ultérieure échoue. |
 
-Ses attributs sont :
+Les capteurs de stock et de diagnostic dépendant des mouvements affichent `unknown` tant qu’un instantané PLOUD complet de la collection `Orders` n’a pas été validé. Les compteurs physiques de bouteilles et d’emplacements restent disponibles. Après un échec de synchronisation, la date de dernière réussite est conservée et l’attribut `stale` du capteur de synchronisation passe à true ; une synchronisation réussie le remet à false.
 
-| Identifiant | Description |
-|---|---|
-| `wine_references` | Nombre de références ayant un stock effectif positif (null tant que les Orders ne sont pas complets) |
-| `stocked_wines` | Nombre de références ayant au moins une position en cave |
-| `total_stock_bottles` | Nombre total de bouteilles reconstitué |
-| `unlocated_wines` | Nombre de références avec du stock non affecté à un emplacement |
-| `unlocated_bottles` | Nombre de bouteilles reconstituées non affectées à un emplacement |
-| `negative_movement_wines` | Nombre de références avec un solde de mouvements négatif |
-| `negative_movement_bottles` | Somme des soldes de mouvements négatifs en valeur absolue |
-| `physical_surplus_wines` | Nombre de références avec plus de bouteilles physiques que le stock issu des mouvements |
-| `physical_surplus_bottles` | Nombre de bouteilles physiques au-dessus du stock non négatif issu des mouvements |
-| `rack_count` | Nombre de casiers |
-| `total_positions` | Nombre total d'emplacements physiques |
-| `empty_positions` | Nombre d'emplacements vides |
-| `occupied_positions` | Nombre d'emplacements ayant un `wine_id` non vide |
-| `positions_without_rack` | Nombre de positions référençant un casier inconnu |
-| `positions_with_unknown_wine` | Nombre de positions occupées référençant un vin inconnu |
-| `orders_without_wine` | Nombre de commandes conservées référençant un vin inconnu |
-| `stale` | Indique que la dernière synchronisation a échoué |
-| `stock_reconstruction_complete` | Indique si un instantané complet des mouvements Orders est disponible |
-| `last_successful_sync` | Date et heure de la dernière synchronisation réussie (format ISO 8601) |
-
-Les libellés des attributs sont traduits selon la langue de Home Assistant. En cas d'échec de synchronisation, le dernier inventaire local connu est conservé et l'attribut `stale` indique que les données peuvent être périmées. Une synchronisation réussie remet cet indicateur à `false`.
-
-Lorsqu'un ancien cache ne contient pas encore les mouvements Orders, les positions physiques restent visibles hors ligne, mais les totaux et quantités qui dépendent des mouvements sont renvoyés à `null` jusqu'à la réussite d'un instantané PLOUD complet. L'intégration ne remplace jamais l'historique manquant par la valeur brute `Wine.bo`. Les caches qui disposent déjà d'un historique Orders complet restent calculables hors ligne.
-
-La liste complète des vins n'est volontairement pas placée dans les attributs du capteur. Elle reste dans le stockage persistant et n'est renvoyée que sur demande.
-
+L’identifiant unique de l’ancien capteur d’inventaire est conservé. Lors d’une mise à niveau, l’identifiant par défaut `sensor.ploc_cellar_inventory` est migré vers `sensor.ploc_cellar_bottles_in_stock` ; un identifiant d’entité personnalisé par l’utilisateur n’est pas modifié.
 ## Actions
 
 ### `ploc_cellar.get_inventory`

@@ -50,7 +50,36 @@ CONF_SCAN_INTERVAL = "scan_interval"
 CONF_SEARCH = "search"
 CONF_COLOR = "color"
 
+# Keep the original unique ID for the physical bottle count so existing entity
+# registry entries and customizations can be migrated without losing identity.
 SENSOR_UNIQUE_ID = f"{DOMAIN}_summary"
+SENSOR_BOTTLES_STOCK_TOTAL_UNIQUE_ID = f"{DOMAIN}_bottles_stock_total"
+SENSOR_WINES_REFERENCES_UNIQUE_ID = f"{DOMAIN}_wines_references"
+SENSOR_WINES_IN_STOCK_UNIQUE_ID = f"{DOMAIN}_wines_in_stock"
+SENSOR_RACK_COUNT_UNIQUE_ID = f"{DOMAIN}_rack_count"
+SENSOR_RACK_POSITIONS_TOTAL_UNIQUE_ID = f"{DOMAIN}_rack_positions_total"
+SENSOR_RACK_POSITIONS_AVAILABLE_UNIQUE_ID = f"{DOMAIN}_rack_positions_available"
+SENSOR_DIAGNOSTIC_BOTTLES_UNALOCATED_UNIQUE_ID = (
+    f"{DOMAIN}_diagnostic_bottles_unalocated"
+)
+SENSOR_DIAGNOSTIC_WINES_UNLOCATED_UNIQUE_ID = (
+    f"{DOMAIN}_diagnostic_wines_unlocated"
+)
+SENSOR_DIAGNOSTIC_BOTTLES_NEGATIVE_MOVEMENTS_UNIQUE_ID = (
+    f"{DOMAIN}_diagnostic_bottles_negative_movements"
+)
+SENSOR_DIAGNOSTIC_WINES_NEGATIVE_MOVEMENTS_UNIQUE_ID = (
+    f"{DOMAIN}_diagnostic_wines_negative_movements"
+)
+SENSOR_DIAGNOSTIC_BOTTLES_PHYSICAL_SURPLUS_UNIQUE_ID = (
+    f"{DOMAIN}_diagnostic_bottles_physical_surplus"
+)
+SENSOR_DIAGNOSTIC_WINES_PHYSICAL_SURPLUS_UNIQUE_ID = (
+    f"{DOMAIN}_diagnostic_wines_physical_surplus"
+)
+SENSOR_DIAGNOSTIC_LAST_SUCCESSFUL_SYNC_UNIQUE_ID = (
+    f"{DOMAIN}_diagnostic_last_successful_sync"
+)
 
 SERVICE_GET_INVENTORY = "get_inventory"
 SERVICE_SYNC = "sync"

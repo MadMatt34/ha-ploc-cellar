@@ -41,65 +41,50 @@
   },
   "entity": {
     "sensor": {
-      "inventory": {
-        "name": "Inventaire",
+      "bottles_in_stock": {
+        "name": "Bouteilles en cave"
+      },
+      "bottles_stock_total": {
+        "name": "Bouteilles en stock total"
+      },
+      "wines_references": {
+        "name": "Références de vins en stock"
+      },
+      "wines_in_stock": {
+        "name": "Références physiquement présentes en cave"
+      },
+      "rack_count": {
+        "name": "Nombre de casiers"
+      },
+      "rack_positions_total": {
+        "name": "Nombre total d’emplacements"
+      },
+      "rack_positions_available": {
+        "name": "Emplacements disponibles"
+      },
+      "diagnostic_bottles_unalocated": {
+        "name": "Bouteilles non localisées"
+      },
+      "diagnostic_wines_unlocated": {
+        "name": "Vins avec stock non localisé"
+      },
+      "diagnostic_bottles_negative_movements": {
+        "name": "Bouteilles liées à des mouvements négatifs"
+      },
+      "diagnostic_wines_negative_movements": {
+        "name": "Vins avec solde de mouvements négatif"
+      },
+      "diagnostic_bottles_physical_surplus": {
+        "name": "Bouteilles en excédent physique"
+      },
+      "diagnostic_wines_physical_surplus": {
+        "name": "Vins avec excédent physique"
+      },
+      "diagnostic_last_successful_sync": {
+        "name": "Dernière synchronisation réussie",
         "state_attributes": {
-          "wine_references": {
-            "name": "Références de vins"
-          },
-          "stocked_wines": {
-            "name": "Références en cave"
-          },
-          "rack_count": {
-            "name": "Nombre de casiers"
-          },
-          "total_positions": {
-            "name": "Emplacements totaux"
-          },
-          "empty_positions": {
-            "name": "Emplacements vides"
-          },
-          "occupied_positions": {
-            "name": "Emplacements occupés"
-          },
           "stale": {
             "name": "Données périmées"
-          },
-          "last_successful_sync": {
-            "name": "Dernière synchronisation réussie"
-          },
-          "total_stock_bottles": {
-            "name": "Bouteilles en stock total"
-          },
-          "stock_reconstruction_complete": {
-            "name": "Reconstitution du stock complète"
-          },
-          "unlocated_wines": {
-            "name": "Vins avec stock non localisé"
-          },
-          "unlocated_bottles": {
-            "name": "Bouteilles non localisées"
-          },
-          "negative_movement_wines": {
-            "name": "Vins avec solde de mouvements négatif"
-          },
-          "negative_movement_bottles": {
-            "name": "Déficit cumulé des mouvements (bouteilles)"
-          },
-          "physical_surplus_wines": {
-            "name": "Vins avec excédent physique"
-          },
-          "physical_surplus_bottles": {
-            "name": "Bouteilles en excédent physique"
-          },
-          "positions_without_rack": {
-            "name": "Emplacements avec casier inconnu"
-          },
-          "positions_with_unknown_wine": {
-            "name": "Emplacements occupés avec vin inconnu"
-          },
-          "orders_without_wine": {
-            "name": "Commandes avec vin inconnu"
           }
         }
       }
