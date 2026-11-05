@@ -16,7 +16,7 @@ from ploc_cellar.coordinator import (
     _validate_full_sync,
 )
 from ploc_cellar.models import Cellar, JsonValue, RackItem
-from ploc_cellar.ploud import PLOUDCollections, PloudError
+from ploc_cellar.ploud import PLOUDCollections, PloudAuthError, PloudError
 
 
 class _FakeStore:
