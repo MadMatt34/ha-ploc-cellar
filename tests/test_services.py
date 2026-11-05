@@ -76,7 +76,19 @@ def test_inventory_service_reports_complete_stock_and_locations() -> None:
     assert wines[0]["id"] == "wine-a"
     assert wines[0]["bottles"] == 3
     assert wines[0]["bottles_in_cellar"] == 1
-    assert wines[0]["bottles_to_store"] == 2
+    assert wines[0]["unlocated_bottles"] == 2
+    assert wines[0]["negative_movement_bottles"] == 0
+    assert wines[0]["physical_surplus_bottles"] == 0
+    assert result["unlocated_wines"] == 1
+    assert result["unlocated_bottles"] == 2
+    diagnostics = cast(list[dict[str, object]], result["wine_diagnostics"])
+    assert [item["id"] for item in diagnostics] == ["wine-a"]
+    assert diagnostics[0]["purchased"] == 4
+    assert diagnostics[0]["consumed"] == 1
+    assert diagnostics[0]["movement_balance"] == 3
+    assert diagnostics[0]["bottles_in_cellar"] == 1
+    assert diagnostics[0]["effective_stock"] == 3
+    assert diagnostics[0]["unlocated_bottles"] == 2
     locations = cast(list[dict[str, object]], wines[0]["locations"])
     assert locations == [
         {
@@ -133,16 +145,18 @@ def test_inventory_service_incomplete_cache_exposes_physical_facts_only() -> Non
     assert result["stocked_wines"] == 1
     assert result["total_stock_bottles"] is None
     assert result["wine_references"] is None
-    assert result["bottles_to_store"] is None
-    assert result["movement_anomalies"] is None
+    assert result["unlocated_bottles"] is None
+    assert result["negative_movement_bottles"] is None
+    assert result["physical_surplus_bottles"] is None
+    assert result["wine_diagnostics"] is None
     wines = cast(list[dict[str, object]], result["wines"])
     assert len(wines) == 1
     assert wines[0]["bottles"] is None
     assert wines[0]["effective_stock"] is None
     assert wines[0]["bottles_in_cellar"] == 1
-    assert wines[0]["bottles_to_store"] is None
-    assert wines[0]["inventory_errors"] is None
-    assert wines[0]["movement_warnings"] is None
+    assert wines[0]["unlocated_bottles"] is None
+    assert wines[0]["negative_movement_bottles"] is None
+    assert wines[0]["physical_surplus_bottles"] is None
 
 
 def test_inventory_service_excludes_unstocked_wines_but_reports_anomalies() -> None:
@@ -162,7 +176,14 @@ def test_inventory_service_excludes_unstocked_wines_but_reports_anomalies() -> N
     result = _response(cellar, search="vin en cave")
 
     wines = cast(list[dict[str, object]], result["wines"])
-    anomalies = cast(list[dict[str, object]], result["movement_anomalies"])
+    diagnostics = cast(list[dict[str, object]], result["wine_diagnostics"])
     assert [wine["id"] for wine in wines] == ["stocked"]
     assert result["matching_wines"] == 1
-    assert [item["id"] for item in anomalies] == ["anomaly"]
+    assert [item["id"] for item in diagnostics] == ["anomaly"]
+    assert diagnostics[0]["movement_balance"] == -3
+    assert diagnostics[0]["effective_stock"] == 0
+    assert diagnostics[0]["negative_movement_bottles"] == 3
+    assert diagnostics[0]["unlocated_bottles"] == 0
+    assert diagnostics[0]["physical_surplus_bottles"] == 0
+    assert result["negative_movement_wines"] == 1
+    assert result["negative_movement_bottles"] == 3
