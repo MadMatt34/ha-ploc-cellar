@@ -9,14 +9,14 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
-from .const import BUTTON_SYNC_FULL_UNIQUE_ID, BUTTON_SYNC_UNIQUE_ID, DOMAIN
+from . import const
 from .coordinator import PlocCellarCoordinator
 from .models import Cellar
 from .types import PlocCellarConfigEntry
 
 
 _DEVICE_INFO = DeviceInfo(
-    identifiers={(DOMAIN, "ploc_cellar")},
+    identifiers={(const.DOMAIN, "ploc_cellar")},
     translation_key="cellar",
     manufacturer="PLOC",
 )
@@ -35,13 +35,13 @@ class PlocCellarButtonDescription:
 BUTTON_DESCRIPTIONS: tuple[PlocCellarButtonDescription, ...] = (
     PlocCellarButtonDescription(
         translation_key="sync",
-        unique_id=BUTTON_SYNC_UNIQUE_ID,
+        unique_id=const.BUTTON_SYNC_UNIQUE_ID,
         icon="mdi:sync",
         press_fn=lambda coordinator: coordinator.async_force_sync(),
     ),
     PlocCellarButtonDescription(
         translation_key="sync_full",
-        unique_id=BUTTON_SYNC_FULL_UNIQUE_ID,
+        unique_id=const.BUTTON_SYNC_FULL_UNIQUE_ID,
         icon="mdi:database-sync",
         press_fn=lambda coordinator: coordinator.async_force_full_sync(),
     ),
@@ -66,7 +66,7 @@ class PlocCellarSyncButton(ButtonEntity):
         self._attr_translation_key = description.translation_key
         self._attr_unique_id = description.unique_id
         self._attr_icon = description.icon
-        self.entity_id = f"button.{DOMAIN}_{description.translation_key}"
+        self.entity_id = f"button.{const.DOMAIN}_{description.translation_key}"
 
     async def async_press(self) -> None:
         """Run the requested synchronization and propagate any failure."""
