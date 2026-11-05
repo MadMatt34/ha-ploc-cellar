@@ -3,8 +3,6 @@ from __future__ import annotations
 
 from typing import Any, cast
 
-from typing import Any, cast
-
 import pytest
 from ploc_cellar.models import Cellar, Order, Rack, RackItem, Wine, normalize_identifier
 
