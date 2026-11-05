@@ -62,15 +62,6 @@
           "occupied_positions": {
             "name": "Emplacements occupés"
           },
-          "orphaned_rack_positions": {
-            "name": "Emplacements avec casier inconnu"
-          },
-          "orphaned_wine_positions": {
-            "name": "Emplacements avec vin inconnu"
-          },
-          "orphaned_order_count": {
-            "name": "Mouvements avec vin inconnu"
-          },
           "stale": {
             "name": "Données périmées"
           },
@@ -80,23 +71,35 @@
           "total_stock_bottles": {
             "name": "Bouteilles en stock total"
           },
-          "bottles_to_store": {
-            "name": "Bouteilles non placées"
-          },
-          "inventory_error_wines": {
-            "name": "Vins avec anomalie d’inventaire"
-          },
-          "inventory_error_count": {
-            "name": "Nombre de références avec bouteilles non placées"
-          },
-          "movement_warning_wines": {
-            "name": "Vins avec anomalie de mouvements"
-          },
-          "movement_warning_bottles": {
-            "name": "Bouteilles en anomalie de mouvements"
-          },
           "stock_reconstruction_complete": {
             "name": "Reconstitution du stock complète"
+          },
+          "unlocated_wines": {
+            "name": "Vins avec stock non localisé"
+          },
+          "unlocated_bottles": {
+            "name": "Bouteilles non localisées"
+          },
+          "negative_movement_wines": {
+            "name": "Vins avec solde de mouvements négatif"
+          },
+          "negative_movement_bottles": {
+            "name": "Déficit cumulé des mouvements (bouteilles)"
+          },
+          "physical_surplus_wines": {
+            "name": "Vins avec excédent physique"
+          },
+          "physical_surplus_bottles": {
+            "name": "Bouteilles en excédent physique"
+          },
+          "positions_without_rack": {
+            "name": "Emplacements avec casier inconnu"
+          },
+          "positions_with_unknown_wine": {
+            "name": "Emplacements occupés avec vin inconnu"
+          },
+          "orders_without_wine": {
+            "name": "Commandes avec vin inconnu"
           }
         }
       }
@@ -105,7 +108,7 @@
   "services": {
     "get_inventory": {
       "name": "Obtenir l'inventaire",
-      "description": "Renvoyer les vins en stock, les bouteilles non placées et les anomalies de mouvements, sans créer d’entités.",
+      "description": "Renvoyer l’inventaire et les diagnostics de stock et de mouvements, sans créer d’entités.",
       "fields": {
         "search": {
           "name": "Recherche",
