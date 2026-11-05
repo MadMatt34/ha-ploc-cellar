@@ -7,7 +7,11 @@ from typing import Any, cast
 import pytest
 from homeassistant.exceptions import HomeAssistantError
 from ploc_cellar import coordinator as coordinator_module
-from ploc_cellar.coordinator import PlocCellarCoordinator, UpdateFailed
+from ploc_cellar.coordinator import (
+    PlocCellarCoordinator,
+    UpdateFailed,
+    _validate_full_sync,
+)
 from ploc_cellar.models import Cellar, JsonValue, RackItem
 from ploc_cellar.ploud import PLOUDCollections, PloudError
 
@@ -176,3 +180,71 @@ def test_failed_full_recovery_keeps_previous_model_and_forces_retry(
     assert coordinator.cellar.cursor == 123
     assert coordinator._force_full_sync is True
     assert store.saved is None
+
+
+
+@pytest.mark.parametrize(
+    "objects",
+    [
+        {},
+        {"Wines": [], "Racks": [], "RackItems": [], "Orders": []},
+        {"Wines": [], "Racks": [], "RackItems": [], "Owners": []},
+    ],
+)
+def test_full_snapshot_requires_every_authoritative_collection(
+    objects: PLOUDCollections,
+) -> None:
+    """A full snapshot is rejected when any stock-bearing collection is absent."""
+    with pytest.raises(PloudError, match="missing one or more"):
+        _validate_full_sync(objects)
+
+
+def test_full_snapshot_accepts_all_required_collections() -> None:
+    """An empty but complete snapshot is valid and distinct from a delta."""
+    _validate_full_sync(
+        {
+            "Wines": [],
+            "Racks": [],
+            "RackItems": [],
+            "Orders": [],
+            "Owners": [],
+        }
+    )
+
+
+def test_manual_partial_sync_reports_failed_refresh() -> None:
+    """A failed coordinator refresh becomes a service-visible HA error."""
+    coordinator = object.__new__(PlocCellarCoordinator)
+    coordinator.last_update_success = False
+    coordinator.last_exception = RuntimeError("PLOUD unavailable")
+
+    async def fake_refresh() -> None:
+        return None
+
+    coordinator.async_refresh = fake_refresh
+
+    with pytest.raises(HomeAssistantError):
+        asyncio.run(coordinator.async_force_sync())
+
+
+def test_manual_full_sync_retries_until_complete_snapshot() -> None:
+    """The full-sync request remains active until the coordinator commits it."""
+    coordinator = object.__new__(PlocCellarCoordinator)
+    coordinator._force_full_sync = True
+    coordinator.last_update_success = True
+    coordinator.last_exception = None
+    coordinator.data = Cellar()
+    calls = 0
+
+    async def fake_refresh() -> None:
+        nonlocal calls
+        calls += 1
+        coordinator._force_full_sync = False
+
+    coordinator.async_refresh = fake_refresh
+
+    result = asyncio.run(coordinator.async_force_full_sync())
+
+    assert calls == 1
+    assert result is coordinator.data
+    assert coordinator._force_full_sync is False
