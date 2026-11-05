@@ -573,3 +573,127 @@ def test_unknown_deleted_type_uses_unambiguous_id_fallback() -> None:
     )
 
     assert "wine-1" not in cellar.wines
+
+
+def test_wine_parser_rejects_invalid_display_fields_and_clears_blank_vintage() -> None:
+    with pytest.raises(PloudError, match="invalid name"):
+        apply_sync(
+            Cellar(),
+            {
+                "Wines": [
+                    {
+                        "id": "wine-1",
+                        "name": 42,
+                        "bottles": 1,
+                    }
+                ]
+            },
+            2,
+        )
+
+    with pytest.raises(PloudError, match="invalid vintage"):
+        apply_sync(
+            Cellar(),
+            {
+                "Wines": [
+                    {
+                        "id": "wine-1",
+                        "name": "Vin",
+                        "bottles": 1,
+                        "vintage": 2020.5,
+                    }
+                ]
+            },
+            2,
+        )
+
+    previous = _wine()
+    cellar = Cellar(wines={previous.id: previous})
+    apply_sync(
+        cellar,
+        {"Wines": [{"id": previous.id, "vintage": "  "}]},
+        2,
+    )
+    assert cellar.wines[previous.id].vintage is None
+
+
+def test_wine_parser_rejects_non_text_winery_name() -> None:
+    with pytest.raises(PloudError, match="invalid winery name"):
+        apply_sync(
+            Cellar(),
+            {
+                "Wines": [
+                    {
+                        "id": "wine-1",
+                        "name": "Vin",
+                        "bottles": 1,
+                        "domain": 123,
+                    }
+                ]
+            },
+            2,
+        )
+
+
+def test_owner_and_collection_records_reject_missing_or_duplicate_ids() -> None:
+    with pytest.raises(PloudError, match="Owner without a valid ID"):
+        apply_sync(Cellar(), {"Owners": [{"id": []}]}, 2)
+
+    duplicate_records: tuple[tuple[str, list[dict[str, object]]], ...] = (
+        ("Owners", [{"id": "owner-1"}, {"id": "owner-1"}]),
+        (
+            "Wines",
+            [
+                {"id": "wine-1", "name": "Vin", "bottles": 1},
+                {"id": "wine-1", "name": "Vin", "bottles": 1},
+            ],
+        ),
+        ("Racks", [{"id": "rack-1", "name": "Cave"}, {"id": "rack-1", "name": "Cave"}]),
+        (
+            "RackItems",
+            [
+                {"id": "slot-1", "rk": "rack-1", "wi": ""},
+                {"id": "slot-1", "rk": "rack-1", "wi": ""},
+            ],
+        ),
+        (
+            "Orders",
+            [
+                {"id": "order-1", "wi": "wine-1", "in": 1, "ot": 0},
+                {"id": "order-1", "wi": "wine-1", "in": 1, "ot": 0},
+            ],
+        ),
+    )
+    for collection, records in duplicate_records:
+        with pytest.raises(PloudError, match="duplicate"):
+            apply_sync(Cellar(), {collection: records}, 2)
+
+
+def test_null_rack_name_is_an_explicit_clear() -> None:
+    cellar = Cellar(racks={"rack-1": Rack("rack-1", "Cave")})
+
+    apply_sync(cellar, {"Racks": [{"id": "rack-1", "nm": None}]}, 2)
+
+    assert cellar.racks["rack-1"].name == ""
+
+
+def test_unknown_deleted_type_can_remove_a_uniquely_matching_rack() -> None:
+    cellar = Cellar(
+        racks={"rack-1": Rack("rack-1", "Cave")},
+        rack_items={"slot-1": RackItem("slot-1", "rack-1", "", 1, 1)},
+    )
+
+    apply_sync(
+        cellar,
+        {"DeletedObjects": [{"id": "rack-1", "type": "future-rack-kind"}]},
+        2,
+    )
+
+    assert "rack-1" not in cellar.racks
+    assert cellar.rack_items == {}
+
+
+def test_deleted_type_parser_skips_unusable_aliases() -> None:
+    assert _deleted_kind({"type": []}) == ""
+    assert _deleted_kind({"type": ""}) == ""
+    assert _reference_id(None) is None
