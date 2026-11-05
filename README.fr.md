@@ -14,7 +14,7 @@ Intégration personnalisée Home Assistant permettant de consulter une cave PLOC
 - PLOUD reste la source de vérité.
 - Synchronisation incrémentale en lecture seule via `POST https://ploud.ploc.co/v1/sync/exec`, avec `Objects={}`.
 - Le premier chargement utilise la valeur d'initialisation validée `LastSyncTime=1`. Les synchronisations suivantes utilisent le curseur client en millisecondes Unix.
-- Modèle local persistant : les références `Wine` reçues de PLOUD, les casiers et leurs emplacements. La valeur brute `Wine.bo` est conservée à titre informatif. Le stock effectif est reconstitué avec les mouvements `Orders` et les bouteilles physiquement placées (`RackItems`) selon la formule `max(0, solde des mouvements, bouteilles en cave)`. Les bouteilles non placées (`bottles_to_store`) correspondent à la différence entre le stock effectif et les bouteilles en cave. Les écarts entre le solde des mouvements et le stock effectif sont signalés séparément, sans jamais corriger les données PLOUD. Les caractéristiques, dont le domaine viticole, sont directement enregistrées dans chaque fiche vin. La collection `Owners` est utilisée temporairement pour résoudre les UUID des propriétaires ; aucune table de correspondance n'est conservée. Si un vin reçu dans un delta référence un propriétaire absent de ce delta, ou un Owner dont l'enregistrement ne contient pas de champ de nom, une synchronisation complète ponctuelle est déclenchée pour résoudre son nom.
+- Modèle local persistant : les références `Wine` reçues de PLOUD, les casiers et leurs emplacements. La valeur brute `Wine.bo` est conservée à titre informatif. Le stock effectif est reconstitué avec les mouvements `Orders` et les bouteilles physiquement placées (`RackItems`) selon la formule `max(0, solde des mouvements, bouteilles en cave)`. Les diagnostics distinguent le stock non localisé (`unlocated_bottles`), les soldes de mouvements négatifs (`negative_movement_bottles`) et les excédents physiques (`physical_surplus_bottles`). Un stock non localisé signifie que le solde issu des mouvements dépasse les bouteilles affectées à des emplacements ; cela ne prouve pas qu'une bouteille a été retirée sans mouvement de sortie déclaré. Les données PLOUD ne sont jamais modifiées. Les caractéristiques, dont le domaine viticole, sont directement enregistrées dans chaque fiche vin. La collection `Owners` est utilisée temporairement pour résoudre les UUID des propriétaires ; aucune table de correspondance n'est conservée. Si un vin reçu dans un delta référence un propriétaire absent de ce delta, ou un Owner dont l'enregistrement ne contient pas de champ de nom, une synchronisation complète ponctuelle est déclenchée pour résoudre son nom.
 - Un seul capteur de synthèse ; aucune entité n'est créée pour chaque vin, casier ou emplacement.
 - Inventaire détaillé accessible à la demande avec l'action `ploc_cellar.get_inventory`.
 - Les UUID sont normalisés sous leur forme canonique minuscule pour les vins, casiers, positions, mouvements, propriétaires et suppressions ; les identifiants non UUID sont débarrassés des espaces périphériques sans changement de casse.
@@ -75,18 +75,19 @@ Ses attributs sont :
 | `wine_references` | Nombre de références ayant un stock effectif positif (null tant que les Orders ne sont pas complets) |
 | `stocked_wines` | Nombre de références ayant au moins une position en cave |
 | `total_stock_bottles` | Nombre total de bouteilles reconstitué |
-| `bottles_to_store` | Nombre de bouteilles non placées |
-| `inventory_error_wines` | Nombre de références avec des bouteilles non placées |
-| `inventory_error_count` | Nombre d'anomalies de bouteilles non placées |
-| `movement_warning_wines` | Nombre de références avec une anomalie de mouvements |
-| `movement_warning_bottles` | Somme des écarts absolus entre mouvements et stock effectif |
+| `unlocated_wines` | Nombre de références avec du stock non affecté à un emplacement |
+| `unlocated_bottles` | Nombre de bouteilles reconstituées non affectées à un emplacement |
+| `negative_movement_wines` | Nombre de références avec un solde de mouvements négatif |
+| `negative_movement_bottles` | Somme des soldes de mouvements négatifs en valeur absolue |
+| `physical_surplus_wines` | Nombre de références avec plus de bouteilles physiques que le stock issu des mouvements |
+| `physical_surplus_bottles` | Nombre de bouteilles physiques au-dessus du stock non négatif issu des mouvements |
 | `rack_count` | Nombre de casiers |
 | `total_positions` | Nombre total d'emplacements physiques |
 | `empty_positions` | Nombre d'emplacements vides |
 | `occupied_positions` | Nombre d'emplacements ayant un `wine_id` non vide |
-| `orphaned_rack_positions` | Nombre de positions référençant un casier inconnu |
-| `orphaned_wine_positions` | Nombre de positions occupées référençant un vin inconnu |
-| `orphaned_order_count` | Nombre de mouvements conservés référençant un vin inconnu |
+| `positions_without_rack` | Nombre de positions référençant un casier inconnu |
+| `positions_with_unknown_wine` | Nombre de positions occupées référençant un vin inconnu |
+| `orders_without_wine` | Nombre de commandes conservées référençant un vin inconnu |
 | `stale` | Indique que la dernière synchronisation a échoué |
 | `stock_reconstruction_complete` | Indique si un instantané complet des mouvements Orders est disponible |
 | `last_successful_sync` | Date et heure de la dernière synchronisation réussie (format ISO 8601) |
@@ -120,16 +121,16 @@ response_variable: cave
 
 La réponse contient :
 
-- les totaux globaux : `total_bottles` compte toutes les positions physiques occupées ; `stocked_wines` compte les références Wine connues ayant au moins une position ; `total_stock_bottles` inclut aussi les positions occupées dont la référence Wine est temporairement inconnue ; `orphaned_order_count` compte les mouvements conservés pour des vins inconnus ou supprimés (ils sont exclus des calculs de stock des vins connus) ; `bottles_to_store`, `inventory_error_wines` et `inventory_error_count` décrivent les bouteilles connues non placées. Ces valeurs dérivées des Orders valent `null` lorsque `stock_reconstruction_complete` est faux ;
-- `rack_count`, `total_positions`, `occupied_positions` et `empty_positions`, le nombre de casiers et le détail des emplacements ; `orphaned_rack_positions` et `orphaned_wine_positions` signalent les références de casier ou de vin temporairement inconnues ;
+- les totaux globaux : `total_bottles` compte toutes les positions physiques occupées ; `stocked_wines` compte les références Wine connues ayant au moins une position ; `total_stock_bottles` inclut aussi les positions occupées dont la référence Wine est temporairement inconnue ; `orders_without_wine` compte les mouvements conservés pour des vins inconnus ou supprimés (ils sont exclus des calculs de stock des vins connus) ; `unlocated_wines` et `unlocated_bottles` décrivent le stock reconstitué non affecté à un emplacement ; `negative_movement_wines` et `negative_movement_bottles` décrivent les soldes de mouvements négatifs ; `physical_surplus_wines` et `physical_surplus_bottles` décrivent les bouteilles physiquement présentes au-delà du stock non négatif issu des mouvements. Ces valeurs dérivées des Orders valent `null` lorsque `stock_reconstruction_complete` est faux ;
+- `rack_count`, `total_positions`, `occupied_positions` et `empty_positions`, le nombre de casiers et le détail des emplacements ; `positions_without_rack` et `positions_with_unknown_wine` signalent les références de casier ou de vin temporairement inconnues ;
 - `matching_wines`, le nombre de vins correspondant aux filtres ;
 - `racks`, la liste des casiers ;
 - `wines`, normalement uniquement les vins dont le stock effectif est positif. Si la reconstitution est incomplète, seuls les vins connus avec des bouteilles physiquement placées sont renvoyés ; leurs quantités et diagnostics dépendant du stock valent `null`, comme les totaux globaux qui dépendent des mouvements ;
-- `movement_anomalies`, la liste dédiée des références dont les mouvements ne correspondent pas au stock effectif, y compris les références à stock nul ; elle vaut `null` tant que la reconstitution du stock est incomplète ;
+- `wine_diagnostics`, la liste non filtrée des vins ayant au moins un diagnostic de stock non localisé, de solde de mouvements négatif ou d’excédent physique, y compris ceux dont le stock effectif est nul. Chaque entrée fournit les entrées, sorties, le solde des mouvements, la quantité physique, le stock effectif et les trois quantités de diagnostic. Cette liste vaut `null` tant que la reconstitution du stock est incomplète ;
 - `stock_reconstruction_complete`, indique si un instantané complet des Orders est disponible ;
 - `last_sync`, la date et l'heure de la dernière synchronisation réussie.
 
-Dans `inventory_errors`, la valeur `unplaced_bottles` signale une référence avec des bouteilles non placées. Les références avec un écart de mouvements sont listées séparément dans `movement_anomalies`, y compris lorsqu’elles ont un stock effectif nul ; elles ne sont donc pas ajoutées à la liste normale `wines`. `movement_warning_wines` compte ces références et `movement_warning_bottles` additionne les écarts absolus en bouteilles entre le solde des mouvements et le stock effectif. Les valeurs brutes `Wine.bo` restent informatives et ne déterminent ni les anomalies de mouvements ni le stock effectif. Aucune correction n’est envoyée à PLOUD. Les filtres ne modifient pas les totaux globaux. Chaque emplacement associé à un vin contient le nom et l'identifiant du casier, ainsi que la rangée et la colonne lorsqu'elles sont disponibles.
+Pour chaque vin, `unlocated_bottles` correspond à la différence entre le stock effectif et les bouteilles physiquement placées ; `negative_movement_bottles` est la valeur absolue d'un solde entrées-sorties négatif ; `physical_surplus_bottles` compte les bouteilles physiquement présentes au-delà de `max(0, movement_balance)`. Ces diagnostics sont distincts et peuvent coexister pour une même référence. Un stock non localisé ne prouve pas qu'une bouteille a été retirée sans déclarer sa sortie : elle peut ne jamais avoir été rangée ou être conservée hors de la cave. Les valeurs brutes `Wine.bo` restent informatives et ne déterminent pas le stock effectif. Aucune correction n'est envoyée à PLOUD. Les filtres ne modifient pas les totaux globaux. Chaque emplacement associé à un vin contient le nom et l'identifiant du casier, ainsi que la rangée et la colonne lorsqu'elles sont disponibles.
 
 ### `ploc_cellar.sync`
 
