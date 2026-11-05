@@ -179,11 +179,18 @@ def test_inventory_service_excludes_unstocked_wines_but_reports_anomalies() -> N
     diagnostics = cast(list[dict[str, object]], result["wine_diagnostics"])
     assert [wine["id"] for wine in wines] == ["stocked"]
     assert result["matching_wines"] == 1
-    assert [item["id"] for item in diagnostics] == ["anomaly"]
-    assert diagnostics[0]["movement_balance"] == -3
-    assert diagnostics[0]["effective_stock"] == 0
-    assert diagnostics[0]["negative_movement_bottles"] == 3
-    assert diagnostics[0]["unlocated_bottles"] == 0
-    assert diagnostics[0]["physical_surplus_bottles"] == 0
+    diagnostics_by_id = {item["id"]: item for item in diagnostics}
+    assert set(diagnostics_by_id) == {"anomaly", "stocked"}
+    assert diagnostics_by_id["anomaly"]["movement_balance"] == -3
+    assert diagnostics_by_id["anomaly"]["effective_stock"] == 0
+    assert diagnostics_by_id["anomaly"]["negative_movement_bottles"] == 3
+    assert diagnostics_by_id["anomaly"]["unlocated_bottles"] == 0
+    assert diagnostics_by_id["anomaly"]["physical_surplus_bottles"] == 0
+    assert diagnostics_by_id["stocked"]["movement_balance"] == 2
+    assert diagnostics_by_id["stocked"]["effective_stock"] == 2
+    assert diagnostics_by_id["stocked"]["negative_movement_bottles"] == 0
+    assert diagnostics_by_id["stocked"]["unlocated_bottles"] == 2
     assert result["negative_movement_wines"] == 1
     assert result["negative_movement_bottles"] == 3
+    assert result["unlocated_wines"] == 1
+    assert result["unlocated_bottles"] == 2
