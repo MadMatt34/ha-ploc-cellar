@@ -5,7 +5,9 @@ from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
 
 from homeassistant.components.button import ButtonEntity
+from homeassistant.core import HomeAssistant
 from homeassistant.helpers.device_registry import DeviceInfo
+from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from .const import (
     BUTTON_SYNC_FULL_UNIQUE_ID,
@@ -14,6 +16,7 @@ from .const import (
 )
 from .coordinator import PlocCellarCoordinator
 from .models import Cellar
+from .types import PlocCellarConfigEntry
 
 
 _DEVICE_INFO = DeviceInfo(
@@ -75,9 +78,9 @@ class PlocCellarSyncButton(ButtonEntity):
 
 
 async def async_setup_entry(
-    hass,
-    entry,
-    async_add_entities,
+    hass: HomeAssistant,
+    entry: PlocCellarConfigEntry,
+    async_add_entities: AddEntitiesCallback,
 ) -> None:
     """Set up the two synchronization buttons on the cellar device."""
     coordinator = entry.runtime_data
