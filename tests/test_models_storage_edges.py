@@ -1,7 +1,8 @@
 """Corrupted-storage and legacy-cache regression tests for cellar models."""
 from __future__ import annotations
 
-from copy import deepcopy
+from typing import Any, cast
+
 from typing import Any, cast
 
 import pytest
@@ -144,7 +145,6 @@ def test_legacy_cache_restores_compact_reference_fields_and_rgb() -> None:
                 "id": "wine-legacy",
                 "name": "Vin historique",
                 "bottles": " ",
-                "vintage": 0,
                 "color_rgb": [10, 20, 30],
                 "ploud_reference_fields": {
                     "bo": "2",
@@ -205,7 +205,7 @@ def test_legacy_cache_ignores_non_record_entries_and_rejects_duplicate_ids() -> 
 
 
 def test_legacy_cache_rejects_invalid_order_movement_and_reference() -> None:
-    base = {
+    base: dict[str, Any] = {
         "version": 5,
         "cursor": 123,
         "initialized": True,
