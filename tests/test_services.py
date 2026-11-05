@@ -180,7 +180,9 @@ def test_inventory_service_excludes_unstocked_wines_but_reports_anomalies() -> N
         orders={
             "stocked-order": Order("stocked-order", "stocked", incoming=2, outgoing=0),
             "anomaly-order": Order("anomaly-order", "anomaly", incoming=0, outgoing=3),
-            "physical-order": Order("physical-order", "physical", incoming=1, outgoing=0),
+            "physical-order": Order(
+                "physical-order", "physical", incoming=1, outgoing=0
+            ),
         },
     )
     cellar.refresh_bottles_in_cellar()
