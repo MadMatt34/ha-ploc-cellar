@@ -37,7 +37,8 @@ _LOGGER = logging.getLogger(__name__)
 def _is_valid_email(value: str) -> bool:
     """Validate an email address with Voluptuous."""
     try:
-        cast(Any, vol.Email)()(value)  # pyright: ignore[reportUnknownMemberType]
+        email_validator = cast(Any, getattr(vol, "Email"))
+        email_validator()(value)
     except vol.Invalid:
         return False
     return True
