@@ -5,7 +5,6 @@ import asyncio
 from typing import cast
 
 import pytest
-
 from ploc_cellar.button import BUTTON_DESCRIPTIONS, PlocCellarSyncButton
 from ploc_cellar.coordinator import PlocCellarCoordinator
 from ploc_cellar.models import Cellar
