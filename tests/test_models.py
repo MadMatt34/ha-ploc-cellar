@@ -138,7 +138,7 @@ def test_incomplete_order_history_exposes_only_physical_facts() -> None:
     assert cellar.total_positions == 2
     assert cellar.empty_positions == 0
     assert cellar.stocked_wines == 1
-    assert cellar.orphaned_wine_positions == 1
+    assert cellar.positions_with_unknown_wine == 1
     assert cellar.wine_references is None
     assert cellar.total_stock_bottles is None
     assert cellar.unlocated_wines is None
@@ -222,5 +222,5 @@ def test_version_seven_round_trip_preserves_orphaned_physical_positions() -> Non
     assert restored.occupied_positions == 1
     assert restored.total_bottles == 1
     assert restored.empty_positions == 0
-    assert restored.orphaned_wine_positions == 1
+    assert restored.positions_with_unknown_wine == 1
     assert restored.cursor == 1
