@@ -7,10 +7,19 @@ from typing import Any
 from uuid import UUID
 
 import pytest
+import voluptuous as vol
 from ploc_cellar import config_flow as flow_module
 from ploc_cellar.auth import PlocAuthError, PlocConnectionError
-from ploc_cellar.config_flow import ConfigFlow
-from ploc_cellar.const import CONF_DEVICE, CONF_TOKEN
+from ploc_cellar.config_flow import ConfigFlow, PlocCellarOptionsFlow
+from ploc_cellar.const import (
+    CONF_DEVICE,
+    CONF_LANGUAGE,
+    CONF_SCAN_INTERVAL,
+    CONF_TOKEN,
+    DEFAULT_SCAN_INTERVAL,
+    MAX_SCAN_INTERVAL_MINUTES,
+    MIN_SCAN_INTERVAL_MINUTES,
+)
 
 
 def _new_flow() -> ConfigFlow:
@@ -208,3 +217,92 @@ def test_reauthentication_success_updates_only_the_access_token(
 
     assert result["entry"] is entry
     assert result["updates"] == {CONF_TOKEN: "renewed-ploud-token"}
+
+
+
+def test_options_flow_applies_safe_defaults_and_validates_interval(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Invalid stored options fall back to defaults and invalid input is rejected."""
+    entry = SimpleNamespace(
+        options={CONF_SCAN_INTERVAL: 1, CONF_LANGUAGE: "FR"}
+    )
+    monkeypatch.setattr(
+        PlocCellarOptionsFlow,
+        "config_entry",
+        property(lambda self: entry),
+        raising=False,
+    )
+    monkeypatch.setattr(
+        PlocCellarOptionsFlow,
+        "async_show_form",
+        lambda self, **kwargs: {"type": "form", **kwargs},
+    )
+    flow = PlocCellarOptionsFlow()
+
+    result = asyncio.run(flow.async_step_init())
+    schema = result["data_schema"]
+    defaults = schema({})
+
+    assert defaults == {
+        CONF_SCAN_INTERVAL: int(DEFAULT_SCAN_INTERVAL.total_seconds() // 60),
+        CONF_LANGUAGE: "auto",
+    }
+    with pytest.raises(vol.Invalid):
+        schema(
+            {
+                CONF_SCAN_INTERVAL: MIN_SCAN_INTERVAL_MINUTES - 1,
+                CONF_LANGUAGE: "auto",
+            }
+        )
+    with pytest.raises(vol.Invalid):
+        schema(
+            {
+                CONF_SCAN_INTERVAL: MAX_SCAN_INTERVAL_MINUTES + 1,
+                CONF_LANGUAGE: "auto",
+            }
+        )
+
+
+def test_options_flow_saves_validated_options(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Submitted options are persisted as the selected Home Assistant options."""
+    monkeypatch.setattr(
+        PlocCellarOptionsFlow,
+        "async_create_entry",
+        lambda self, *, title, data: {"title": title, "data": data},
+    )
+    flow = PlocCellarOptionsFlow()
+    options = {CONF_SCAN_INTERVAL: 240, CONF_LANGUAGE: "fr"}
+
+    result = asyncio.run(flow.async_step_init(options))
+
+    assert result == {"title": "", "data": options}
+
+
+def test_reauthentication_rejects_invalid_email_before_network_access(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Invalid reauthentication email is rejected without PLOC requests."""
+    flow = _new_flow()
+    entry = SimpleNamespace(unique_id="existing-device", options={})
+    monkeypatch.setattr(ConfigFlow, "_get_reauth_entry", lambda self: entry)
+    monkeypatch.setattr(
+        ConfigFlow,
+        "async_show_form",
+        lambda self, **kwargs: {"type": "form", **kwargs},
+    )
+    monkeypatch.setattr(
+        flow_module,
+        "async_authenticate",
+        lambda *args: pytest.fail("authentication must not run"),
+    )
+
+    result = asyncio.run(
+        flow.async_step_reauth_confirm(
+            {"username": "invalid", "password": "secret"}
+        )
+    )
+
+    assert result["errors"] == {"username": "invalid_email"}
