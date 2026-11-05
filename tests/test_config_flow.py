@@ -7,11 +7,10 @@ from typing import Any
 from uuid import UUID
 
 import pytest
-
 from ploc_cellar import config_flow as flow_module
+from ploc_cellar.auth import PlocAuthError, PlocConnectionError
 from ploc_cellar.config_flow import ConfigFlow
 from ploc_cellar.const import CONF_DEVICE, CONF_TOKEN
-from ploc_cellar.auth import PlocAuthError, PlocConnectionError
 
 
 def _new_flow() -> ConfigFlow:
