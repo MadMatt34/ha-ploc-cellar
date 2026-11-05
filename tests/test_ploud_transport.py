@@ -239,7 +239,7 @@ def test_sync_preserves_server_records_and_never_moves_cursor_backwards(
     """A clock adjustment cannot make a subsequent sync cursor regress."""
     from ploc_cellar import ploud as ploud_module
 
-    monkeypatch.setattr(ploud_module.time, "time", lambda: 1)
+    monkeypatch.setattr(ploud_module.time, "time", lambda: 0)
     session = _FakeSession(
         _FakeResponse(
             payload={
