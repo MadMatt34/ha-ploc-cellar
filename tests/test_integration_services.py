@@ -10,7 +10,12 @@ from homeassistant.config_entries import ConfigEntryState
 from homeassistant.exceptions import ServiceValidationError
 
 from ploc_cellar import async_setup
-from ploc_cellar.const import DOMAIN, SERVICE_GET_INVENTORY, SERVICE_SYNC, SERVICE_SYNC_FULL
+from ploc_cellar.const import (
+    DOMAIN,
+    SERVICE_GET_INVENTORY,
+    SERVICE_SYNC,
+    SERVICE_SYNC_FULL,
+)
 from ploc_cellar.models import Cellar
 
 
@@ -105,7 +110,14 @@ def test_inventory_service_returns_json_safe_empty_inventory() -> None:
     assert response["racks"] == []
 
 
-@pytest.mark.parametrize("entry", [None, SimpleNamespace(domain="other", state=ConfigEntryState.LOADED), SimpleNamespace(domain=DOMAIN, state=ConfigEntryState.NOT_LOADED)])
+@pytest.mark.parametrize(
+    "entry",
+    [
+        None,
+        SimpleNamespace(domain="other", state=ConfigEntryState.LOADED),
+        SimpleNamespace(domain=DOMAIN, state=ConfigEntryState.NOT_LOADED),
+    ],
+)
 def test_services_reject_missing_wrong_or_unloaded_entries(entry: object) -> None:
     """A service cannot dispatch against an absent or unloaded config entry."""
     hass = SimpleNamespace(
