@@ -88,6 +88,14 @@
           }
         }
       }
+    },
+    "button": {
+      "sync": {
+        "name": "Partial synchronization"
+      },
+      "sync_full": {
+        "name": "Full synchronization"
+      }
     }
   },
   "services": {

@@ -81,6 +81,9 @@ SENSOR_DIAGNOSTIC_LAST_SUCCESSFUL_SYNC_UNIQUE_ID = (
     f"{DOMAIN}_diagnostic_last_successful_sync"
 )
 
+BUTTON_SYNC_UNIQUE_ID = f"{DOMAIN}_sync"
+BUTTON_SYNC_FULL_UNIQUE_ID = f"{DOMAIN}_sync_full"
+
 SERVICE_GET_INVENTORY = "get_inventory"
 SERVICE_SYNC = "sync"
 SERVICE_SYNC_FULL = "sync_full"
