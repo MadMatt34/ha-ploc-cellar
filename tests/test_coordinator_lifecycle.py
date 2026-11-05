@@ -6,7 +6,7 @@ from copy import deepcopy
 from typing import Any, cast
 
 import pytest
-from homeassistant.exceptions import ConfigEntryAuthFailed, HomeAssistantError
+from homeassistant.exceptions import HomeAssistantError
 from ploc_cellar import coordinator as coordinator_module
 from ploc_cellar.const import CELLAR_DATA_VERSION
 from ploc_cellar.coordinator import PlocCellarCoordinator, UpdateFailed
@@ -334,8 +334,7 @@ def test_full_snapshot_with_unresolved_owner_is_committed_with_warning(
 
     monkeypatch.setattr(coordinator_module, "async_sync", fake_sync)
 
-    with pytest.warns(None) if False else pytest.MonkeyPatch.context():
-        updated = asyncio.run(coordinator._async_update_data())
+    updated = asyncio.run(coordinator._async_update_data())
 
     assert updated.wines["wine-1"].domain is None
     assert updated.cursor == 456
