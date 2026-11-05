@@ -105,7 +105,11 @@ def test_authentication_rejects_authentication_http_errors(status: int) -> None:
     session = _Session([_Response(status, {"message": "rejected"})])
 
     with pytest.raises(auth.PlocAuthError, match=f"HTTP {status}"):
-        asyncio.run(auth._post_json(session, "https://example.test", "signin", {}, "sign-in"))
+        asyncio.run(
+            auth._post_json(
+                session, "https://example.test", "signin", {}, "sign-in"
+            )
+        )
 
 
 @pytest.mark.parametrize("status", [408, 425, 429, 500, 503])
@@ -144,4 +148,8 @@ def test_authentication_requires_both_tokens() -> None:
     session = _Session([_Response(200, {"Account": {}})])
 
     with pytest.raises(auth.PlocAuthError, match="no account access token"):
-        asyncio.run(auth.async_authenticate(session, "user@example.com", "password", "en"))
+        asyncio.run(
+            auth.async_authenticate(
+                session, "user@example.com", "password", "en"
+            )
+        )
