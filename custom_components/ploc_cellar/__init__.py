@@ -94,28 +94,39 @@ def _build_inventory_response(
     normalized_search = search.casefold().strip()
     normalized_color = color.casefold().strip()
     inventory: list[JsonValueType] = []
-    movement_anomalies: list[JsonValueType] | None = (
+    wine_diagnostics: list[JsonValueType] | None = (
         [] if cellar.stock_reconstruction_complete else None
     )
 
-    if movement_anomalies is not None:
+    if wine_diagnostics is not None:
         for wine in sorted(
             cellar.wines.values(),
             key=lambda item: (item.name.casefold(), item.vintage or 0),
         ):
             stock = cellar.stock_for(wine)
-            if not stock.movement_warnings:
+            unlocated = stock.unlocated_bottles or 0
+            negative = stock.negative_movement_bottles or 0
+            physical_surplus = stock.physical_surplus_bottles or 0
+            if not (unlocated or negative or physical_surplus):
                 continue
-            movement_anomalies.append(
+            wine_diagnostics.append(
                 {
                     "id": wine.id,
                     "name": wine.name,
                     "domain": wine.domain,
                     "vintage": wine.vintage,
-                    "effective_stock": stock.effective_stock,
+                    "purchased": stock.purchased,
+                    "consumed": stock.consumed,
                     "movement_balance": stock.movement_balance,
-                    "movement_difference_bottles": stock.movement_difference_bottles,
-                    "movement_warnings": list(stock.movement_warnings),
+                    "bottles_in_cellar": wine.bottles_in_cellar,
+                    "effective_stock": stock.effective_stock,
+                    "unlocated_bottles": stock.unlocated_bottles,
+                    "negative_movement_bottles": (
+                        stock.negative_movement_bottles
+                    ),
+                    "physical_surplus_bottles": (
+                        stock.physical_surplus_bottles
+                    ),
                 }
             )
 
@@ -177,21 +188,16 @@ def _build_inventory_response(
                 ),
                 "ploud_bottles": wine.bottles,
                 "bottles_in_cellar": wine.bottles_in_cellar,
-                "bottles_to_store": stock.bottles_to_store,
+                "unlocated_bottles": stock.unlocated_bottles,
                 "purchased": stock.purchased,
                 "consumed": stock.consumed,
                 "movement_balance": stock.movement_balance,
                 "calculated_stock": stock.calculated_stock,
-                "movement_difference_bottles": stock.movement_difference_bottles,
-                "inventory_errors": (
-                    list(stock.inventory_errors)
-                    if cellar.stock_reconstruction_complete
-                    else None
+                "negative_movement_bottles": (
+                    stock.negative_movement_bottles
                 ),
-                "movement_warnings": (
-                    list(stock.movement_warnings)
-                    if cellar.stock_reconstruction_complete
-                    else None
+                "physical_surplus_bottles": (
+                    stock.physical_surplus_bottles
                 ),
                 "vintage": wine.vintage,
                 "appellation": wine.appellation,
@@ -227,18 +233,19 @@ def _build_inventory_response(
         "stock_reconstruction_complete": cellar.stock_reconstruction_complete,
         "total_positions": cellar.total_positions,
         "empty_positions": cellar.empty_positions,
-        "bottles_to_store": cellar.total_bottles_to_store,
-        "inventory_error_wines": cellar.inventory_error_wines,
-        "inventory_error_count": cellar.inventory_error_count,
-        "movement_warning_wines": cellar.movement_warning_wines,
-        "movement_warning_bottles": cellar.movement_warning_bottles,
-        "movement_anomalies": movement_anomalies,
+        "unlocated_wines": cellar.unlocated_wines,
+        "unlocated_bottles": cellar.unlocated_bottles,
+        "negative_movement_wines": cellar.negative_movement_wines,
+        "negative_movement_bottles": cellar.negative_movement_bottles,
+        "physical_surplus_wines": cellar.physical_surplus_wines,
+        "physical_surplus_bottles": cellar.physical_surplus_bottles,
+        "wine_diagnostics": wine_diagnostics,
         "matching_wines": len(inventory),
         "rack_count": len(cellar.racks),
         "occupied_positions": cellar.occupied_positions,
-        "orphaned_rack_positions": cellar.orphaned_rack_positions,
-        "orphaned_wine_positions": cellar.orphaned_wine_positions,
-        "orphaned_order_count": cellar.orphaned_order_count,
+        "positions_without_rack": cellar.positions_without_rack,
+        "positions_with_unknown_wine": cellar.positions_with_unknown_wine,
+        "orders_without_wine": cellar.orders_without_wine,
         "racks": racks,
         "wines": inventory,
         "last_sync": cellar.last_sync,
