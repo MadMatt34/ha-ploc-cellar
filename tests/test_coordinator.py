@@ -5,7 +5,10 @@ import asyncio
 from typing import Any, cast
 
 import pytest
-from homeassistant.exceptions import HomeAssistantError
+from homeassistant.exceptions import (
+    ConfigEntryAuthFailed,
+    HomeAssistantError,
+)
 from ploc_cellar import coordinator as coordinator_module
 from ploc_cellar.coordinator import (
     PlocCellarCoordinator,
@@ -248,3 +251,137 @@ def test_manual_full_sync_retries_until_complete_snapshot() -> None:
     assert calls == 1
     assert result is coordinator.data
     assert coordinator._force_full_sync is False
+
+
+
+def test_full_sync_commits_only_a_complete_snapshot(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A valid full snapshot rebuilds the model and advances its cursor."""
+    original = Cellar(cursor=123, initialized=True)
+    store = _FakeStore()
+    coordinator = _coordinator(original, store)
+    snapshot: PLOUDCollections = {
+        "Wines": [],
+        "Racks": [],
+        "RackItems": [],
+        "Orders": [],
+        "Owners": [],
+    }
+
+    async def fake_sync(
+        session: Any,
+        *,
+        server: str,
+        token: str,
+        device: str,
+        language: str,
+        cursor: int,
+    ) -> tuple[PLOUDCollections, int]:
+        assert cursor == 1
+        return snapshot, 456
+
+    monkeypatch.setattr(coordinator_module, "async_sync", fake_sync)
+
+    updated = asyncio.run(coordinator._async_update_data())
+
+    assert updated is coordinator.cellar
+    assert updated.cursor == 456
+    assert updated.initialized is True
+    assert updated.stock_reconstruction_complete is True
+    assert updated.stale is False
+    assert updated.last_sync is not None
+    assert store.saved == updated.to_storage()
+
+
+def test_partial_sync_commits_delta_and_preserves_reconstruction_state(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A valid delta advances the cursor without downgrading stock completeness."""
+    original = Cellar(
+        cursor=123,
+        initialized=True,
+        stock_reconstruction_complete=True,
+    )
+    store = _FakeStore()
+    coordinator = _coordinator(original, store)
+
+    async def fake_sync(
+        session: Any,
+        *,
+        server: str,
+        token: str,
+        device: str,
+        language: str,
+        cursor: int,
+    ) -> tuple[PLOUDCollections, int]:
+        assert cursor == 123
+        return {}, 124
+
+    monkeypatch.setattr(coordinator_module, "async_sync", fake_sync)
+
+    updated = asyncio.run(coordinator._async_update_data())
+
+    assert updated.cursor == 124
+    assert updated.stock_reconstruction_complete is True
+    assert updated.stale is False
+    assert coordinator.cellar is updated
+    assert store.saved == updated.to_storage()
+
+
+def test_invalid_full_snapshot_does_not_replace_cached_model(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A malformed full snapshot leaves the validated cache and cursor intact."""
+    original = Cellar(cursor=123, initialized=True, stale=False)
+    store = _FakeStore()
+    coordinator = _coordinator(original, store)
+
+    async def fake_sync(
+        session: Any,
+        *,
+        server: str,
+        token: str,
+        device: str,
+        language: str,
+        cursor: int,
+    ) -> tuple[PLOUDCollections, int]:
+        assert cursor == 1
+        return {"Wines": []}, 456
+
+    monkeypatch.setattr(coordinator_module, "async_sync", fake_sync)
+
+    with pytest.raises(UpdateFailed, match="missing one or more"):
+        asyncio.run(coordinator._async_update_data())
+
+    assert coordinator.cellar is original
+    assert coordinator.cellar.cursor == 123
+    assert coordinator.cellar.stale is True
+    assert store.saved is None
+
+
+def test_authentication_failure_requests_config_entry_reauth(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """An expired PLOUD token is surfaced as a Home Assistant auth failure."""
+    original = Cellar(cursor=123, initialized=True)
+    coordinator = _coordinator(original, _FakeStore())
+
+    async def fake_sync(
+        session: Any,
+        *,
+        server: str,
+        token: str,
+        device: str,
+        language: str,
+        cursor: int,
+    ) -> tuple[PLOUDCollections, int]:
+        raise PloudAuthError("invalid access token")
+
+    monkeypatch.setattr(coordinator_module, "async_sync", fake_sync)
+
+    with pytest.raises(ConfigEntryAuthFailed):
+        asyncio.run(coordinator._async_update_data())
+
+    assert coordinator.cellar is original
+    assert coordinator.cellar.stale is True
