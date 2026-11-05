@@ -76,25 +76,23 @@ def test_stock_reconstruction_and_global_aggregates() -> None:
     assert stock_a.consumed == 2
     assert stock_a.movement_balance == 3
     assert stock_a.effective_stock == 3
-    assert stock_a.bottles_to_store == 2
-    assert stock_a.movement_warnings == ()
+    assert stock_a.unlocated_bottles == 2
+    assert stock_a.negative_movement_bottles == 0
+    assert stock_a.physical_surplus_bottles == 0
 
     stock_b = cellar.stock_for(cellar.wines["wine-b"])
     assert stock_b.movement_balance == 1
     assert stock_b.effective_stock == 2
-    assert stock_b.bottles_to_store == 0
-    assert stock_b.movement_difference_bottles == 1
-    assert stock_b.movement_warnings == ("movement_balance_mismatch",)
+    assert stock_b.unlocated_bottles == 0
+    assert stock_b.negative_movement_bottles == 0
+    assert stock_b.physical_surplus_bottles == 1
 
     stock_c = cellar.stock_for(cellar.wines["wine-c"])
     assert stock_c.movement_balance == -3
     assert stock_c.effective_stock == 0
-    assert stock_c.bottles_to_store == 0
-    assert stock_c.movement_difference_bottles == 3
-    assert stock_c.movement_warnings == (
-        "negative_movement_balance",
-        "movement_balance_mismatch",
-    )
+    assert stock_c.unlocated_bottles == 0
+    assert stock_c.negative_movement_bottles == 3
+    assert stock_c.physical_surplus_bottles == 0
 
     assert cellar.total_positions == 4
     assert cellar.occupied_positions == 4
@@ -103,13 +101,15 @@ def test_stock_reconstruction_and_global_aggregates() -> None:
     assert cellar.stocked_wines == 2
     assert cellar.wine_references == 2
     assert cellar.total_stock_bottles == 6
-    assert cellar.total_bottles_to_store == 2
-    assert cellar.inventory_error_wines == 1
-    assert cellar.inventory_error_count == 1
-    assert cellar.movement_warning_wines == 2
-    assert cellar.movement_warning_bottles == 4
-    assert cellar.orphaned_wine_positions == 1
-    assert cellar.orphaned_order_count == 1
+    assert cellar.unlocated_wines == 1
+    assert cellar.unlocated_bottles == 2
+    assert cellar.negative_movement_wines == 1
+    assert cellar.negative_movement_bottles == 3
+    assert cellar.physical_surplus_wines == 1
+    assert cellar.physical_surplus_bottles == 1
+    assert cellar.positions_without_rack == 0
+    assert cellar.positions_with_unknown_wine == 1
+    assert cellar.orders_without_wine == 1
 
 
 def test_incomplete_order_history_exposes_only_physical_facts() -> None:
@@ -130,8 +130,9 @@ def test_incomplete_order_history_exposes_only_physical_facts() -> None:
     assert stock.consumed is None
     assert stock.movement_balance is None
     assert stock.calculated_stock is None
-    assert stock.bottles_to_store is None
-    assert stock.movement_difference_bottles is None
+    assert stock.unlocated_bottles is None
+    assert stock.negative_movement_bottles is None
+    assert stock.physical_surplus_bottles is None
 
     assert cellar.total_bottles == 2
     assert cellar.total_positions == 2
@@ -140,12 +141,15 @@ def test_incomplete_order_history_exposes_only_physical_facts() -> None:
     assert cellar.orphaned_wine_positions == 1
     assert cellar.wine_references is None
     assert cellar.total_stock_bottles is None
-    assert cellar.total_bottles_to_store is None
-    assert cellar.inventory_error_wines is None
-    assert cellar.inventory_error_count is None
-    assert cellar.movement_warning_wines is None
-    assert cellar.movement_warning_bottles is None
-    assert cellar.orphaned_order_count is None
+    assert cellar.unlocated_wines is None
+    assert cellar.unlocated_bottles is None
+    assert cellar.negative_movement_wines is None
+    assert cellar.negative_movement_bottles is None
+    assert cellar.physical_surplus_wines is None
+    assert cellar.physical_surplus_bottles is None
+    assert cellar.positions_without_rack == 0
+    assert cellar.positions_with_unknown_wine == 1
+    assert cellar.orders_without_wine is None
 
 
 def test_version_six_complete_orders_migrate_offline_but_force_snapshot() -> None:
