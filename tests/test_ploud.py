@@ -348,8 +348,8 @@ def test_legacy_cache_without_orders_marks_stock_unknown() -> None:
     assert cellar.rack_items[item_id].wine_id == wine_id
     assert cellar.total_bottles == 1
     assert cellar.total_stock_bottles is None
-    assert cellar.total_bottles_to_store is None
-    assert cellar.stock_for(cellar.wines[wine_id]).bottles_to_store is None
+    assert cellar.unlocated_bottles is None
+    assert cellar.stock_for(cellar.wines[wine_id]).unlocated_bottles is None
 
 
 
@@ -396,6 +396,6 @@ def test_deleted_wine_keeps_historical_orders_as_orphans() -> None:
 
     assert unresolved == set()
     assert "historical-order" in cellar.orders
-    assert cellar.orphaned_order_count == 1
+    assert cellar.orders_without_wine == 1
     assert cellar.stock_for(cellar.wines["known-wine"]).movement_balance == 3
     assert cellar.total_stock_bottles == 3
