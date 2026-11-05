@@ -37,7 +37,7 @@ PYTHONPATH=custom_components pytest -q --cov=ploc_cellar --cov-report=term-missi
 pyright --project pyrightconfig.json
 ```
 
-The CI workflow installs the latest stable Home Assistant, runs the strict type checker and reports line coverage for the integration package. Coverage is reported rather than hidden behind a percentage gate: a threshold should only be introduced after the report has been reviewed and uncovered branches have been assessed, so that the suite is not incentivized to add low-value tests.
+The CI workflow installs the latest stable Home Assistant, runs the strict type checker and reports line coverage for the integration package. CI fails if total line coverage falls below **95%**. The threshold is applied to the complete integration package, not to individual modules; tests should continue to cover meaningful behavior rather than adding assertions solely to execute lines.
 
 ## Scope and limitations
 
