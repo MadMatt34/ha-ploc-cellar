@@ -59,7 +59,7 @@ La règle de reconstruction est :
 
 ```text
 effective_stock = max(0, movement_balance, bottles_in_cellar)
-bottles_to_store = effective_stock - bottles_in_cellar
+unlocated_bottles = max(0, effective_stock - bottles_in_cellar)
 ```
 
 Conséquences :
@@ -285,7 +285,7 @@ conservé comme historique de mouvements, notamment lorsqu'un vin a été suppri
 sans suppression correspondante de ses commandes. Il ne contribue au stock
 d'aucun vin connu, ne crée pas de référence Wine artificielle et ne déclenche
 pas de synchronisation complète à lui seul. Le compteur
-`orphaned_order_count` rend ces commandes visibles. Une suppression explicite
+`orders_without_wine` rend ces commandes visibles. Une suppression explicite
 de l'Order dans `DeletedObjects` reste appliquée normalement.
 
 Une référence vers un Owner absent du delta ou dont le champ de nom est
