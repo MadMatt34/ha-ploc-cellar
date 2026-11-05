@@ -43,7 +43,7 @@ jobs:
       - name: Run strict Pyright
         run: pyright --project pyrightconfig.json
       - name: Run unit tests with coverage
-        run: PYTHONPATH=custom_components pytest -q --cov=ploc_cellar --cov-report=term-missing --cov-report=xml
+        run: PYTHONPATH=custom_components pytest -q --cov=ploc_cellar --cov-report=term-missing --cov-report=xml --cov-fail-under=95
 
   hacs:
     name: HACS validation
