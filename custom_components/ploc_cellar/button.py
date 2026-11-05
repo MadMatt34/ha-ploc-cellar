@@ -14,7 +14,6 @@ from .coordinator import PlocCellarCoordinator
 from .models import Cellar
 from .types import PlocCellarConfigEntry
 
-
 _DEVICE_INFO = DeviceInfo(
     identifiers={(const.DOMAIN, "ploc_cellar")},
     translation_key="cellar",
