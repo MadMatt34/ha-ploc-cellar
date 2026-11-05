@@ -143,7 +143,11 @@ def test_authentication_rejects_non_object_json() -> None:
     session = _Session([_Response(200, ["not", "an", "object"])])
 
     with pytest.raises(auth.PlocAuthError, match="invalid JSON object"):
-        asyncio.run(auth._post_json(session, "https://example.test", "signin", {}, "sign-in"))
+        asyncio.run(
+            auth._post_json(
+                session, "https://example.test", "signin", {}, "sign-in"
+            )
+        )
 
 
 def test_authentication_requires_both_tokens() -> None:
