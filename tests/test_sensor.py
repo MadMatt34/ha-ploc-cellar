@@ -5,6 +5,7 @@ from datetime import UTC, datetime
 from types import SimpleNamespace
 from typing import cast
 
+from ploc_cellar.coordinator import PlocCellarCoordinator
 from ploc_cellar.models import Cellar, Order, Rack, RackItem, Wine
 from ploc_cellar.sensor import (
     SENSOR_DESCRIPTIONS,
@@ -13,7 +14,6 @@ from ploc_cellar.sensor import (
     _migrate_inventory_entity_id,
     _parse_last_sync,
 )
-from ploc_cellar.coordinator import PlocCellarCoordinator
 
 
 def _wine(wine_id: str, bottles_in_cellar: int) -> Wine:
