@@ -14,7 +14,7 @@ A Home Assistant custom integration for a **read-only** view of a PLOC wine cell
 - PLOUD remains the source of truth.
 - Read-only incremental synchronization through `POST https://ploud.ploc.co/v1/sync/exec`, using `Objects={}`.
 - Initial synchronization uses the validated bootstrap value `LastSyncTime=1`. Later synchronizations use the client-maintained Unix-millisecond cursor.
-- Persistent local model containing the `Wine` references returned by PLOUD, racks and rack positions. PLOUD's declared stock (`Wine.bo`) is retained as raw data. Effective stock is reconstructed from `Orders` movements and physically placed bottles (`RackItems`): `max(0, Orders balance, bottles in cellar)`. This rule reproduces the `Stock` column of the supplied reference CSV for all 116 wine references analyzed. Unplaced bottles (`bottles_to_store`) are the difference between this effective stock and the in-cellar quantity. Differences between the Order movement balance and the reconstructed effective stock are exposed as movement warnings; PLOUD data is never modified. Wine characteristics, including the winery name, are stored directly in each wine record. The `Owners` collection is used transiently to resolve owner UUIDs; no Owner lookup table is persisted. If an incremental Wine update references an Owner absent from the delta, or an Owner record without a display-name field, one full synchronization is requested to resolve it.
+- Persistent local model containing the `Wine` references returned by PLOUD, racks and rack positions. PLOUD's declared stock (`Wine.bo`) is retained as raw data. Effective stock is reconstructed from `Orders` movements and physically placed bottles (`RackItems`): `max(0, Orders balance, bottles in cellar)`. This rule reproduces the `Stock` column of the supplied reference CSV for all 116 wine references analyzed. Diagnostics are separated into unlocated stock (`unlocated_bottles`), negative movement balances (`negative_movement_bottles`) and physical surplus (`physical_surplus_bottles`). Unlocated stock means that the movement-derived stock exceeds the number of bottles assigned to rack positions; it does not prove a bottle was removed without a declared outgoing movement. PLOUD data is never modified. Wine characteristics, including the winery name, are stored directly in each wine record. The `Owners` collection is used transiently to resolve owner UUIDs; no Owner lookup table is persisted. If an incremental Wine update references an Owner absent from the delta, or an Owner record without a display-name field, one full synchronization is requested to resolve it.
 - One compact summary sensor; no entity is created for each wine, rack or position.
 - Detailed inventory is returned on demand by the `ploc_cellar.get_inventory` action.
 - UUIDs are normalized to their canonical lowercase form across Wine, Rack, RackItem, Order, Owner and deletion references; opaque non-UUID identifiers are trimmed without changing case.
@@ -75,18 +75,19 @@ Its attributes are:
 | `wine_references` | Number of references with positive effective stock (null until Orders are complete) |
 | `stocked_wines` | Number of wine references with at least one cellar position |
 | `total_stock_bottles` | Total reconstructed bottle count |
-| `bottles_to_store` | Number of unplaced bottles |
-| `inventory_error_wines` | Number of references with unplaced bottles |
-| `inventory_error_count` | Number of references with unplaced bottles |
-| `movement_warning_wines` | Number of references with movement anomalies |
-| `movement_warning_bottles` | Sum of absolute bottle discrepancies between movements and effective stock |
+| `unlocated_wines` | Number of references with stock not assigned to a rack position |
+| `unlocated_bottles` | Number of reconstructed bottles not assigned to a rack position |
+| `negative_movement_wines` | Number of references with a negative movement balance |
+| `negative_movement_bottles` | Sum of the absolute negative movement balances |
+| `physical_surplus_wines` | Number of references with more physical bottles than non-negative movement stock |
+| `physical_surplus_bottles` | Physical bottles above the non-negative movement stock |
 | `rack_count` | Number of racks |
 | `total_positions` | Total number of physical rack positions |
 | `empty_positions` | Number of empty rack positions |
 | `occupied_positions` | Number of positions with a non-empty `wine_id` |
-| `orphaned_rack_positions` | Number of positions referencing an unknown rack |
-| `orphaned_wine_positions` | Number of occupied positions referencing an unknown wine |
-| `orphaned_order_count` | Number of retained movements referencing an unknown wine |
+| `positions_without_rack` | Number of positions referencing an unknown rack |
+| `positions_with_unknown_wine` | Number of occupied positions referencing an unknown wine |
+| `orders_without_wine` | Number of retained movements referencing an unknown wine |
 | `stale` | Indicates that the latest synchronization failed |
 | `stock_reconstruction_complete` | Indicates whether a complete Orders snapshot is available |
 | `last_successful_sync` | Date and time of the last successful synchronization (ISO 8601) |
@@ -120,16 +121,16 @@ response_variable: cellar
 
 The response contains:
 
-- global totals: `total_bottles` counts all physically occupied positions; `stocked_wines` counts known Wine references with at least one position; `total_stock_bottles` also includes occupied positions whose Wine reference is temporarily unknown; `orphaned_order_count` counts retained movements for unknown or deleted wines (these movements are excluded from known-wine stock calculations); `bottles_to_store`, `inventory_error_wines` and `inventory_error_count` describe known unplaced bottles. These Orders-derived values are `null` while `stock_reconstruction_complete` is false;
-- `rack_count`, `total_positions`, `occupied_positions` and `empty_positions`, the number of racks and the position breakdown; `orphaned_rack_positions` and `orphaned_wine_positions` report temporarily unresolved Rack or Wine references;
+- global totals: `total_bottles` counts all physically occupied positions; `stocked_wines` counts known Wine references with at least one position; `total_stock_bottles` also includes occupied positions whose Wine reference is temporarily unknown; `orders_without_wine` counts retained movements for unknown or deleted wines (these movements are excluded from known-wine stock calculations); `unlocated_wines` and `unlocated_bottles` describe reconstructed stock not assigned to rack positions; `negative_movement_wines` and `negative_movement_bottles` describe negative movement balances; `physical_surplus_wines` and `physical_surplus_bottles` describe physical bottles above non-negative movement stock. These Orders-derived values are `null` while `stock_reconstruction_complete` is false;
+- `rack_count`, `total_positions`, `occupied_positions` and `empty_positions`, the number of racks and the position breakdown; `positions_without_rack` and `positions_with_unknown_wine` report temporarily unresolved Rack or Wine references;
 - `matching_wines`, the number of wines matching the filters;
 - `racks`, the list of racks;
 - `wines`, normally only wines with positive effective stock. If reconstruction is incomplete, only known wines with physical bottles in rack positions are returned; their stock-derived quantities and diagnostics are `null`, as are global stock-derived totals;
-- `movement_anomalies`, the dedicated list of references whose movements do not match effective stock, including zero-stock references; it is `null` while stock reconstruction is incomplete;
+- `wine_diagnostics`, the unfiltered list of all wines with at least one unlocated-stock, negative-movement or physical-surplus diagnostic, including wines with zero effective stock. Each entry includes purchased, consumed, movement balance, physical quantity, effective stock and all three diagnostic quantities. It is `null` while stock reconstruction is incomplete;
 - `stock_reconstruction_complete`, whether a complete Orders snapshot is available;
 - `last_sync`, the date and time of the last successful synchronization.
 
-`inventory_errors` contains `unplaced_bottles` when a reference has bottles that are not assigned to a rack. References with movement discrepancies are listed separately in `movement_anomalies`, including those with zero effective stock; they are therefore not included in the normal `wines` list. `movement_warning_wines` counts these references and `movement_warning_bottles` sums the absolute bottle differences between movement balance and effective stock. Raw `Wine.bo` values are informational and do not determine effective stock or movement anomalies. No correction is sent to PLOUD. Filters do not change the global totals. Each wine location contains its rack name and ID, plus row and column when available.
+For each wine, `unlocated_bottles` is the difference between effective stock and physical bottles in rack positions; `negative_movement_bottles` is the absolute value of a negative incoming-minus-outgoing balance; and `physical_surplus_bottles` is the number of physical bottles above `max(0, movement_balance)`. These are separate diagnostics and may coexist for the same wine. Unlocated stock does not prove that a bottle was removed without declaring an outgoing movement: the bottle may never have been placed or may be stored outside the cellar. Raw `Wine.bo` values are informational and do not determine effective stock. No correction is sent to PLOUD. Filters do not change global totals. Each wine location contains its rack name and ID, plus row and column when available.
 
 ### `ploc_cellar.sync`
 
