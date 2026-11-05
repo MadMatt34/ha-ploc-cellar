@@ -106,7 +106,11 @@ def test_load_without_saved_snapshot_keeps_empty_cellar() -> None:
 
 
 def test_load_restores_current_snapshot_without_rewriting_it() -> None:
-    stored = Cellar(cursor=123, initialized=True).to_storage()
+    stored = Cellar(
+        cursor=123,
+        initialized=True,
+        stock_reconstruction_complete=True,
+    ).to_storage()
     coordinator = _coordinator(store=_Store(stored))
 
     asyncio.run(coordinator.async_load())
