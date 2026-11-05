@@ -4,7 +4,6 @@ from __future__ import annotations
 from types import SimpleNamespace
 
 import pytest
-
 from ploc_cellar.language import (
     FRENCH_SPEAKING_COUNTRIES,
     get_default_ploud_language,
