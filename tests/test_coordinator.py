@@ -261,6 +261,7 @@ def test_full_sync_commits_only_a_complete_snapshot(
     original = Cellar(cursor=123, initialized=True)
     store = _FakeStore()
     coordinator = _coordinator(original, store)
+    coordinator._force_full_sync = True
     snapshot: PLOUDCollections = {
         "Wines": [],
         "Racks": [],
@@ -336,6 +337,7 @@ def test_invalid_full_snapshot_does_not_replace_cached_model(
     original = Cellar(cursor=123, initialized=True, stale=False)
     store = _FakeStore()
     coordinator = _coordinator(original, store)
+    coordinator._force_full_sync = True
 
     async def fake_sync(
         session: Any,
