@@ -166,10 +166,21 @@ def test_inventory_service_excludes_unstocked_wines_but_reports_anomalies() -> N
         wines={
             "stocked": _wine("stocked", name="Vin en cave"),
             "anomaly": _wine("anomaly", name="Vin anomalie"),
+            "physical": _wine("physical", name="Vin excédentaire"),
+        },
+        racks={"rack": Rack(id="rack", name="Cave")},
+        rack_items={
+            "physical-1": RackItem(
+                "physical-1", "rack", "physical", row=1, column=1
+            ),
+            "physical-2": RackItem(
+                "physical-2", "rack", "physical", row=1, column=2
+            ),
         },
         orders={
             "stocked-order": Order("stocked-order", "stocked", incoming=2, outgoing=0),
             "anomaly-order": Order("anomaly-order", "anomaly", incoming=0, outgoing=3),
+            "physical-order": Order("physical-order", "physical", incoming=1, outgoing=0),
         },
     )
 
@@ -180,7 +191,7 @@ def test_inventory_service_excludes_unstocked_wines_but_reports_anomalies() -> N
     assert [wine["id"] for wine in wines] == ["stocked"]
     assert result["matching_wines"] == 1
     diagnostics_by_id = {item["id"]: item for item in diagnostics}
-    assert set(diagnostics_by_id) == {"anomaly", "stocked"}
+    assert set(diagnostics_by_id) == {"anomaly", "physical", "stocked"}
     assert diagnostics_by_id["anomaly"]["movement_balance"] == -3
     assert diagnostics_by_id["anomaly"]["effective_stock"] == 0
     assert diagnostics_by_id["anomaly"]["negative_movement_bottles"] == 3
@@ -190,7 +201,13 @@ def test_inventory_service_excludes_unstocked_wines_but_reports_anomalies() -> N
     assert diagnostics_by_id["stocked"]["effective_stock"] == 2
     assert diagnostics_by_id["stocked"]["negative_movement_bottles"] == 0
     assert diagnostics_by_id["stocked"]["unlocated_bottles"] == 2
+    assert diagnostics_by_id["physical"]["movement_balance"] == 1
+    assert diagnostics_by_id["physical"]["bottles_in_cellar"] == 2
+    assert diagnostics_by_id["physical"]["effective_stock"] == 2
+    assert diagnostics_by_id["physical"]["physical_surplus_bottles"] == 1
     assert result["negative_movement_wines"] == 1
     assert result["negative_movement_bottles"] == 3
     assert result["unlocated_wines"] == 1
     assert result["unlocated_bottles"] == 2
+    assert result["physical_surplus_wines"] == 1
+    assert result["physical_surplus_bottles"] == 1
