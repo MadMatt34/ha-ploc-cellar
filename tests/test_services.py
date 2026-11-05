@@ -183,6 +183,7 @@ def test_inventory_service_excludes_unstocked_wines_but_reports_anomalies() -> N
             "physical-order": Order("physical-order", "physical", incoming=1, outgoing=0),
         },
     )
+    cellar.refresh_bottles_in_cellar()
 
     result = _response(cellar, search="vin en cave")
 
