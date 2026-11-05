@@ -5,6 +5,7 @@ from datetime import UTC, datetime
 from types import SimpleNamespace
 from typing import cast
 
+import pytest
 from ploc_cellar.coordinator import PlocCellarCoordinator
 from ploc_cellar.models import Cellar, Order, Rack, RackItem, Wine
 from ploc_cellar.sensor import (
