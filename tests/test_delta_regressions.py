@@ -174,7 +174,7 @@ def test_deleting_wine_frees_slot_but_keeps_order_history() -> None:
     assert cellar.occupied_positions == 0
     assert cellar.empty_positions == 1
     assert "order" in cellar.orders
-    assert cellar.orphaned_order_count is None
+    assert cellar.orders_without_wine is None
 
 
 def test_deleting_rack_removes_its_physical_positions() -> None:
