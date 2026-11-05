@@ -208,8 +208,8 @@ class PlocCellarCoordinator(DataUpdateCoordinator[Cellar]):
 
             if not full_sync and recovery_reason is None:
                 has_orphaned_positions = bool(
-                    updated_cellar.orphaned_rack_positions
-                    or updated_cellar.orphaned_wine_positions
+                    updated_cellar.positions_without_rack
+                    or updated_cellar.positions_with_unknown_wine
                 )
                 if unresolved_owner_ids or has_orphaned_positions:
                     reasons: list[str] = []
@@ -277,15 +277,21 @@ class PlocCellarCoordinator(DataUpdateCoordinator[Cellar]):
             _LOGGER.info(
                 "PLOUD %s sync applied: %d wines in cellar, %d bottles in "
                 "cellar; %d wine references with stock, %d total bottles; "
-                "%d movement-anomaly references (%d bottles discrepancy); "
+                "%d wines with unlocated stock (%d bottles); "
+                "%d wines with negative movement balance (%d bottles); "
+                "%d wines with physical surplus (%d bottles); "
                 "%d racks, %d occupied positions",
                 "full" if full_sync else "incremental",
                 updated_cellar.stocked_wines,
                 updated_cellar.total_bottles,
                 updated_cellar.wine_references,
                 updated_cellar.total_stock_bottles,
-                updated_cellar.movement_warning_wines,
-                updated_cellar.movement_warning_bottles,
+                updated_cellar.unlocated_wines,
+                updated_cellar.unlocated_bottles,
+                updated_cellar.negative_movement_wines,
+                updated_cellar.negative_movement_bottles,
+                updated_cellar.physical_surplus_wines,
+                updated_cellar.physical_surplus_bottles,
                 len(updated_cellar.racks),
                 updated_cellar.occupied_positions,
             )
