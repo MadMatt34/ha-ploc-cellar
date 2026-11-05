@@ -69,8 +69,6 @@ Conséquences :
   déjà placées.
 - Les mouvements déterminent le stock disponible lorsqu'ils dépassent le
   nombre de bouteilles placées.
-- Les bouteilles non placées sont la différence entre le stock effectif et
-  les positions occupées par ce vin.
 - `Wine.bo` n'intervient pas dans cette formule.
 
 ## 3. Invariants globaux de l'inventaire
@@ -85,17 +83,17 @@ Soit `R` l'ensemble de tous les `RackItems`.
 | `total_bottles` | `occupied_positions` |
 | `stocked_wines` | Nombre de références Wine connues ayant `bottles_in_cellar > 0` |
 | `wine_references` | Nombre de références Wine connues dont le stock effectif est positif |
-| `bottles_to_store` | Somme des bouteilles non placées de toutes les références Wine connues |
-| `total_stock_bottles` | Somme des stocks effectifs connus + `orphaned_wine_positions` |
+| `unlocated_bottles` | Somme des bouteilles du stock effectif qui ne sont pas affectées à un emplacement |
+| `total_stock_bottles` | Somme des stocks effectifs connus + `positions_with_unknown_wine` |
 | `rack_count` | Nombre de références Rack connues |
 
 Trois compteurs d'intégrité sont distincts :
 
-- `orphaned_rack_positions` compte les positions dont le `rack_id` ne
+- `positions_without_rack` compte les positions dont le `rack_id` ne
   correspond à aucun casier local connu.
-- `orphaned_wine_positions` compte les positions occupées dont le
+- `positions_with_unknown_wine` compte les positions occupées dont le
   `wine_id` ne correspond à aucune référence Wine locale connue.
-- `orphaned_order_count` compte les mouvements `Order` conservés dont le
+- `orders_without_wine` compte les mouvements `Order` conservés dont le
   `wine_id` ne correspond plus à une référence Wine locale connue.
 
 Une position orpheline de vin reste une bouteille physique : elle est incluse
@@ -108,45 +106,79 @@ jamais convertie silencieusement en emplacement vide.
 Les filtres de recherche et de couleur de l'action `get_inventory` ne
 modifient jamais les totaux globaux.
 
-## 4. Diagnostics séparés
+## 4. Diagnostics de stock et de cohérence
 
-Les bouteilles non placées et les écarts de mouvements sont deux diagnostics
-indépendants. Ils ne peuvent être calculés que lorsque l'historique Orders est
-complet. Avant cela, les quantités et compteurs qui en dépendent valent
-`null` ; la quantité physiquement placée reste connue.
+Les diagnostics dérivés des mouvements ne sont calculés que lorsque
+l'historique Orders est complet. Avant cela, leurs quantités et compteurs
+valent `null` ; les quantités physiquement placées et les références de
+positions restent connues.
 
-### 4.1 Bouteilles non placées
+### 4.1 Stock non localisé
 
-La référence reçoit le drapeau `unplaced_bottles` lorsque
-`bottles_to_store > 0`.
+Pour chaque vin :
 
-- `inventory_error_wines` compte les références concernées.
-- `inventory_error_count` compte les drapeaux d'erreur (une seule catégorie
-  actuellement).
-- `bottles_to_store` compte les bouteilles, et non les références.
+`unlocated_bottles = max(0, effective_stock - bottles_in_cellar)`.
 
-### 4.2 Écarts de mouvements
+- `unlocated_wines` compte les références ayant au moins une bouteille non
+  localisée.
+- `unlocated_bottles` compte le total de ces bouteilles.
 
-Une référence présente un avertissement lorsque :
+Ce diagnostic signifie que le stock reconstitué à partir des mouvements est
+supérieur au nombre de bouteilles affectées à des positions. Il ne prouve pas
+qu'une bouteille a été retirée sans mouvement de sortie : elle peut aussi
+n'avoir jamais été rangée ou être conservée hors de la cave.
 
-- `movement_balance < 0` : `negative_movement_balance` ;
-- `movement_balance != effective_stock` :
-  `movement_balance_mismatch`.
+### 4.2 Solde de mouvements négatif
 
-L'écart absolu est :
+Pour chaque vin :
 
-`movement_difference_bottles = abs(movement_balance - effective_stock)`.
+`negative_movement_bottles = max(0, -movement_balance)`.
 
-Les agrégats sont :
+- `negative_movement_wines` compte les références dont le solde de mouvements
+  est négatif.
+- `negative_movement_bottles` additionne la valeur absolue de ces soldes
+  négatifs.
 
-- `movement_warning_wines` : nombre de références présentant au moins un
-  avertissement ;
-- `movement_warning_bottles` : somme des écarts absolus pour ces références.
+Ce diagnostic signale un registre dans lequel les sorties dépassent les
+entrées. Il ne représente pas un nombre de bouteilles physiquement manquantes.
 
-Ce dernier chiffre est un indicateur d'écart, pas un nombre de bouteilles
-physiquement excédentaires. Les références à stock effectif nul restent
-présentes dans `movement_anomalies`, même si elles sont absentes de la liste
-normale `wines`.
+### 4.3 Excédent physique
+
+Pour chaque vin :
+
+`physical_surplus_bottles = max(0, bottles_in_cellar - calculated_stock)`.
+
+`calculated_stock` vaut `max(0, movement_balance)`. Les agrégats sont :
+
+- `physical_surplus_wines` compte les références dont le nombre de bouteilles
+  physiquement placées dépasse le stock non négatif calculé par les mouvements.
+- `physical_surplus_bottles` additionne ces bouteilles physiques excédentaires.
+
+Un excédent physique peut signaler une entrée non enregistrée ou un historique
+incomplet. Il peut coexister avec un solde de mouvements négatif pour une même
+référence ; les familles de diagnostics ne sont donc pas nécessairement
+mutuellement exclusives.
+
+### 4.4 Références non résolues
+
+- `positions_without_rack` compte les positions qui référencent un casier
+  inconnu.
+- `positions_with_unknown_wine` compte les positions occupées qui
+  référencent un vin inconnu.
+- `orders_without_wine` compte les commandes conservées dont le vin n'existe
+  plus dans les références locales. Une telle commande peut être un historique
+  normal après suppression d'un vin dans PLOUD.
+
+### 4.5 Détail des diagnostics
+
+L'action `get_inventory` expose `wine_diagnostics`, une liste non filtrée
+des vins qui présentent au moins un des trois diagnostics de stock :
+`unlocated_bottles`, `negative_movement_bottles` ou
+`physical_surplus_bottles`. Elle inclut également les vins à stock effectif
+nul. Chaque entrée fournit les quantités achetées et sorties, le solde des
+mouvements, la quantité physique, le stock effectif et les trois quantités de
+diagnostic. Cette liste vaut `null` tant que la reconstitution Orders est
+incomplète.
 
 ## 5. Règles de synchronisation PLOUD
 
@@ -330,9 +362,9 @@ mouvements sont temporairement indisponibles :
 - `total_bottles`, les positions occupées et les quantités physiquement
   placées restent exacts ;
 - `stock_reconstruction_complete` vaut `false` ;
-- `wine_references`, `total_stock_bottles`, `bottles_to_store`, les
-  compteurs d'erreurs d'inventaire, les compteurs d'anomalies de mouvements et
-  `orphaned_order_count` valent `null` ;
+- `wine_references`, `total_stock_bottles`, les compteurs de stock non localisé,
+  de mouvements négatifs et d'excédent physique, ainsi que `orders_without_wine`,
+  valent `null` ;
 - l'action `get_inventory` retourne les vins connus physiquement placés,
   mais laisse leurs champs calculés et diagnostics à `null` ;
 - un instantané PLOUD complet réussi marque le stock comme reconstitué et
