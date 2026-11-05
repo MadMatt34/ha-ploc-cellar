@@ -164,8 +164,6 @@ class PlocCellarMetricSensor(
     _attr_device_info = _DEVICE_INFO
     _attr_state_class = SensorStateClass.MEASUREMENT
 
-    entity_description: PlocCellarSensorDescription
-
     def __init__(
         self,
         coordinator: PlocCellarCoordinator,
@@ -173,7 +171,9 @@ class PlocCellarMetricSensor(
     ) -> None:
         """Initialize the sensor from its static description."""
         super().__init__(coordinator)
-        self.entity_description = description
+        self._description = description
+        # Suggest an untranslated, stable entity ID on new installations.
+        self.entity_id = f"sensor.{DOMAIN}_{description.translation_key}"
         self._attr_translation_key = description.translation_key
         self._attr_unique_id = description.unique_id
         self._attr_icon = description.icon
@@ -188,7 +188,7 @@ class PlocCellarMetricSensor(
     @property
     def native_value(self) -> int | None:  # pyright: ignore[reportIncompatibleVariableOverride]
         """Return the metric calculated by the current cellar model."""
-        return self.entity_description.value_fn(self.coordinator.data)
+        return self._description.value_fn(self.coordinator.data)
 
 
 class PlocCellarLastSyncSensor(
@@ -203,6 +203,11 @@ class PlocCellarLastSyncSensor(
     _attr_unique_id = SENSOR_DIAGNOSTIC_LAST_SUCCESSFUL_SYNC_UNIQUE_ID
     _attr_icon = "mdi:calendar-clock"
     _attr_device_class = SensorDeviceClass.TIMESTAMP
+
+    def __init__(self, coordinator: PlocCellarCoordinator) -> None:
+        """Initialize the timestamp sensor with its stable entity ID."""
+        super().__init__(coordinator)
+        self.entity_id = f"sensor.{DOMAIN}_diagnostic_last_successful_sync"
 
     @property
     def available(self) -> bool:  # pyright: ignore[reportIncompatibleVariableOverride]
@@ -228,7 +233,7 @@ def _migrate_inventory_entity_id(hass: HomeAssistant) -> None:
     )
     expected_previous_id = f"sensor.{DOMAIN}_inventory"
     new_entity_id = f"sensor.{DOMAIN}_bottles_in_stock"
-    if previous_entity_id != expected_previous_id:
+    if previous_entity_id is None or previous_entity_id != expected_previous_id:
         return
     if registry.async_get(new_entity_id) is not None:
         return
