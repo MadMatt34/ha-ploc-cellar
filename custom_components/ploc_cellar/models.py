@@ -94,10 +94,9 @@ class WineStock:
     calculated_stock: int | None
     # Before Orders are complete, this is only the known physical lower bound.
     effective_stock: int
-    bottles_to_store: int | None
-    movement_difference_bottles: int | None
-    inventory_errors: tuple[str, ...]
-    movement_warnings: tuple[str, ...]
+    unlocated_bottles: int | None
+    negative_movement_bottles: int | None
+    physical_surplus_bottles: int | None
 
 
 @dataclass(slots=True)
@@ -143,11 +142,11 @@ class Cellar:
             return None
         return sum(
             self.stock_for(wine).effective_stock for wine in self.wines.values()
-        ) + self.orphaned_wine_positions
+        ) + self.positions_with_unknown_wine
 
     @property
-    def orphaned_order_count(self) -> int | None:
-        """Return orphaned movements, or None before Orders are complete."""
+    def orders_without_wine(self) -> int | None:
+        """Return retained Orders whose Wine reference is unknown."""
         if not self.stock_reconstruction_complete:
             return None
         return sum(
@@ -191,14 +190,14 @@ class Cellar:
         return self.total_positions - self.occupied_positions
 
     @property
-    def orphaned_rack_positions(self) -> int:
+    def positions_without_rack(self) -> int:
         """Return positions whose referenced rack is not available locally."""
         return sum(
             item.rack_id not in self.racks for item in self.rack_items.values()
         )
 
     @property
-    def orphaned_wine_positions(self) -> int:
+    def positions_with_unknown_wine(self) -> int:
         """Return occupied positions whose Wine reference is unavailable."""
         return sum(
             bool(item.wine_id) and item.wine_id not in self.wines
@@ -206,13 +205,11 @@ class Cellar:
         )
 
     def stock_for(self, wine: Wine) -> WineStock:
-        """Reconstruct stock from movements, never below the physical cellar count.
+        """Reconstruct stock and keep its three diagnostic types independent.
 
-        PLOUD's Wine.bo can overstate the stock in the supplied cellar data.
-        The Android application's stock evaluation is reproduced by taking
-        the greater of the non-negative movement balance and the number of
-        bottles already assigned to rack positions. Before a complete Orders
-        snapshot is available, only the physical lower bound is known.
+        PLOUD's Wine.bo is informational only. The effective stock is the
+        greater of the non-negative movement balance and the physical cellar
+        count. A complete Orders snapshot is required for stock diagnostics.
         """
         if not self.stock_reconstruction_complete:
             return WineStock(
@@ -221,10 +218,9 @@ class Cellar:
                 movement_balance=None,
                 calculated_stock=None,
                 effective_stock=wine.bottles_in_cellar,
-                bottles_to_store=None,
-                movement_difference_bottles=None,
-                inventory_errors=(),
-                movement_warnings=(),
+                unlocated_bottles=None,
+                negative_movement_bottles=None,
+                physical_surplus_bottles=None,
             )
 
         purchased = 0
@@ -233,18 +229,10 @@ class Cellar:
             if order.wine_id == wine.id:
                 purchased += order.incoming
                 consumed += order.outgoing
+
         movement_balance = purchased - consumed
         calculated_stock = max(0, movement_balance)
         effective_stock = max(calculated_stock, wine.bottles_in_cellar)
-        bottles_to_store = effective_stock - wine.bottles_in_cellar
-
-        errors = ("unplaced_bottles",) if bottles_to_store > 0 else ()
-        movement_difference_bottles = abs(movement_balance - effective_stock)
-        warnings: list[str] = []
-        if movement_balance < 0:
-            warnings.append("negative_movement_balance")
-        if movement_balance != effective_stock:
-            warnings.append("movement_balance_mismatch")
 
         return WineStock(
             purchased=purchased,
@@ -252,38 +240,72 @@ class Cellar:
             movement_balance=movement_balance,
             calculated_stock=calculated_stock,
             effective_stock=effective_stock,
-            bottles_to_store=bottles_to_store,
-            movement_difference_bottles=movement_difference_bottles,
-            inventory_errors=errors,
-            movement_warnings=tuple(warnings),
+            unlocated_bottles=max(
+                0, effective_stock - wine.bottles_in_cellar
+            ),
+            negative_movement_bottles=max(0, -movement_balance),
+            physical_surplus_bottles=max(
+                0, wine.bottles_in_cellar - calculated_stock
+            ),
         )
 
     @property
-    def total_bottles_to_store(self) -> int | None:
-        """Return unplaced bottles, or None until Orders are complete."""
+    def unlocated_wines(self) -> int | None:
+        """Return the number of known wines with stock not assigned to a rack."""
         if not self.stock_reconstruction_complete:
             return None
         return sum(
-            self.stock_for(wine).bottles_to_store or 0 for wine in self.wines.values()
-        )
-
-    @property
-    def inventory_error_wines(self) -> int | None:
-        """Return unplaced references, or None until Orders are complete."""
-        if not self.stock_reconstruction_complete:
-            return None
-        return sum(
-            bool(self.stock_for(wine).inventory_errors)
+            (self.stock_for(wine).unlocated_bottles or 0) > 0
             for wine in self.wines.values()
         )
 
     @property
-    def inventory_error_count(self) -> int | None:
-        """Return inventory errors, or None until Orders are complete."""
+    def unlocated_bottles(self) -> int | None:
+        """Return all known bottles not assigned to a rack position."""
         if not self.stock_reconstruction_complete:
             return None
         return sum(
-            len(self.stock_for(wine).inventory_errors)
+            self.stock_for(wine).unlocated_bottles or 0
+            for wine in self.wines.values()
+        )
+
+    @property
+    def negative_movement_wines(self) -> int | None:
+        """Return the number of wines with a negative movement balance."""
+        if not self.stock_reconstruction_complete:
+            return None
+        return sum(
+            (self.stock_for(wine).negative_movement_bottles or 0) > 0
+            for wine in self.wines.values()
+        )
+
+    @property
+    def negative_movement_bottles(self) -> int | None:
+        """Return the absolute deficit represented by negative movement balances."""
+        if not self.stock_reconstruction_complete:
+            return None
+        return sum(
+            self.stock_for(wine).negative_movement_bottles or 0
+            for wine in self.wines.values()
+        )
+
+    @property
+    def physical_surplus_wines(self) -> int | None:
+        """Return the number of wines with more physical bottles than calculated."""
+        if not self.stock_reconstruction_complete:
+            return None
+        return sum(
+            (self.stock_for(wine).physical_surplus_bottles or 0) > 0
+            for wine in self.wines.values()
+        )
+
+    @property
+    def physical_surplus_bottles(self) -> int | None:
+        """Return physical bottles above the non-negative movement stock."""
+        if not self.stock_reconstruction_complete:
+            return None
+        return sum(
+            self.stock_for(wine).physical_surplus_bottles or 0
             for wine in self.wines.values()
         )
 
@@ -470,7 +492,7 @@ class Cellar:
                 cellar.orders[order.id] = order
 
         cellar.refresh_bottles_in_cellar()
-        if cellar.orphaned_rack_positions or cellar.orphaned_wine_positions:
+        if cellar.positions_without_rack or cellar.positions_with_unknown_wine:
             # Resolve legacy or interrupted RackItem references from a complete
             # PLOUD snapshot instead of continuing with an incomplete delta.
             cellar.cursor = 1
