@@ -64,7 +64,7 @@ Saving the options reloads the config entry. The PLOUD server endpoint cannot be
 
 ## Entities
 
-All 14 sensors are linked to the same **Ploc Cellar** device and updated by the same PLOUD coordinator. The integration does not create one entity per wine, rack or position.
+All 14 sensors and two synchronization buttons are linked to the same **Ploc Cellar** device and use the same PLOUD coordinator. The integration does not create one entity per wine, rack or position.
 
 | Family | Entity ID | Meaning |
 |---|---|---|
@@ -82,11 +82,22 @@ All 14 sensors are linked to the same **Ploc Cellar** device and updated by the 
 | Diagnostics | `sensor.ploc_cellar_diagnostic_bottles_physical_surplus` | Physical bottles above non-negative movement stock. |
 | Diagnostics | `sensor.ploc_cellar_diagnostic_wines_physical_surplus` | Wine references with a physical surplus. |
 | Diagnostics | `sensor.ploc_cellar_diagnostic_last_successful_sync` | Timestamp of the last successful synchronization; its `stale` attribute is true when a later synchronization has failed. |
+| Actions | `button.ploc_cellar_sync` | Triggers an immediate partial synchronization using the saved PLOUD cursor. |
+| Actions | `button.ploc_cellar_sync_full` | Forces a complete PLOUD snapshot and rebuilds the local inventory. |
 
 Movement-derived inventory and diagnostic sensors show `unknown` until a complete PLOUD `Orders` snapshot has been validated. Physical bottle and rack-position counts remain available. After a synchronization failure, the last successful timestamp is retained and the `stale` attribute on the last-sync sensor becomes true; a successful synchronization resets it to false.
 
 The existing inventory sensor unique ID is retained. On upgrade, the default entity ID `sensor.ploc_cellar_inventory` is migrated to `sensor.ploc_cellar_bottles_in_stock`; a user-customized entity ID is left unchanged.
 ## Actions
+
+### Synchronization buttons
+
+The two buttons are available on the **Ploc Cellar** device:
+
+- `button.ploc_cellar_sync`: applies changes since the last synchronization using the stored cursor.
+- `button.ploc_cellar_sync_full`: requests a complete PLOUD snapshot and rebuilds the local inventory. The existing validated inventory remains available until the new snapshot has been validated and persisted.
+
+They invoke the same coordinator operations as the `ploc_cellar.sync` and `ploc_cellar.sync_full` actions. Both can also be used from an automation with the standard `button.press` action.
 
 ### `ploc_cellar.get_inventory`
 

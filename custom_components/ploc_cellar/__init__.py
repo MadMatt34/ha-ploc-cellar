@@ -40,7 +40,7 @@ from .language import get_ploud_language
 from .models import Cellar
 from .types import GetInventoryServiceData, PlocCellarConfigEntry, SyncServiceData
 
-PLATFORMS: list[Platform] = [Platform.SENSOR]
+PLATFORMS: list[Platform] = [Platform.BUTTON, Platform.SENSOR]
 CONFIG_SCHEMA: Callable[[dict[str, Any]], dict[str, Any]] = cast(
     Callable[[dict[str, Any]], dict[str, Any]],
     cv.config_entry_only_config_schema(DOMAIN),  # pyright: ignore[reportUnknownMemberType]
