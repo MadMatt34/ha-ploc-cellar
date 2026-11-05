@@ -14,16 +14,17 @@ All PLOC/PLOUD HTTP calls in unit tests are replaced by deterministic response/s
 |---|---|
 | `test_auth.py` | Encrypted sign-in payload shape, PLOC account token, PLOUD activation, HTTP status classification, malformed responses and transport failures |
 | `test_config_flow_validation.py` | Email validation before authentication |
+| `test_config_flow.py` | Initial setup, existing-entry rejection, generated device identity, authentication errors and reauthentication token renewal |
 | `test_language.py` | Automatic language selection from HA country/language and explicit override precedence |
 | `test_ploud_transport.py` | Sync endpoint, timeout, HTTP/network failures, JSON shape, collection validation and cursor behavior |
 | `test_ploud.py` | PLOUD record parsing, identifiers, optional values, Owner resolution and malformed records |
 | `test_delta_regressions.py` | Partial-record merge, missing fields, deletions and full-snapshot semantics |
 | `test_models.py` | Stock calculations, diagnostics, storage serialization and integrity counters |
 | `test_storage_migrations.py` | Legacy schema migration, identifier normalization and invalid current storage |
-| `test_coordinator.py` | Verified persistence, recovery from incomplete deltas, full-snapshot validation, manual sync and transactional rollback |
+| `test_coordinator.py` | Verified persistence, incremental/full sync success and failure, recovery from incomplete deltas, snapshot validation, manual sync, authentication failure and transactional rollback |
 | `test_services.py` | Inventory filtering/response, diagnostics and service response contracts |
-| `test_integration_services.py` | Actual Home Assistant service registration, dispatch to the selected entry and invalid/unloaded-entry rejection |
-| `test_sensor.py` | Sensor descriptions, aggregate values, unknown values before Orders reconstruction and timestamp parsing |
+| `test_integration_services.py` | Home Assistant service registration/dispatch, config-entry setup validation, platform forwarding and unload lifecycle |
+| `test_sensor.py` | Sensor values and availability, unknown values before Orders reconstruction, timestamp/stale attributes, registry migration and platform entity creation |
 | `test_button.py` | Partial/full button mapping and propagation of synchronization failures |
 
 ## Local execution
