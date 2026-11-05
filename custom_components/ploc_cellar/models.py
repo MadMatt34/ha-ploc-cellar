@@ -159,27 +159,6 @@ class Cellar:
         return sum(wine.bottles_in_cellar > 0 for wine in self.wines.values())
 
     @property
-    def movement_warning_wines(self) -> int | None:
-        """Return movement anomalies, or None until Orders are complete."""
-        if not self.stock_reconstruction_complete:
-            return None
-        return sum(
-            bool(self.stock_for(wine).movement_warnings)
-            for wine in self.wines.values()
-        )
-
-    @property
-    def movement_warning_bottles(self) -> int | None:
-        """Return movement discrepancies, or None until Orders are complete."""
-        if not self.stock_reconstruction_complete:
-            return None
-        return sum(
-            self.stock_for(wine).movement_difference_bottles or 0
-            for wine in self.wines.values()
-            if self.stock_for(wine).movement_warnings
-        )
-
-    @property
     def total_positions(self) -> int:
         """Return all PLOUD RackItems, including positions with unresolved racks."""
         return len(self.rack_items)
