@@ -5,6 +5,8 @@ from datetime import UTC, datetime
 from types import SimpleNamespace
 from typing import cast
 
+import asyncio
+
 import pytest
 from ploc_cellar.coordinator import PlocCellarCoordinator
 from ploc_cellar.models import Cellar, Order, Rack, RackItem, Wine
@@ -14,6 +16,7 @@ from ploc_cellar.sensor import (
     PlocCellarMetricSensor,
     _migrate_inventory_entity_id,
     _parse_last_sync,
+    async_setup_entry,
 )
 
 
@@ -228,3 +231,39 @@ def test_inventory_entity_migration_does_not_overwrite_existing_target(
     _migrate_inventory_entity_id(object())
 
     assert registry.updated is False
+
+
+
+def test_sensor_platform_sets_up_all_fourteen_entities(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Platform setup adds thirteen metrics and the last-success timestamp."""
+    class _Registry:
+        def async_get_entity_id(
+            self, platform: object, domain: str, unique_id: str
+        ) -> None:
+            return None
+
+    monkeypatch.setattr(
+        "ploc_cellar.sensor.er.async_get",
+        lambda hass: _Registry(),
+    )
+    coordinator = cast(
+        PlocCellarCoordinator, SimpleNamespace(data=Cellar())
+    )
+    entry = SimpleNamespace(runtime_data=coordinator)
+    added: list[object] = []
+
+    asyncio.run(
+        async_setup_entry(
+            object(),
+            entry,
+            lambda entities: added.extend(entities),
+        )
+    )
+
+    assert len(added) == 14
+    assert added[0].entity_id == "sensor.ploc_cellar_bottles_in_stock"
+    assert added[-1].entity_id == (
+        "sensor.ploc_cellar_diagnostic_last_successful_sync"
+    )
