@@ -8,7 +8,6 @@ from typing import Any
 import pytest
 from homeassistant.config_entries import ConfigEntryState
 from homeassistant.exceptions import ServiceValidationError
-
 from ploc_cellar import async_setup
 from ploc_cellar.const import (
     DOMAIN,
