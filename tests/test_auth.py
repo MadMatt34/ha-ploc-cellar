@@ -7,7 +7,6 @@ from typing import Any
 
 import pytest
 from aiohttp import ClientError
-
 from ploc_cellar import auth
 
 
@@ -118,7 +117,11 @@ def test_authentication_classifies_transient_http_errors(status: int) -> None:
     session = _Session([_Response(status, {"message": "temporarily unavailable"})])
 
     with pytest.raises(auth.PlocConnectionError, match=f"HTTP {status}"):
-        asyncio.run(auth._post_json(session, "https://example.test", "signin", {}, "sign-in"))
+        asyncio.run(
+            auth._post_json(
+                session, "https://example.test", "signin", {}, "sign-in"
+            )
+        )
 
 
 def test_authentication_wraps_network_errors() -> None:
