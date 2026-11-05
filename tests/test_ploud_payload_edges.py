@@ -558,7 +558,7 @@ def test_untyped_deleted_id_removes_only_an_unambiguous_match() -> None:
     assert "shared-id" in cellar.racks
 
 
-def test_deleted_object_with_unknown_id_or_type_is_ignored() -> None:
+def test_unknown_deleted_type_uses_unambiguous_id_fallback() -> None:
     cellar = Cellar(wines={"wine-1": _wine()})
 
     apply_sync(
@@ -572,4 +572,4 @@ def test_deleted_object_with_unknown_id_or_type_is_ignored() -> None:
         2,
     )
 
-    assert "wine-1" in cellar.wines
+    assert "wine-1" not in cellar.wines
