@@ -20,11 +20,19 @@ def test_french_speaking_country_selects_french(country: str) -> None:
     assert get_default_ploud_language(hass) == "fr"
 
 
-@pytest.mark.parametrize("country", ["US", "GB", "DE", "JP", ""])
-def test_non_francophone_country_selects_language_from_ha(country: str) -> None:
-    """A non-francophone country falls back to HA's UI language."""
+@pytest.mark.parametrize("country", ["US", "GB", "DE", "JP"])
+def test_non_francophone_country_selects_english(country: str) -> None:
+    """A configured non-francophone country takes priority over UI language."""
     hass = SimpleNamespace(
         config=SimpleNamespace(country=country, language="fr-CA")
+    )
+    assert get_default_ploud_language(hass) == "en"
+
+
+def test_missing_country_uses_home_assistant_language() -> None:
+    """Without a country setting, the Home Assistant language is the fallback."""
+    hass = SimpleNamespace(
+        config=SimpleNamespace(country=None, language="fr-CA")
     )
     assert get_default_ploud_language(hass) == "fr"
 
