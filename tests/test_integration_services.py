@@ -2,18 +2,24 @@
 from __future__ import annotations
 
 import asyncio
+from datetime import timedelta
 from types import SimpleNamespace
 from typing import Any
 
 import pytest
 from homeassistant.config_entries import ConfigEntryState
-from homeassistant.exceptions import ServiceValidationError
-from ploc_cellar import async_setup
+from homeassistant.exceptions import HomeAssistantError, ServiceValidationError
+from ploc_cellar import async_setup, async_setup_entry, async_unload_entry
 from ploc_cellar.const import (
     DOMAIN,
     SERVICE_GET_INVENTORY,
     SERVICE_SYNC,
     SERVICE_SYNC_FULL,
+    CONF_DEVICE,
+    CONF_LANGUAGE,
+    CONF_SCAN_INTERVAL,
+    CONF_TOKEN,
+    PLOUD_DEFAULT_SERVER,
 )
 from ploc_cellar.models import Cellar
 
@@ -128,3 +134,98 @@ def test_services_reject_missing_wrong_or_unloaded_entries(entry: object) -> Non
 
     with pytest.raises(ServiceValidationError):
         asyncio.run(hass.services.handlers[SERVICE_SYNC](call))
+
+
+
+def test_setup_entry_loads_coordinator_and_forwards_platforms(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A valid config entry initializes one coordinator and forwards platforms."""
+    import ploc_cellar as integration
+
+    created: dict[str, Any] = {}
+    forwarded: list[object] = []
+
+    class _FakeCoordinator:
+        def __init__(
+            self,
+            hass: object,
+            entry: object,
+            session: object,
+            server: str,
+            token: str,
+            device: str,
+            language: str,
+            *,
+            scan_interval: timedelta,
+        ) -> None:
+            self.cellar = Cellar()
+            created["arguments"] = {
+                "server": server,
+                "token": token,
+                "device": device,
+                "language": language,
+                "scan_interval": scan_interval,
+            }
+
+        async def async_load(self) -> None:
+            return None
+
+        async def async_config_entry_first_refresh(self) -> None:
+            created["first_refresh"] = True
+
+    async def forward(entry: object, platforms: list[object]) -> None:
+        forwarded.extend(platforms)
+
+    monkeypatch.setattr(integration, "PlocCellarCoordinator", _FakeCoordinator)
+    monkeypatch.setattr(integration, "async_get_clientsession", lambda hass: object())
+    hass = SimpleNamespace(
+        config=SimpleNamespace(country="FR", language="fr"),
+        config_entries=SimpleNamespace(async_forward_entry_setups=forward),
+    )
+    entry = SimpleNamespace(
+        data={CONF_TOKEN: "access-token", CONF_DEVICE: "device-uuid"},
+        options={CONF_SCAN_INTERVAL: 240, CONF_LANGUAGE: "auto"},
+        entry_id="entry-1",
+    )
+
+    assert asyncio.run(async_setup_entry(hass, entry)) is True
+    assert entry.runtime_data.cellar.initialized is False
+    assert created["arguments"] == {
+        "server": PLOUD_DEFAULT_SERVER,
+        "token": "access-token",
+        "device": "device-uuid",
+        "language": "fr",
+        "scan_interval": timedelta(minutes=240),
+    }
+    assert created["first_refresh"] is True
+    assert len(forwarded) == 2
+
+
+def test_setup_entry_rejects_missing_credentials() -> None:
+    """An incomplete stored config entry fails before coordinator construction."""
+    hass = SimpleNamespace(
+        config=SimpleNamespace(country="FR", language="fr"),
+        config_entries=SimpleNamespace(),
+    )
+    entry = SimpleNamespace(data={}, options={}, entry_id="entry-1")
+
+    with pytest.raises(HomeAssistantError):
+        asyncio.run(async_setup_entry(hass, entry))
+
+
+def test_unload_entry_delegates_platform_unload() -> None:
+    """Unloading delegates to Home Assistant for both integration platforms."""
+    calls: list[object] = []
+
+    async def unload(entry: object, platforms: list[object]) -> bool:
+        calls.extend(platforms)
+        return True
+
+    hass = SimpleNamespace(
+        config_entries=SimpleNamespace(async_unload_platforms=unload)
+    )
+    entry = SimpleNamespace(entry_id="entry-1")
+
+    assert asyncio.run(async_unload_entry(hass, entry)) is True
+    assert len(calls) == 2
