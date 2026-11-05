@@ -4,7 +4,7 @@ from __future__ import annotations
 from dataclasses import replace
 
 import pytest
-from ploc_cellar.models import Cellar, Order, Rack, RackItem, Wine
+from ploc_cellar.models import Cellar, JsonObject, Order, Rack, RackItem, Wine
 from ploc_cellar.ploud import (
     PLOUDCollections,
     PloudError,
@@ -639,7 +639,7 @@ def test_owner_and_collection_records_reject_missing_or_duplicate_ids() -> None:
     with pytest.raises(PloudError, match="Owner without a valid ID"):
         apply_sync(Cellar(), {"Owners": [{"id": []}]}, 2)
 
-    duplicate_records: tuple[tuple[str, list[dict[str, object]]], ...] = (
+    duplicate_records: tuple[tuple[str, list[JsonObject]], ...] = (
         ("Owners", [{"id": "owner-1"}, {"id": "owner-1"}]),
         (
             "Wines",
