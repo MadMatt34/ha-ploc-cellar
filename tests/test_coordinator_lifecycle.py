@@ -3,12 +3,13 @@ from __future__ import annotations
 
 import asyncio
 from copy import deepcopy
+from datetime import timedelta
 from typing import Any, cast
 
 import pytest
 from homeassistant.exceptions import HomeAssistantError
 from ploc_cellar import coordinator as coordinator_module
-from ploc_cellar.const import CELLAR_DATA_VERSION
+from ploc_cellar.const import CELLAR_DATA_VERSION, DOMAIN
 from ploc_cellar.coordinator import PlocCellarCoordinator, UpdateFailed
 from ploc_cellar.models import Cellar, JsonValue
 from ploc_cellar.ploud import PLOUDCollections, PloudError
@@ -440,3 +441,99 @@ def test_manual_partial_sync_returns_latest_data_after_success() -> None:
     coordinator.async_refresh = fake_refresh
 
     assert asyncio.run(coordinator.async_force_sync()) is expected
+
+
+def test_coordinator_initializes_ha_refresh_and_entry_storage(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Construction wires the HA coordinator and entry-scoped atomic Store."""
+    captured: dict[str, Any] = {}
+    store = _Store()
+
+    def fake_base_init(self: Any, hass: Any, **kwargs: Any) -> None:
+        captured["hass"] = hass
+        captured["base_kwargs"] = kwargs
+
+    def fake_store(
+        hass: Any,
+        version: int,
+        key: str,
+        *,
+        atomic_writes: bool,
+    ) -> _Store:
+        captured["store_args"] = (hass, version, key, atomic_writes)
+        return store
+
+    monkeypatch.setattr(
+        coordinator_module.DataUpdateCoordinator,
+        "__init__",
+        fake_base_init,
+    )
+    monkeypatch.setattr(coordinator_module, "Store", fake_store)
+    hass = type("FakeHass", (), {"is_stopping": False})()
+    entry = type("FakeEntry", (), {"entry_id": "entry-42"})()
+
+    coordinator = PlocCellarCoordinator(
+        cast(Any, hass),
+        cast(Any, entry),
+        cast(Any, object()),
+        "https://ploud.example",
+        "access-token",
+        "device-identifier",
+        "fr",
+        timedelta(minutes=240),
+    )
+
+    assert captured["hass"] is hass
+    assert captured["base_kwargs"]["name"] == DOMAIN
+    assert captured["base_kwargs"]["update_interval"] == timedelta(minutes=240)
+    assert captured["base_kwargs"]["always_update"] is False
+    assert captured["store_args"] == (
+        hass,
+        coordinator_module.STORAGE_VERSION,
+        f"{DOMAIN}.cellar.entry-42",
+        True,
+    )
+    assert coordinator.store is store
+    assert coordinator.cellar.initialized is False
+    assert coordinator._force_full_sync is False
+
+
+def test_incomplete_fallback_snapshot_is_rejected_without_committing_delta(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A malformed recovery snapshot cannot replace the last committed cellar."""
+    original = Cellar(cursor=123, initialized=True)
+    coordinator = _coordinator(original)
+    calls: list[int] = []
+
+    async def fake_sync(
+        session: Any,
+        *,
+        server: str,
+        token: str,
+        device: str,
+        language: str,
+        cursor: int,
+    ) -> tuple[PLOUDCollections, int]:
+        calls.append(cursor)
+        if cursor == 1:
+            return {
+                **_empty_snapshot(),
+                "Wines": [{"id": "new-wine", "bottles": 1}],
+            }, 456
+        return {
+            "Wines": [{"id": "new-wine", "bottles": 1}],
+        }, 124
+
+    monkeypatch.setattr(coordinator_module, "async_sync", fake_sync)
+
+    with pytest.raises(UpdateFailed, match="incomplete records"):
+        asyncio.run(coordinator._async_update_data())
+
+    assert calls == [123, 1]
+    assert coordinator.cellar is original
+    assert coordinator.cellar.cursor == 123
+    assert coordinator.cellar.stale is True
+    assert coordinator._force_full_sync is True
+    assert coordinator.store.saved is None
