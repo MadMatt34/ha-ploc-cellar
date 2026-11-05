@@ -21,7 +21,8 @@ All PLOC/PLOUD HTTP calls in unit tests are replaced by deterministic response/s
 | `test_models.py` | Stock calculations, diagnostics, storage serialization and integrity counters |
 | `test_storage_migrations.py` | Legacy schema migration, identifier normalization and invalid current storage |
 | `test_coordinator.py` | Verified persistence, recovery from incomplete deltas, full-snapshot validation, manual sync and transactional rollback |
-| `test_services.py` | Inventory filtering/response, diagnostics, service validation and sync service behavior |
+| `test_services.py` | Inventory filtering/response, diagnostics and service response contracts |
+| `test_integration_services.py` | Actual Home Assistant service registration, dispatch to the selected entry and invalid/unloaded-entry rejection |
 | `test_sensor.py` | Sensor descriptions, aggregate values, unknown values before Orders reconstruction and timestamp parsing |
 | `test_button.py` | Partial/full button mapping and propagation of synchronization failures |
 
