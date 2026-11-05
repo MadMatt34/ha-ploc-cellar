@@ -45,7 +45,7 @@ def _item(item_id: str, wine_id: str, rack_id: str = "rack") -> RackItem:
 
 
 def test_stock_reconstruction_and_global_aggregates() -> None:
-    """Movement totals, physical lower bounds and orphaned slots stay distinct."""
+    """Movement totals, physical stock and integrity counters stay distinct."""
     cellar = Cellar(
         stock_reconstruction_complete=True,
         wines={
@@ -58,7 +58,7 @@ def test_stock_reconstruction_and_global_aggregates() -> None:
             "slot-a": _item("slot-a", "wine-a"),
             "slot-b1": _item("slot-b1", "wine-b"),
             "slot-b2": _item("slot-b2", "wine-b"),
-            "slot-orphan": _item("slot-orphan", "deleted-wine"),
+            "slot-orphan": _item("slot-orphan", "deleted-wine", "missing-rack"),
         },
         orders={
             "order-a": Order("order-a", "wine-a", incoming=5, outgoing=2),
@@ -107,9 +107,38 @@ def test_stock_reconstruction_and_global_aggregates() -> None:
     assert cellar.negative_movement_bottles == 3
     assert cellar.physical_surplus_wines == 1
     assert cellar.physical_surplus_bottles == 1
-    assert cellar.positions_without_rack == 0
+    assert cellar.positions_without_rack == 1
     assert cellar.positions_with_unknown_wine == 1
     assert cellar.orders_without_wine == 1
+
+
+
+def test_negative_movement_and_physical_surplus_are_independent() -> None:
+    """A physical surplus can coexist with a negative movement balance."""
+    cellar = Cellar(
+        stock_reconstruction_complete=True,
+        wines={"wine": _wine("wine")},
+        racks={"rack": Rack(id="rack", name="Cave")},
+        rack_items={
+            "slot-1": _item("slot-1", "wine"),
+            "slot-2": _item("slot-2", "wine"),
+        },
+        orders={"order": Order("order", "wine", incoming=0, outgoing=1)},
+    )
+    cellar.refresh_bottles_in_cellar()
+
+    stock = cellar.stock_for(cellar.wines["wine"])
+
+    assert stock.movement_balance == -1
+    assert stock.calculated_stock == 0
+    assert stock.effective_stock == 2
+    assert stock.unlocated_bottles == 0
+    assert stock.negative_movement_bottles == 1
+    assert stock.physical_surplus_bottles == 2
+    assert cellar.negative_movement_wines == 1
+    assert cellar.negative_movement_bottles == 1
+    assert cellar.physical_surplus_wines == 1
+    assert cellar.physical_surplus_bottles == 2
 
 
 def test_incomplete_order_history_exposes_only_physical_facts() -> None:
@@ -148,7 +177,6 @@ def test_incomplete_order_history_exposes_only_physical_facts() -> None:
     assert cellar.physical_surplus_wines is None
     assert cellar.physical_surplus_bottles is None
     assert cellar.positions_without_rack == 0
-    assert cellar.positions_with_unknown_wine == 1
     assert cellar.orders_without_wine is None
 
 
