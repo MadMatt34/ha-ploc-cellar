@@ -102,7 +102,7 @@ def test_user_step_creates_entry_with_generated_device_uuid(
         return "ploud-access-token"
 
     async def set_unique_id(self: ConfigFlow, unique_id: str) -> None:
-        self.unique_id = unique_id
+        assert unique_id == str(expected_device)
 
     monkeypatch.setattr(flow_module, "async_authenticate", authenticate)
     monkeypatch.setattr(ConfigFlow, "async_set_unique_id", set_unique_id)
