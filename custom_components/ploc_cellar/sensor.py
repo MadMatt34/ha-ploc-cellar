@@ -1,56 +1,245 @@
-"""Single aggregate cellar sensor."""
-from functools import cached_property
+"""Expose the cellar inventory as focused sensors."""
+from __future__ import annotations
 
-from homeassistant.components.sensor import SensorEntity
+from collections.abc import Callable
+from dataclasses import dataclass
+from datetime import datetime
+
+from homeassistant.components.sensor import (
+    SensorDeviceClass,
+    SensorEntity,
+    SensorStateClass,
+)
+from homeassistant.const import EntityCategory, Platform
 from homeassistant.core import HomeAssistant
+from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
+from homeassistant.util import dt as dt_util
 
-from .const import DOMAIN, SENSOR_UNIQUE_ID
+from .const import (
+    DOMAIN,
+    SENSOR_BOTTLES_STOCK_TOTAL_UNIQUE_ID,
+    SENSOR_DIAGNOSTIC_BOTTLES_NEGATIVE_MOVEMENTS_UNIQUE_ID,
+    SENSOR_DIAGNOSTIC_BOTTLES_PHYSICAL_SURPLUS_UNIQUE_ID,
+    SENSOR_DIAGNOSTIC_BOTTLES_UNALOCATED_UNIQUE_ID,
+    SENSOR_DIAGNOSTIC_LAST_SUCCESSFUL_SYNC_UNIQUE_ID,
+    SENSOR_DIAGNOSTIC_WINES_NEGATIVE_MOVEMENTS_UNIQUE_ID,
+    SENSOR_DIAGNOSTIC_WINES_PHYSICAL_SURPLUS_UNIQUE_ID,
+    SENSOR_DIAGNOSTIC_WINES_UNLOCATED_UNIQUE_ID,
+    SENSOR_RACK_COUNT_UNIQUE_ID,
+    SENSOR_RACK_POSITIONS_AVAILABLE_UNIQUE_ID,
+    SENSOR_RACK_POSITIONS_TOTAL_UNIQUE_ID,
+    SENSOR_UNIQUE_ID,
+    SENSOR_WINES_IN_STOCK_UNIQUE_ID,
+    SENSOR_WINES_REFERENCES_UNIQUE_ID,
+)
 from .coordinator import PlocCellarCoordinator
+from .models import Cellar
 from .types import PlocCellarConfigEntry
 
 
-class PlocCellarSensor(CoordinatorEntity[PlocCellarCoordinator], SensorEntity):
-    """Expose a compact cellar summary, not one entity per wine or rack."""
+@dataclass(frozen=True, slots=True)
+class PlocCellarSensorDescription:
+    """Describe one numeric value exposed by the cellar model."""
+
+    translation_key: str
+    unique_id: str
+    value_fn: Callable[[Cellar], int | None]
+    icon: str
+    entity_category: EntityCategory | None = None
+
+
+_DEVICE_INFO = DeviceInfo(
+    identifiers={(DOMAIN, "ploc_cellar")},
+    translation_key="cellar",
+    manufacturer="PLOC",
+)
+
+SENSOR_DESCRIPTIONS: tuple[PlocCellarSensorDescription, ...] = (
+    PlocCellarSensorDescription(
+        "bottles_in_stock",
+        SENSOR_UNIQUE_ID,
+        lambda cellar: cellar.total_bottles,
+        "mdi:bottle-wine",
+    ),
+    PlocCellarSensorDescription(
+        "bottles_stock_total",
+        SENSOR_BOTTLES_STOCK_TOTAL_UNIQUE_ID,
+        lambda cellar: cellar.total_stock_bottles,
+        "mdi:archive",
+    ),
+    PlocCellarSensorDescription(
+        "wines_references",
+        SENSOR_WINES_REFERENCES_UNIQUE_ID,
+        lambda cellar: cellar.wine_references,
+        "mdi:book-open-variant",
+    ),
+    PlocCellarSensorDescription(
+        "wines_in_stock",
+        SENSOR_WINES_IN_STOCK_UNIQUE_ID,
+        lambda cellar: cellar.stocked_wines,
+        "mdi:bottle-wine-outline",
+    ),
+    PlocCellarSensorDescription(
+        "rack_count",
+        SENSOR_RACK_COUNT_UNIQUE_ID,
+        lambda cellar: len(cellar.racks),
+        "mdi:archive-outline",
+    ),
+    PlocCellarSensorDescription(
+        "rack_positions_total",
+        SENSOR_RACK_POSITIONS_TOTAL_UNIQUE_ID,
+        lambda cellar: cellar.total_positions,
+        "mdi:grid",
+    ),
+    PlocCellarSensorDescription(
+        "rack_positions_available",
+        SENSOR_RACK_POSITIONS_AVAILABLE_UNIQUE_ID,
+        lambda cellar: cellar.empty_positions,
+        "mdi:grid-large",
+    ),
+    PlocCellarSensorDescription(
+        "diagnostic_bottles_unalocated",
+        SENSOR_DIAGNOSTIC_BOTTLES_UNALOCATED_UNIQUE_ID,
+        lambda cellar: cellar.unlocated_bottles,
+        "mdi:alert-circle-outline",
+        EntityCategory.DIAGNOSTIC,
+    ),
+    PlocCellarSensorDescription(
+        "diagnostic_wines_unlocated",
+        SENSOR_DIAGNOSTIC_WINES_UNLOCATED_UNIQUE_ID,
+        lambda cellar: cellar.unlocated_wines,
+        "mdi:alert-circle-outline",
+        EntityCategory.DIAGNOSTIC,
+    ),
+    PlocCellarSensorDescription(
+        "diagnostic_bottles_negative_movements",
+        SENSOR_DIAGNOSTIC_BOTTLES_NEGATIVE_MOVEMENTS_UNIQUE_ID,
+        lambda cellar: cellar.negative_movement_bottles,
+        "mdi:trending-down",
+        EntityCategory.DIAGNOSTIC,
+    ),
+    PlocCellarSensorDescription(
+        "diagnostic_wines_negative_movements",
+        SENSOR_DIAGNOSTIC_WINES_NEGATIVE_MOVEMENTS_UNIQUE_ID,
+        lambda cellar: cellar.negative_movement_wines,
+        "mdi:trending-down",
+        EntityCategory.DIAGNOSTIC,
+    ),
+    PlocCellarSensorDescription(
+        "diagnostic_bottles_physical_surplus",
+        SENSOR_DIAGNOSTIC_BOTTLES_PHYSICAL_SURPLUS_UNIQUE_ID,
+        lambda cellar: cellar.physical_surplus_bottles,
+        "mdi:alert-outline",
+        EntityCategory.DIAGNOSTIC,
+    ),
+    PlocCellarSensorDescription(
+        "diagnostic_wines_physical_surplus",
+        SENSOR_DIAGNOSTIC_WINES_PHYSICAL_SURPLUS_UNIQUE_ID,
+        lambda cellar: cellar.physical_surplus_wines,
+        "mdi:alert-outline",
+        EntityCategory.DIAGNOSTIC,
+    ),
+)
+
+
+def _parse_last_sync(value: str | None) -> datetime | None:
+    """Parse the stored ISO 8601 timestamp, requiring timezone information."""
+    if value is None:
+        return None
+    parsed = dt_util.parse_datetime(value)
+    if parsed is None or parsed.tzinfo is None:
+        return None
+    return parsed
+
+
+class PlocCellarMetricSensor(
+    CoordinatorEntity[PlocCellarCoordinator], SensorEntity
+):
+    """Expose one inventory, rack or stock-diagnostic metric."""
 
     _attr_has_entity_name = True
-    _attr_translation_key = "inventory"
-    _attr_icon = "mdi:bottle-wine"
-    _attr_device_info = DeviceInfo(
-        identifiers={(DOMAIN, "ploc_cellar")},
-        translation_key="cellar",
-        manufacturer="PLOC",
-    )
+    _attr_device_info = _DEVICE_INFO
+    _attr_state_class = SensorStateClass.MEASUREMENT
 
-    def __init__(self, coordinator: PlocCellarCoordinator) -> None:
-        """Initialize the aggregate sensor."""
+    def __init__(
+        self,
+        coordinator: PlocCellarCoordinator,
+        description: PlocCellarSensorDescription,
+    ) -> None:
+        """Initialize the sensor from its static description."""
         super().__init__(coordinator)
-        self._attr_unique_id = SENSOR_UNIQUE_ID
+        self._description = description
+        # Suggest an untranslated, stable entity ID on new installations.
+        self.entity_id = f"sensor.{DOMAIN}_{description.translation_key}"
+        self._attr_translation_key = description.translation_key
+        self._attr_unique_id = description.unique_id
+        self._attr_icon = description.icon
+        if description.entity_category is not None:
+            self._attr_entity_category = description.entity_category
 
     @property
     def available(self) -> bool:  # pyright: ignore[reportIncompatibleVariableOverride]
-        """Keep the last persisted totals visible during a PLOUD outage."""
-        # Setup guarantees a successful first refresh or a restored cellar snapshot.
+        """Keep the persisted model available while PLOUD is unreachable."""
         return True
 
-    @cached_property
-    def native_value(self) -> int:
-        """Return the total number of bottles."""
-        return self.coordinator.data.total_bottles
+    @property
+    def native_value(self) -> int | None:  # pyright: ignore[reportIncompatibleVariableOverride]
+        """Return the metric calculated by the current cellar model."""
+        return self._description.value_fn(self.coordinator.data)
 
-    @cached_property
-    def extra_state_attributes(self) -> dict[str, int | bool | str | None]:
-        """Expose aggregate attributes and the last successful synchronization."""
-        cellar = self.coordinator.data
-        return {
-            "stocked_wines": cellar.stocked_wines,
-            "rack_count": len(cellar.racks),
-            "occupied_positions": cellar.occupied_positions,
-            "stale": cellar.stale,
-            "last_successful_sync": cellar.last_sync,
-        }
+
+class PlocCellarLastSyncSensor(
+    CoordinatorEntity[PlocCellarCoordinator], SensorEntity
+):
+    """Expose the last successful synchronization and its stale status."""
+
+    _attr_has_entity_name = True
+    _attr_device_info = _DEVICE_INFO
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
+    _attr_translation_key = "diagnostic_last_successful_sync"
+    _attr_unique_id = SENSOR_DIAGNOSTIC_LAST_SUCCESSFUL_SYNC_UNIQUE_ID
+    _attr_icon = "mdi:calendar-clock"
+    _attr_device_class = SensorDeviceClass.TIMESTAMP
+
+    def __init__(self, coordinator: PlocCellarCoordinator) -> None:
+        """Initialize the timestamp sensor with its stable entity ID."""
+        super().__init__(coordinator)
+        self.entity_id = f"sensor.{DOMAIN}_diagnostic_last_successful_sync"
+
+    @property
+    def available(self) -> bool:  # pyright: ignore[reportIncompatibleVariableOverride]
+        """Keep the last successful timestamp visible during a PLOUD outage."""
+        return True
+
+    @property
+    def native_value(self) -> datetime | None:  # pyright: ignore[reportIncompatibleVariableOverride]
+        """Return the timestamp of the last validated and persisted sync."""
+        return _parse_last_sync(self.coordinator.data.last_sync)
+
+    @property
+    def extra_state_attributes(self) -> dict[str, bool]:  # pyright: ignore[reportIncompatibleVariableOverride]
+        """Expose whether the currently displayed snapshot may be outdated."""
+        return {"stale": self.coordinator.data.stale}
+
+
+def _migrate_inventory_entity_id(hass: HomeAssistant) -> None:
+    """Rename the former summary entity without changing its unique ID."""
+    registry = er.async_get(hass)
+    previous_entity_id = registry.async_get_entity_id(
+        Platform.SENSOR, DOMAIN, SENSOR_UNIQUE_ID
+    )
+    expected_previous_id = f"sensor.{DOMAIN}_inventory"
+    new_entity_id = f"sensor.{DOMAIN}_bottles_in_stock"
+    if previous_entity_id is None or previous_entity_id != expected_previous_id:
+        return
+    if registry.async_get(new_entity_id) is not None:
+        return
+    registry.async_update_entity(
+        previous_entity_id, new_entity_id=new_entity_id
+    )
 
 
 async def async_setup_entry(
@@ -58,5 +247,12 @@ async def async_setup_entry(
     entry: PlocCellarConfigEntry,
     async_add_entities: AddEntitiesCallback,
 ) -> None:
-    """Set up the one aggregate sensor."""
-    async_add_entities([PlocCellarSensor(entry.runtime_data)])
+    """Set up all inventory and diagnostic sensors on the cellar device."""
+    _migrate_inventory_entity_id(hass)
+    coordinator = entry.runtime_data
+    entities: list[SensorEntity] = [
+        PlocCellarMetricSensor(coordinator, description)
+        for description in SENSOR_DESCRIPTIONS
+    ]
+    entities.append(PlocCellarLastSyncSensor(coordinator))
+    async_add_entities(entities)

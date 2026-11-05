@@ -33,6 +33,7 @@ from .const import (
     PLOUD_DEFAULT_SERVER,
     SERVICE_GET_INVENTORY,
     SERVICE_SYNC,
+    SERVICE_SYNC_FULL,
 )
 from .coordinator import PlocCellarCoordinator
 from .language import get_ploud_language
@@ -93,20 +94,65 @@ def _build_inventory_response(
     normalized_search = search.casefold().strip()
     normalized_color = color.casefold().strip()
     inventory: list[JsonValueType] = []
+    wine_diagnostics: list[JsonValueType] | None = (
+        [] if cellar.stock_reconstruction_complete else None
+    )
+
+    if wine_diagnostics is not None:
+        for wine in sorted(
+            cellar.wines.values(),
+            key=lambda item: (item.name.casefold(), item.vintage or 0),
+        ):
+            stock = cellar.stock_for(wine)
+            unlocated = stock.unlocated_bottles or 0
+            negative = stock.negative_movement_bottles or 0
+            physical_surplus = stock.physical_surplus_bottles or 0
+            if not (unlocated or negative or physical_surplus):
+                continue
+            wine_diagnostics.append(
+                {
+                    "id": wine.id,
+                    "name": wine.name,
+                    "domain": wine.domain,
+                    "vintage": wine.vintage,
+                    "purchased": stock.purchased,
+                    "consumed": stock.consumed,
+                    "movement_balance": stock.movement_balance,
+                    "bottles_in_cellar": wine.bottles_in_cellar,
+                    "effective_stock": stock.effective_stock,
+                    "unlocated_bottles": stock.unlocated_bottles,
+                    "negative_movement_bottles": (
+                        stock.negative_movement_bottles
+                    ),
+                    "physical_surplus_bottles": (
+                        stock.physical_surplus_bottles
+                    ),
+                }
+            )
 
     stocked_wines = sorted(
-        (wine for wine in cellar.wines.values() if wine.bottles > 0),
+        (
+            wine
+            for wine in cellar.wines.values()
+            if (
+                cellar.stock_for(wine).effective_stock > 0
+                if cellar.stock_reconstruction_complete
+                else wine.bottles_in_cellar > 0
+            )
+        ),
         key=lambda wine: (wine.name.casefold(), wine.vintage or 0),
     )
     for wine in stocked_wines:
         searchable = " ".join(
             (
                 wine.name,
+                wine.domain or "",
                 wine.appellation or "",
                 wine.region or "",
                 wine.country or "",
                 wine.grapes or "",
                 wine.cuvee or "",
+                wine.comment or "",
             )
         ).casefold()
         if normalized_search and normalized_search not in searchable:
@@ -114,6 +160,7 @@ def _build_inventory_response(
         if normalized_color and normalized_color not in (wine.color or "").casefold():
             continue
 
+        stock = cellar.stock_for(wine)
         locations: list[JsonValueType] = [
             {
                 "rack": cellar.racks[item.rack_id].name,
@@ -128,7 +175,30 @@ def _build_inventory_response(
             {
                 "id": wine.id,
                 "name": wine.name,
-                "bottles": wine.bottles,
+                "domain": wine.domain,
+                "bottles": (
+                    stock.effective_stock
+                    if cellar.stock_reconstruction_complete
+                    else None
+                ),
+                "effective_stock": (
+                    stock.effective_stock
+                    if cellar.stock_reconstruction_complete
+                    else None
+                ),
+                "ploud_bottles": wine.bottles,
+                "bottles_in_cellar": wine.bottles_in_cellar,
+                "unlocated_bottles": stock.unlocated_bottles,
+                "purchased": stock.purchased,
+                "consumed": stock.consumed,
+                "movement_balance": stock.movement_balance,
+                "calculated_stock": stock.calculated_stock,
+                "negative_movement_bottles": (
+                    stock.negative_movement_bottles
+                ),
+                "physical_surplus_bottles": (
+                    stock.physical_surplus_bottles
+                ),
                 "vintage": wine.vintage,
                 "appellation": wine.appellation,
                 "color": wine.color,
@@ -141,6 +211,10 @@ def _build_inventory_response(
                 "country": wine.country,
                 "grapes": wine.grapes,
                 "cuvee": wine.cuvee,
+                "comment": wine.comment,
+                "alcohol_percent": wine.alcohol_percent,
+                "service_temperature_min": wine.service_temperature_min,
+                "service_temperature_max": wine.service_temperature_max,
                 "bottle_format": wine.bottle_format,
                 "bottle_volume_l": wine.bottle_volume_l,
                 "ploud_pid": wine.ploud_pid,
@@ -154,9 +228,24 @@ def _build_inventory_response(
     return {
         "total_bottles": cellar.total_bottles,
         "stocked_wines": cellar.stocked_wines,
+        "wine_references": cellar.wine_references,
+        "total_stock_bottles": cellar.total_stock_bottles,
+        "stock_reconstruction_complete": cellar.stock_reconstruction_complete,
+        "total_positions": cellar.total_positions,
+        "empty_positions": cellar.empty_positions,
+        "unlocated_wines": cellar.unlocated_wines,
+        "unlocated_bottles": cellar.unlocated_bottles,
+        "negative_movement_wines": cellar.negative_movement_wines,
+        "negative_movement_bottles": cellar.negative_movement_bottles,
+        "physical_surplus_wines": cellar.physical_surplus_wines,
+        "physical_surplus_bottles": cellar.physical_surplus_bottles,
+        "wine_diagnostics": wine_diagnostics,
         "matching_wines": len(inventory),
         "rack_count": len(cellar.racks),
         "occupied_positions": cellar.occupied_positions,
+        "positions_without_rack": cellar.positions_without_rack,
+        "positions_with_unknown_wine": cellar.positions_with_unknown_wine,
+        "orders_without_wine": cellar.orders_without_wine,
         "racks": racks,
         "wines": inventory,
         "last_sync": cellar.last_sync,
@@ -197,6 +286,21 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
         DOMAIN,
         SERVICE_SYNC,
         sync_service,
+        schema=SYNC_SCHEMA,
+    )
+
+    async def sync_full_service(call: ServiceCall) -> None:
+        """Trigger a complete PLOUD synchronization."""
+        service_data = cast(SyncServiceData, call.data)
+        coordinator = _get_coordinator(
+            hass, service_data["config_entry_id"]
+        )
+        await coordinator.async_force_full_sync()
+
+    hass.services.async_register(  # pyright: ignore[reportUnknownMemberType]
+        DOMAIN,
+        SERVICE_SYNC_FULL,
+        sync_full_service,
         schema=SYNC_SCHEMA,
     )
     return True

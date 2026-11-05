@@ -4,8 +4,10 @@ from __future__ import annotations
 import base64
 import hashlib
 import hmac
+import logging
 import math
 import time
+from dataclasses import replace
 from typing import cast
 
 from aiohttp import ClientError, ClientSession, ClientTimeout, FormData
@@ -13,25 +15,38 @@ from homeassistant.util.json import JsonValueType
 
 from .const import (
     PLOUD_COLLECTION_DELETED,
+    PLOUD_COLLECTION_ORDERS,
+    PLOUD_COLLECTION_OWNERS,
     PLOUD_COLLECTION_RACK_ITEMS,
     PLOUD_COLLECTION_RACKS,
     PLOUD_COLLECTION_WINES,
     PLOUD_HMAC_KEY,
-    PLOUD_REFERENCE_COLLECTIONS,
     PLOUD_SUPPORTED_COLLECTIONS,
     PLOUD_SYNC_METHOD,
     PLOUD_SYNC_PATH,
     PLOUD_VERSION,
 )
-from .models import Cellar, JsonObject, Rack, RackItem, Wine
+from .models import (
+    Cellar,
+    JsonObject,
+    Order,
+    Rack,
+    RackItem,
+    Wine,
+    normalize_identifier,
+)
 
-REFERENCE_COLLECTIONS = PLOUD_REFERENCE_COLLECTIONS
 type PLOUDCollections = dict[str, list[JsonObject]]
-type PLOUDReferences = dict[str, dict[str, JsonObject]]
+
+_LOGGER = logging.getLogger(__name__)
 
 
 class PloudError(Exception):
     """PLOUD communication or payload error."""
+
+
+class PloudIncompleteDelta(PloudError):
+    """A new or updated delta record lacks fields needed to apply it safely."""
 
 
 def _as_json_object(value: object) -> JsonObject | None:
@@ -89,11 +104,6 @@ def _int(value: object) -> int | None:
     return None
 
 
-def _text(value: object) -> str | None:
-    """Return a string value."""
-    return value if isinstance(value, str) else None
-
-
 def _float(value: object) -> float | None:
     """Parse a finite floating-point value."""
     if isinstance(value, bool):
@@ -107,102 +117,344 @@ def _float(value: object) -> float | None:
     return None
 
 
-def _lookup(
-    references: PLOUDReferences, collection: str, identifier: object
-) -> JsonObject | None:
-    """Resolve a PLOUD reference identifier."""
-    if identifier is None:
+def _optional_text(value: object) -> str | None:
+    """Return normalized optional text, treating empty strings as missing."""
+    if not isinstance(value, str):
         return None
-    return references.get(collection, {}).get(str(identifier))
+    normalized = value.strip()
+    return normalized or None
 
 
-def _label(
-    references: PLOUDReferences, collection: str, identifier: object
+def _source_field(
+    raw: JsonObject,
+    fields: JsonObject,
+    *names: str,
+) -> tuple[bool, object]:
+    """Read a field while distinguishing omission from an explicit empty value."""
+    found = False
+    fallback: object = None
+    for source in (raw, fields):
+        for name in names:
+            if name not in source:
+                continue
+            found = True
+            fallback = source[name]
+            if fallback is not None and not (
+                isinstance(fallback, str) and not fallback.strip()
+            ):
+                return True, fallback
+    return found, fallback
+
+
+def _source_value(
+    raw: JsonObject,
+    fields: JsonObject,
+    *names: str,
+) -> object:
+    """Read a display-ready field from a PLOUD record or its expanded fields."""
+    _, value = _source_field(raw, fields, *names)
+    return value
+
+
+def _merged_optional_text(
+    raw: JsonObject,
+    fields: JsonObject,
+    previous: str | None,
+    *names: str,
 ) -> str | None:
-    """Resolve the display label of a PLOUD reference."""
-    item = _lookup(references, collection, identifier)
-    return _text(item.get("nm")) if item else None
+    """Keep an omitted value, but apply an explicitly empty value as a clear."""
+    present, value = _source_field(raw, fields, *names)
+    if not present:
+        return previous
+    if value is None:
+        return None
+    if not isinstance(value, str):
+        raise PloudError(f"PLOUD returned an invalid text field: {names[0]}")
+    return value.strip() or None
 
 
-def _parse_wine(raw: JsonObject, references: PLOUDReferences) -> Wine:
-    """Convert one raw PLOUD wine while retaining all source fields."""
-    stored_refs = raw.get("ploud_reference_fields")
-    raw_refs = (
-        cast(JsonObject, stored_refs)
-        if isinstance(stored_refs, dict)
-        else {
-            key: value
-            for key, value in raw.items()
-            if key not in {"id", "sid", "nm", "tc", "tm", "tp"}
-        }
+def _merged_positive_float(
+    raw: JsonObject,
+    fields: JsonObject,
+    previous: float | None,
+    *names: str,
+) -> float | None:
+    """Merge an optional numeric field; PLOUD zero represents no value."""
+    present, value = _source_field(raw, fields, *names)
+    if not present:
+        return previous
+    if value is None or (isinstance(value, str) and not value.strip()):
+        return None
+    parsed = _float(value)
+    if parsed is None or parsed < 0:
+        raise PloudError(f"PLOUD returned an invalid numeric field: {names[0]}")
+    return parsed if parsed > 0 else None
+
+
+def _reference_id(value: object) -> str | None:
+    """Normalize a PLOUD reference ID and reject malformed non-empty values."""
+    if value is None:
+        return None
+    if isinstance(value, bool):
+        raise PloudError("PLOUD returned an invalid reference ID")
+    if isinstance(value, str):
+        return normalize_identifier(value) or None
+    if isinstance(value, int):
+        return str(value)
+    raise PloudError("PLOUD returned an invalid reference ID")
+
+
+def _object_id(raw: JsonObject, object_type: str) -> str:
+    """Return a required PLOUD object ID normalized as trimmed text."""
+    value = raw.get("id")
+    if not isinstance(value, str) or not value.strip():
+        raise PloudError(f"PLOUD returned an invalid {object_type} ID")
+    return normalize_identifier(value)
+
+
+def _parse_color_rgb(value: object) -> tuple[int, int, int] | None:
+    """Parse a validated RGB triplet."""
+    if not isinstance(value, (list, tuple)):
+        return None
+    components = cast(list[object] | tuple[object, ...], value)
+    if len(components) != 3:
+        return None
+    red, green, blue = (_int(component) for component in components)
+    if (
+        red is None
+        or green is None
+        or blue is None
+        or not all(0 <= component <= 255 for component in (red, green, blue))
+    ):
+        return None
+    return red, green, blue
+
+
+# RGB values copied from the nine entries in the supplied PLOUD colors
+# collection. Mapping by the stable "co" identifier avoids language dependence.
+_COLOR_RGB_BY_ID: dict[str, tuple[int, int, int]] = {
+    "8019": (153, 115, 85),  # Autre
+    "8020": (255, 211, 116),  # Blanc
+    "8021": (237, 214, 182),  # Effervescent
+    "8022": (158, 195, 199),  # Liquoreux
+    "10253": (65, 101, 138),  # Muté
+    "10254": (240, 142, 68),  # Orange
+    "8023": (225, 136, 145),  # Rosé
+    "8024": (201, 25, 58),  # Rouge
+    "721a2c41-cdcb-4629-a7fb-7c30ea2fbd87": (34, 199, 129),  # Sirop
+}
+
+
+
+def _owner_display_name(raw: JsonObject) -> tuple[bool, str | None]:
+    """Return a validated Owner display name when its name field is present."""
+    for key in ("fullname", "fullName", "full_name", "nm", "name", "Name"):
+        if key in raw:
+            value = raw[key]
+            if value is not None and not isinstance(value, str):
+                raise PloudError("PLOUD returned an invalid Owner display name")
+            return True, _optional_text(value)
+    return False, None
+
+
+def _parse_wine(
+    raw: JsonObject,
+    *,
+    owner_names: dict[str, str | None],
+    previous: Wine | None,
+) -> Wine:
+    """Convert a PLOUD Wine record, retaining fields omitted by an incremental delta."""
+    stored_fields = raw.get("ploud_reference_fields")
+    fields = (
+        cast(JsonObject, stored_fields) if isinstance(stored_fields, dict) else {}
     )
 
-    def ref_id(short: str, long: str) -> object:
-        return raw.get(long, raw_refs.get(short))
+    wine_id = _object_id(raw, "Wine")
 
-    bottle_format = _lookup(
-        references, "bottleFormats", ref_id("vf", "bottle_format_id")
+    # Missing count fields in an existing partial update must not reset raw
+    # PLOUD metadata. A new Wine still needs an initial count value.
+    has_bottles, bottles_value = _source_field(raw, fields, "bottles", "bo")
+    if not has_bottles or bottles_value is None or (
+        isinstance(bottles_value, str) and not bottles_value.strip()
+    ):
+        if previous is None:
+            raise PloudIncompleteDelta(
+                f"New PLOUD Wine record is missing its bottle count: {wine_id}"
+            )
+        bottles = previous.bottles
+    else:
+        bottles = _int(bottles_value)
+        if bottles is None or bottles < 0:
+            raise PloudError(
+                f"PLOUD returned an invalid bottle count for wine {wine_id}"
+            )
+
+    has_compact_bottles, compact_bottles_value = _source_field(raw, fields, "bo")
+    compact_bottles = (
+        _int(compact_bottles_value) if has_compact_bottles else None
     )
-    color_ref = _lookup(references, "colors", ref_id("co", "color_id"))
-    color_rgb = None
-    if color_ref is not None:
-        red, green, blue = (
-            _int(color_ref.get(channel)) for channel in ("r", "g", "b")
+    if (
+        compact_bottles is not None
+        and bottles != compact_bottles
+    ):
+        _LOGGER.warning(
+            "PLOUD bottle-count fields disagree for wine %s (%s): "
+            "bottles=%r, bo=%r; using bottles=%d",
+            wine_id,
+            _optional_text(_source_value(raw, fields, "name", "nm")) or (
+                previous.name if previous is not None else ""
+            ),
+            bottles_value,
+            compact_bottles_value,
+            bottles,
         )
-        if (
-            red is not None
-            and green is not None
-            and blue is not None
-            and all(0 <= value <= 255 for value in (red, green, blue))
-        ):
-            color_rgb = (red, green, blue)
+
+    has_name, name_value = _source_field(raw, fields, "name", "nm")
+    if not has_name:
+        if previous is None:
+            raise PloudIncompleteDelta(
+                f"New PLOUD Wine {wine_id} is missing its name"
+            )
+        name = previous.name
+    elif name_value is not None and not isinstance(name_value, str):
+        raise PloudError(f"PLOUD returned an invalid name for wine {wine_id}")
+    else:
+        # An explicitly empty name remains a valid clear operation.
+        name = _optional_text(name_value) or ""
+
+    has_vintage, vintage_value = _source_field(raw, fields, "vintage", "vi")
+    if not has_vintage:
+        vintage = previous.vintage if previous is not None else None
+    elif vintage_value is None or (
+        isinstance(vintage_value, str) and not vintage_value.strip()
+    ):
+        vintage = None
+    else:
+        vintage = _int(vintage_value)
+        if vintage is None:
+            raise PloudError(f"PLOUD returned an invalid vintage for wine {wine_id}")
+        if vintage < 0:
+            raise PloudError(f"PLOUD returned an invalid vintage for wine {wine_id}")
+        if vintage == 0:
+            vintage = None
+
+    color = _merged_optional_text(
+        raw, fields, previous.color if previous is not None else None, "color"
+    )
+    has_color_id, color_id_value = _source_field(raw, fields, "color_id", "co")
+    has_rgb, rgb_value = _source_field(raw, fields, "color_rgb")
+    if has_color_id or has_rgb:
+        color_id = _reference_id(color_id_value) if has_color_id else None
+        color_rgb = _COLOR_RGB_BY_ID.get(color_id) if color_id is not None else None
+        if color_rgb is None and has_rgb:
+            color_rgb = _parse_color_rgb(rgb_value)
+            if (
+                rgb_value is not None
+                and not (isinstance(rgb_value, str) and not rgb_value.strip())
+                and color_rgb is None
+            ):
+                raise PloudError(
+                    f"PLOUD returned an invalid RGB color for wine {wine_id}"
+                )
+    else:
+        color_rgb = previous.color_rgb if previous is not None else None
+
+    has_owner_id, owner_value = _source_field(
+        raw, fields, "owner_id", "ownerId", "ow", "owner", "Owner"
+    )
+    owner_id = (
+        _reference_id(owner_value)
+        if has_owner_id
+        else previous.owner_id if previous is not None else None
+    )
+
+    has_domain, domain_value = _source_field(
+        raw, fields, "domain", "owner_name", "owner_fullname"
+    )
+    if has_domain:
+        if domain_value is not None and not isinstance(domain_value, str):
+            raise PloudError(
+                f"PLOUD returned an invalid winery name for wine {wine_id}"
+            )
+        domain = _optional_text(domain_value)
+    elif previous is not None and previous.owner_id == owner_id:
+        domain = previous.domain
+    else:
+        domain = None
+    if owner_id is not None and owner_id in owner_names:
+        domain = owner_names[owner_id]
 
     return Wine(
-        id=str(raw["id"]),
-        name=_text(raw.get("nm", raw.get("name"))) or "",
-        bottles=_int(raw.get("bo", raw.get("bottles"))) or 0,
-        vintage=_int(raw.get("vi", raw.get("vintage"))),
-        appellation=(
-            _label(references, "appellations", ref_id("ap", "appellation_id"))
-            or _text(raw.get("appellation"))
+        id=wine_id,
+        name=name,
+        bottles=bottles,
+        bottles_in_cellar=(
+            previous.bottles_in_cellar if previous is not None else 0
         ),
-        color=(
-            _label(references, "colors", ref_id("co", "color_id"))
-            or _text(raw.get("color"))
+        vintage=vintage,
+        appellation=_merged_optional_text(
+            raw,
+            fields,
+            previous.appellation if previous is not None else None,
+            "appellation",
         ),
+        color=color,
         color_rgb=color_rgb,
-        classification=(
-            _label(
-                references,
-                "classifications",
-                ref_id("cl", "classification_id"),
-            )
-            or _text(raw.get("classification"))
+        classification=_merged_optional_text(
+            raw,
+            fields,
+            previous.classification if previous is not None else None,
+            "classification",
         ),
-        region=(
-            _label(references, "regions", ref_id("rn", "region_id"))
-            or _text(raw.get("region"))
+        region=_merged_optional_text(
+            raw, fields, previous.region if previous is not None else None, "region"
         ),
-        country=(
-            _label(references, "countries", ref_id("cn", "country_id"))
-            or _text(raw.get("country"))
+        country=_merged_optional_text(
+            raw, fields, previous.country if previous is not None else None, "country"
         ),
-        grapes=_text(raw.get("grapes")) or _text(raw_refs.get("gr")),
-        cuvee=_text(raw.get("cuvee")) or _text(raw_refs.get("cu")),
-        bottle_format=(
-            _text(bottle_format.get("nm"))
-            if bottle_format
-            else _text(raw.get("bottle_format"))
+        grapes=_merged_optional_text(
+            raw, fields, previous.grapes if previous is not None else None,
+            "grapes", "gr",
         ),
-        bottle_volume_l=(
-            _float(bottle_format.get("vo"))
-            if bottle_format
-            else _float(raw.get("bottle_volume_l"))
+        cuvee=_merged_optional_text(
+            raw, fields, previous.cuvee if previous is not None else None,
+            "cuvee", "cu",
         ),
-        ploud_pid=_text(raw.get("ploud_pid")) or _text(raw_refs.get("pid")),
-        ploud_reference_fields=raw_refs,
+        comment=_merged_optional_text(
+            raw, fields, previous.comment if previous is not None else None,
+            "comment", "cs",
+        ),
+        alcohol_percent=_merged_positive_float(
+            raw, fields,
+            previous.alcohol_percent if previous is not None else None,
+            "alcohol_percent", "de",
+        ),
+        service_temperature_min=_merged_positive_float(
+            raw, fields,
+            previous.service_temperature_min if previous is not None else None,
+            "service_temperature_min", "ti",
+        ),
+        service_temperature_max=_merged_positive_float(
+            raw, fields,
+            previous.service_temperature_max if previous is not None else None,
+            "service_temperature_max", "to",
+        ),
+        bottle_format=_merged_optional_text(
+            raw, fields, previous.bottle_format if previous is not None else None,
+            "bottle_format",
+        ),
+        bottle_volume_l=_merged_positive_float(
+            raw, fields,
+            previous.bottle_volume_l if previous is not None else None,
+            "bottle_volume_l",
+        ),
+        ploud_pid=_merged_optional_text(
+            raw, fields, previous.ploud_pid if previous is not None else None,
+            "ploud_pid", "pid",
+        ),
+        domain=domain,
+        owner_id=owner_id,
     )
-
 
 def _collection(objects: PLOUDCollections, name: str) -> list[JsonObject]:
     """Return a named collection without trusting response item shapes."""
@@ -213,11 +465,42 @@ def _collection(objects: PLOUDCollections, name: str) -> list[JsonObject]:
 
 
 def _deleted_id(raw: JsonObject) -> str | None:
-    """Extract the ID of a deleted PLOUD object."""
+    """Extract and normalize the ID of a PLOUD object."""
     for key in ("id", "Id", "ID"):
-        if isinstance(raw.get(key), str):
-            return cast(str, raw[key])
+        value = raw.get(key)
+        if isinstance(value, str):
+            normalized = normalize_identifier(value)
+            if normalized:
+                return normalized
+        elif isinstance(value, int) and not isinstance(value, bool):
+            return str(value)
     return None
+
+
+def _deleted_kind(raw: JsonObject) -> str:
+    """Normalize a deleted-object type, including PLOUD numeric object IDs."""
+    numeric_types = {
+        "100": "wine",
+        "106": "owner",
+        "111": "rack",
+        "112": "rackitem",
+    }
+    for key in ("type", "Type", "objectType", "ObjectType", "ty"):
+        value = raw.get(key)
+        if isinstance(value, bool) or value is None:
+            continue
+        if isinstance(value, int):
+            normalized = str(value)
+        elif isinstance(value, str):
+            normalized = value.strip().casefold()
+        else:
+            continue
+        if not normalized:
+            continue
+        if normalized.isdecimal():
+            return numeric_types.get(normalized, "")
+        return normalized.replace("_", "").replace("-", "")
+    return ""
 
 
 async def async_sync(
@@ -285,9 +568,17 @@ async def async_sync(
         name.casefold() for name in PLOUD_SUPPORTED_COLLECTIONS
     }
     collections: PLOUDCollections = {}
+    seen_collection_names: set[str] = set()
     for name, values in objects.items():
-        if name.casefold() not in supported_collections:
+        normalized_name = name.casefold()
+        if normalized_name not in supported_collections:
             continue
+        if normalized_name in seen_collection_names:
+            raise PloudError(
+                "PLOUD returned duplicate collection names differing only "
+                f"by case: {name}"
+            )
+        seen_collection_names.add(normalized_name)
         if not isinstance(values, list):
             raise PloudError(f"PLOUD collection {name} is not an array")
 
@@ -308,104 +599,321 @@ async def async_sync(
 
 
 def apply_sync(
-    cellar: Cellar, objects: PLOUDCollections, next_cursor: int
-) -> None:
-    """Apply a PLOUD delta to a candidate cellar model."""
-    for name in REFERENCE_COLLECTIONS:
-        for item in _collection(objects, name):
-            identifier = item.get("id")
-            if isinstance(identifier, str):
-                cellar.references.setdefault(name, {})[identifier] = item
+    cellar: Cellar,
+    objects: PLOUDCollections,
+    next_cursor: int,
+    *,
+    full_snapshot: bool = False,
+) -> set[str]:
+    """Apply a PLOUD delta or complete snapshot and return unresolved Owners."""
+    removed_wine_ids: set[str] = set()
+    removed_rack_ids: set[str] = set()
+    deleted_owner_ids: set[str] = set()
+    unresolved_owner_ids: set[str] = set()
+    owner_names: dict[str, str | None] = {}
+    owner_records_seen: set[str] = set()
 
+    # Owner names are transient to this response only. The resolved winery
+    # name is copied into each affected Wine record.
+    seen_owner_ids: set[str] = set()
+    for raw in _collection(objects, PLOUD_COLLECTION_OWNERS):
+        owner_id = _deleted_id(raw)
+        if owner_id is None:
+            raise PloudError("PLOUD returned an Owner without a valid ID")
+        owner_key = owner_id
+        if owner_key in seen_owner_ids:
+            raise PloudError(f"PLOUD returned duplicate Owner ID: {owner_id}")
+        seen_owner_ids.add(owner_key)
+        has_name, owner_name = _owner_display_name(raw)
+        if not has_name:
+            continue
+        owner_records_seen.add(owner_key)
+        owner_names[owner_key] = owner_name
+        for wine_id, wine in tuple(cellar.wines.items()):
+            if wine.owner_id is not None and wine.owner_id == owner_key:
+                if wine.domain != owner_name:
+                    cellar.wines[wine_id] = replace(wine, domain=owner_name)
+
+    seen_wine_ids: set[str] = set()
     for raw in _collection(objects, PLOUD_COLLECTION_WINES):
-        if isinstance(raw.get("id"), str):
-            wine = _parse_wine(raw, cellar.references)
-            cellar.wines[wine.id] = wine
+        identifier = _object_id(raw, "Wine")
+        if identifier in seen_wine_ids:
+            raise PloudError(f"PLOUD returned duplicate Wine ID: {identifier}")
+        seen_wine_ids.add(identifier)
+        previous = cellar.wines.get(identifier)
+        wine = _parse_wine(
+            raw,
+            owner_names=owner_names,
+            previous=previous,
+        )
+        if (
+            wine.owner_id is not None
+            and wine.domain is None
+            and wine.owner_id not in owner_records_seen
+            and (
+                previous is None
+                or previous.owner_id is None
+                or previous.owner_id != wine.owner_id
+                or previous.domain is not None
+            )
+        ):
+            unresolved_owner_ids.add(wine.owner_id)
+        # Keep every Wine reference, including zero-total-stock wines. A later
+        # RackItem delta may assign one to a cellar position without repeating
+        # its Wine object in the same response.
+        cellar.wines[wine.id] = wine
+        removed_wine_ids.discard(wine.id)
 
+    seen_rack_ids: set[str] = set()
     for raw in _collection(objects, PLOUD_COLLECTION_RACKS):
-        identifier = raw.get("id")
-        if isinstance(identifier, str):
-            rack = Rack(
-                identifier,
-                _text(raw.get("nm", raw.get("name"))) or "",
-            )
-            cellar.racks[rack.id] = rack
+        identifier = _object_id(raw, "Rack")
+        if identifier in seen_rack_ids:
+            raise PloudError(f"PLOUD returned duplicate Rack ID: {identifier}")
+        seen_rack_ids.add(identifier)
 
+        previous = cellar.racks.get(identifier)
+        has_name, name_value = _source_field(raw, {}, "nm", "name")
+        if not has_name:
+            if previous is None:
+                raise PloudIncompleteDelta(
+                    f"New PLOUD Rack {identifier} is missing its name"
+                )
+            name = previous.name
+        elif name_value is None:
+            name = ""
+        elif isinstance(name_value, str):
+            name = name_value.strip()
+        else:
+            raise PloudError(f"PLOUD returned an invalid name for Rack {identifier}")
+
+        cellar.racks[identifier] = Rack(identifier, name)
+
+    seen_rack_item_ids: set[str] = set()
     for raw in _collection(objects, PLOUD_COLLECTION_RACK_ITEMS):
-        identifier = raw.get("id")
-        if isinstance(identifier, str):
-            item = RackItem(
-                identifier,
-                _text(raw.get("rk", raw.get("rack_id", raw.get("rack"))))
-                or "",
-                _text(raw.get("wi", raw.get("wine_id", raw.get("wine"))))
-                or "",
-                _int(raw.get("rw", raw.get("row"))),
-                _int(raw.get("cl", raw.get("column"))),
-            )
-            cellar.rack_items[item.id] = item
+        identifier = _object_id(raw, "RackItem")
+        if identifier in seen_rack_item_ids:
+            raise PloudError(f"PLOUD returned duplicate RackItem ID: {identifier}")
+        seen_rack_item_ids.add(identifier)
+        previous = cellar.rack_items.get(identifier)
 
-    reference_changed = any(
-        _collection(objects, name) for name in REFERENCE_COLLECTIONS
-    )
+        rack_key = next(
+            (key for key in ("rk", "rack_id", "rack") if key in raw),
+            None,
+        )
+        wine_key = next(
+            (key for key in ("wi", "wine_id", "wine") if key in raw),
+            None,
+        )
+        row_key = next((key for key in ("rw", "row") if key in raw), None)
+        column_key = next((key for key in ("cl", "column") if key in raw), None)
+
+        if previous is None and (
+            rack_key is None or (wine_key is None and not full_snapshot)
+        ):
+            raise PloudIncompleteDelta(
+                f"New PLOUD RackItem {identifier} is missing its rack or wine field"
+            )
+
+        rack_id = previous.rack_id if previous is not None else ""
+        wine_id = previous.wine_id if previous is not None else ""
+        row = previous.row if previous is not None else None
+        column = previous.column if previous is not None else None
+
+        if rack_key is not None:
+            raw_rack_id = raw[rack_key]
+            if not isinstance(raw_rack_id, str) or not raw_rack_id.strip():
+                raise PloudError(
+                    f"PLOUD returned an invalid rack ID for RackItem {identifier}"
+                )
+            rack_reference = _reference_id(raw_rack_id)
+            if rack_reference is None:
+                raise PloudError(
+                    f"PLOUD returned an invalid rack ID for RackItem {identifier}"
+                )
+            rack_id = rack_reference
+
+        if wine_key is not None:
+            raw_wine_id = raw[wine_key]
+            if raw_wine_id is None or (
+                isinstance(raw_wine_id, str) and not raw_wine_id.strip()
+            ):
+                wine_id = ""
+            elif isinstance(raw_wine_id, str):
+                wine_id = _reference_id(raw_wine_id) or ""
+            else:
+                raise PloudError(
+                    f"PLOUD returned an invalid wine ID for RackItem {identifier}"
+                )
+
+        if row_key is not None:
+            raw_row = raw[row_key]
+            if raw_row is None or (
+                isinstance(raw_row, str) and not raw_row.strip()
+            ):
+                row = None
+            else:
+                row = _int(raw_row)
+                if row is None:
+                    raise PloudError(
+                        f"PLOUD returned an invalid row for RackItem {identifier}"
+                    )
+
+        if column_key is not None:
+            raw_column = raw[column_key]
+            if raw_column is None or (
+                isinstance(raw_column, str) and not raw_column.strip()
+            ):
+                column = None
+            else:
+                column = _int(raw_column)
+                if column is None:
+                    raise PloudError(
+                        f"PLOUD returned an invalid column for RackItem {identifier}"
+                    )
+
+        item = RackItem(identifier, rack_id, wine_id, row, column)
+        cellar.rack_items[item.id] = item
+
+    seen_order_ids: set[str] = set()
+    for raw in _collection(objects, PLOUD_COLLECTION_ORDERS):
+        identifier = _object_id(raw, "Order")
+        if identifier in seen_order_ids:
+            raise PloudError(f"PLOUD returned duplicate Order ID: {identifier}")
+        seen_order_ids.add(identifier)
+
+        previous = cellar.orders.get(identifier)
+        wine_key = next(
+            (key for key in ("wi", "wine_id", "wine") if key in raw),
+            None,
+        )
+        incoming_key = next(
+            (key for key in ("in", "incoming") if key in raw),
+            None,
+        )
+        outgoing_key = next(
+            (key for key in ("ot", "outgoing") if key in raw),
+            None,
+        )
+        if previous is None and (
+            wine_key is None or incoming_key is None or outgoing_key is None
+        ):
+            raise PloudIncompleteDelta(
+                f"New PLOUD Order {identifier} is missing required movement fields"
+            )
+
+        raw_order_wine_id = raw[wine_key] if wine_key is not None else None
+        if (
+            wine_key is not None
+            and raw_order_wine_id is not None
+            and not isinstance(raw_order_wine_id, str)
+        ):
+            raise PloudError(
+                f"PLOUD returned an invalid Order record: {identifier}"
+            )
+        wine_id = (
+            _reference_id(raw_order_wine_id)
+            if wine_key is not None
+            else previous.wine_id if previous is not None else None
+        )
+        incoming = (
+            _int(raw[incoming_key])
+            if incoming_key is not None
+            else previous.incoming if previous is not None else None
+        )
+        outgoing = (
+            _int(raw[outgoing_key])
+            if outgoing_key is not None
+            else previous.outgoing if previous is not None else None
+        )
+        if (
+            wine_id is None
+            or incoming is None
+            or outgoing is None
+            or incoming < 0
+            or outgoing < 0
+        ):
+            raise PloudError(f"PLOUD returned an invalid Order record: {identifier}")
+        cellar.orders[identifier] = Order(
+            id=identifier,
+            wine_id=wine_id,
+            incoming=incoming,
+            outgoing=outgoing,
+        )
+
     for raw in _collection(objects, PLOUD_COLLECTION_DELETED):
         object_id = _deleted_id(raw)
         if object_id is None:
             continue
 
-        kind = next(
-            (
-                raw[key]
-                for key in ("type", "Type", "objectType", "ObjectType")
-                if isinstance(raw.get(key), str)
-            ),
-            "",
-        )
+        normalized_kind = _deleted_kind(raw)
+        if normalized_kind == "owner" or (
+            not normalized_kind
+            and any(
+                wine.owner_id is not None
+                and wine.owner_id == object_id
+                for wine in cellar.wines.values()
+            )
+        ):
+            deleted_owner_ids.add(object_id)
+            for wine_id, wine in tuple(cellar.wines.items()):
+                if (
+                    wine.owner_id is not None
+                    and wine.owner_id == object_id
+                ):
+                    cellar.wines[wine_id] = replace(wine, domain=None)
+            continue
+
         named_targets = {
             "wine": cellar.wines,
             "rack": cellar.racks,
             "rackitem": cellar.rack_items,
+            "order": cellar.orders,
         }
-        if isinstance(kind, str) and kind.casefold() in named_targets:
-            named_targets[kind.casefold()].pop(object_id, None)
+        if normalized_kind in named_targets:
+            named_targets[normalized_kind].pop(object_id, None)
+            if normalized_kind == "wine":
+                removed_wine_ids.add(object_id)
+            elif normalized_kind == "rack":
+                removed_rack_ids.add(object_id)
             continue
 
-        targets = [
-            cellar.wines,
-            cellar.racks,
-            cellar.rack_items,
-            *cellar.references.values(),
+        targets = (
+            ("wine", cellar.wines),
+            ("rack", cellar.racks),
+            ("rackitem", cellar.rack_items),
+            ("order", cellar.orders),
+        )
+        matches = [
+            (target_kind, mapping)
+            for target_kind, mapping in targets
+            if object_id in mapping
         ]
-        matches = [mapping for mapping in targets if object_id in mapping]
         if len(matches) == 1:
-            matches[0].pop(object_id, None)
-            if any(
-                matches[0] is reference_map
-                for reference_map in cellar.references.values()
-            ):
-                reference_changed = True
+            target_kind, mapping = matches[0]
+            mapping.pop(object_id, None)
+            if target_kind == "wine":
+                removed_wine_ids.add(object_id)
+            elif target_kind == "rack":
+                removed_rack_ids.add(object_id)
 
-    # Re-resolve labels when reference records are added, changed or deleted.
-    if reference_changed:
-        for wine_id, wine in tuple(cellar.wines.items()):
-            raw_wine = {
-                **wine.ploud_reference_fields,
-                "id": wine.id,
-                "nm": wine.name,
-                "bo": wine.bottles,
-                "vi": wine.vintage,
-                "appellation": wine.appellation,
-                "color": wine.color,
-                "region": wine.region,
-                "country": wine.country,
-                "classification": wine.classification,
-                "grapes": wine.grapes,
-                "cuvee": wine.cuvee,
-                "bottle_format": wine.bottle_format,
-                "bottle_volume_l": wine.bottle_volume_l,
-                "ploud_pid": wine.ploud_pid,
-            }
-            cellar.wines[wine_id] = _parse_wine(raw_wine, cellar.references)
+    # An explicitly deleted Owner is not an unresolved reference: its wines
+    # correctly keep no winery name.
+    unresolved_owner_ids.difference_update(deleted_owner_ids)
 
+    # Removing a wine frees its physical rack slot; retain the RackItem and
+    # clear only its wine assignment. Deleting a rack removes its positions.
+    # Also clear stale assignments whose wine is no longer in the inventory.
+    for item_id, item in tuple(cellar.rack_items.items()):
+        if item.rack_id in removed_rack_ids:
+            cellar.rack_items.pop(item_id, None)
+        elif item.wine_id and item.wine_id in removed_wine_ids:
+            cellar.rack_items[item_id] = RackItem(
+                item.id, item.rack_id, "", item.row, item.column
+            )
+
+    # RackItems, not Wine.bo, define the quantity physically stored in the
+    # cellar. Refresh after applying both collections and all deletions.
+    cellar.refresh_bottles_in_cellar()
     cellar.cursor = next_cursor
     cellar.initialized = True
+    return unresolved_owner_ids

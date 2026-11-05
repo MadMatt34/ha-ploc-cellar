@@ -41,23 +41,50 @@
   },
   "entity": {
     "sensor": {
-      "inventory": {
-        "name": "Inventaire",
+      "bottles_in_stock": {
+        "name": "Bouteilles en cave"
+      },
+      "bottles_stock_total": {
+        "name": "Bouteilles en stock total"
+      },
+      "wines_references": {
+        "name": "Références de vins en stock"
+      },
+      "wines_in_stock": {
+        "name": "Références physiquement présentes en cave"
+      },
+      "rack_count": {
+        "name": "Nombre de casiers"
+      },
+      "rack_positions_total": {
+        "name": "Nombre total d’emplacements"
+      },
+      "rack_positions_available": {
+        "name": "Emplacements disponibles"
+      },
+      "diagnostic_bottles_unalocated": {
+        "name": "Bouteilles non localisées"
+      },
+      "diagnostic_wines_unlocated": {
+        "name": "Vins avec stock non localisé"
+      },
+      "diagnostic_bottles_negative_movements": {
+        "name": "Bouteilles liées à des mouvements négatifs"
+      },
+      "diagnostic_wines_negative_movements": {
+        "name": "Vins avec solde de mouvements négatif"
+      },
+      "diagnostic_bottles_physical_surplus": {
+        "name": "Bouteilles en excédent physique"
+      },
+      "diagnostic_wines_physical_surplus": {
+        "name": "Vins avec excédent physique"
+      },
+      "diagnostic_last_successful_sync": {
+        "name": "Dernière synchronisation réussie",
         "state_attributes": {
-          "stocked_wines": {
-            "name": "Vins en stock"
-          },
-          "rack_count": {
-            "name": "Nombre de casiers"
-          },
-          "occupied_positions": {
-            "name": "Emplacements occupés"
-          },
           "stale": {
             "name": "Données périmées"
-          },
-          "last_successful_sync": {
-            "name": "Dernière synchronisation réussie"
           }
         }
       }
@@ -66,7 +93,7 @@
   "services": {
     "get_inventory": {
       "name": "Obtenir l'inventaire",
-      "description": "Renvoyer les vins en stock et leurs emplacements sans créer d'entités.",
+      "description": "Renvoyer l’inventaire et les diagnostics de stock et de mouvements, sans créer d’entités.",
       "fields": {
         "search": {
           "name": "Recherche",
@@ -85,6 +112,16 @@
     "sync": {
       "name": "Synchroniser",
       "description": "Déclencher immédiatement une synchronisation en lecture seule avec PLOUD.",
+      "fields": {
+        "config_entry_id": {
+          "name": "Configuration Ploc Cellar",
+          "description": "Sélectionner la connexion PLOUD à utiliser."
+        }
+      }
+    },
+    "sync_full": {
+      "name": "Synchronisation complète",
+      "description": "Récupérer et reconstruire l’inventaire complet de la cave depuis PLOUD.",
       "fields": {
         "config_entry_id": {
           "name": "Configuration Ploc Cellar",

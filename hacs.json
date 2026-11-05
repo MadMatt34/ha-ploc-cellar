@@ -1,4 +1,5 @@
 {
   "name": "Ploc Cellar",
-  "homeassistant": "2026.10.4"
+  "homeassistant": "2026.10.4",
+  "render_readme": true
 }

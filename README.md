@@ -14,12 +14,16 @@ A Home Assistant custom integration for a **read-only** view of a PLOC wine cell
 - PLOUD remains the source of truth.
 - Read-only incremental synchronization through `POST https://ploud.ploc.co/v1/sync/exec`, using `Objects={}`.
 - Initial synchronization uses the validated bootstrap value `LastSyncTime=1`. Later synchronizations use the client-maintained Unix-millisecond cursor.
-- Persistent local model containing wines (including zero-stock wines), racks, rack positions and reference data.
+- Persistent local model containing the `Wine` references returned by PLOUD, racks and rack positions. PLOUD's declared stock (`Wine.bo`) is retained as raw data. Effective stock is reconstructed from `Orders` movements and physically placed bottles (`RackItems`): `max(0, Orders balance, bottles in cellar)`. This rule reproduces the `Stock` column of the supplied reference CSV for all 116 wine references analyzed. Diagnostics are separated into unlocated stock (`unlocated_bottles`), negative movement balances (`negative_movement_bottles`) and physical surplus (`physical_surplus_bottles`). Unlocated stock means that the movement-derived stock exceeds the number of bottles assigned to rack positions; it does not prove a bottle was removed without a declared outgoing movement. PLOUD data is never modified. Wine characteristics, including the winery name, are stored directly in each wine record. The `Owners` collection is used transiently to resolve owner UUIDs; no Owner lookup table is persisted. If an incremental Wine update references an Owner absent from the delta, or an Owner record without a display-name field, one full synchronization is requested to resolve it.
 - One compact summary sensor; no entity is created for each wine, rack or position.
 - Detailed inventory is returned on demand by the `ploc_cellar.get_inventory` action.
+- UUIDs are normalized to their canonical lowercase form across Wine, Rack, RackItem, Order, Owner and deletion references; opaque non-UUID identifiers are trimmed without changing case.
 - Immediate synchronization is available through the `ploc_cellar.sync` action.
 - One Ploc Cellar config entry is allowed per Home Assistant instance.
 - No write operations are sent to PLOUD.
+
+For detailed inventory formulas, synchronization rules and storage
+integrity guarantees, see the [algorithm specification in French](docs/ALGORITHMES.md).
 
 ## Installation and first-time setup
 
@@ -58,26 +62,30 @@ Open **Settings → Devices & services → Ploc Cellar → Configure** to change
 
 Saving the options reloads the config entry. The PLOUD server endpoint cannot be changed through the integration.
 
-## Entity
+## Entities
 
-The integration creates one summary sensor:
+All 14 sensors are linked to the same **Ploc Cellar** device and updated by the same PLOUD coordinator. The integration does not create one entity per wine, rack or position.
 
-- `sensor.ploc_cellar_inventory`: total number of bottles in stock.
+| Family | Entity ID | Meaning |
+|---|---|---|
+| Inventory | `sensor.ploc_cellar_bottles_in_stock` | Bottles physically assigned to cellar positions (occupied `RackItems`). |
+| Inventory | `sensor.ploc_cellar_bottles_stock_total` | Total reconstructed stock: movement stock or physical stock, whichever is greater, including unresolved occupied positions. |
+| Inventory | `sensor.ploc_cellar_wines_references` | Known wine references with positive effective stock. |
+| Inventory | `sensor.ploc_cellar_wines_in_stock` | Known wine references with at least one physical cellar position. |
+| Racks | `sensor.ploc_cellar_rack_count` | Number of known racks. |
+| Racks | `sensor.ploc_cellar_rack_positions_total` | Total physical rack positions. |
+| Racks | `sensor.ploc_cellar_rack_positions_available` | Empty rack positions. |
+| Diagnostics | `sensor.ploc_cellar_diagnostic_bottles_unalocated` | Reconstructed bottles not assigned to a rack position. |
+| Diagnostics | `sensor.ploc_cellar_diagnostic_wines_unlocated` | Wine references with unlocated stock. |
+| Diagnostics | `sensor.ploc_cellar_diagnostic_bottles_negative_movements` | Absolute total of negative incoming-minus-outgoing balances. |
+| Diagnostics | `sensor.ploc_cellar_diagnostic_wines_negative_movements` | Wine references with a negative movement balance. |
+| Diagnostics | `sensor.ploc_cellar_diagnostic_bottles_physical_surplus` | Physical bottles above non-negative movement stock. |
+| Diagnostics | `sensor.ploc_cellar_diagnostic_wines_physical_surplus` | Wine references with a physical surplus. |
+| Diagnostics | `sensor.ploc_cellar_diagnostic_last_successful_sync` | Timestamp of the last successful synchronization; its `stale` attribute is true when a later synchronization has failed. |
 
-Its attributes are:
+Movement-derived inventory and diagnostic sensors show `unknown` until a complete PLOUD `Orders` snapshot has been validated. Physical bottle and rack-position counts remain available. After a synchronization failure, the last successful timestamp is retained and the `stale` attribute on the last-sync sensor becomes true; a successful synchronization resets it to false.
 
-| Attribute ID | Description |
-|---|---|
-| `stocked_wines` | Number of wines with at least one bottle in stock |
-| `rack_count` | Number of racks |
-| `occupied_positions` | Number of positions occupied by stocked wines |
-| `stale` | Indicates that the latest synchronization failed |
-| `last_successful_sync` | Date and time of the last successful synchronization (ISO 8601) |
-
-Attribute labels are translated using the Home Assistant language. If synchronization fails, the last known local inventory is retained and `stale` indicates that the data may be outdated. A successful synchronization resets this flag to `false`.
-
-The full wine list is deliberately not stored in sensor attributes. It remains in persistent storage and is returned only when requested.
-
+The existing inventory sensor unique ID is retained. On upgrade, the default entity ID `sensor.ploc_cellar_inventory` is migrated to `sensor.ploc_cellar_bottles_in_stock`; a user-customized entity ID is left unchanged.
 ## Actions
 
 ### `ploc_cellar.get_inventory`
@@ -86,7 +94,7 @@ A response action. Use `response_variable` in a script or automation.
 
 A `config_entry_id` is required to identify the Ploc Cellar connection. Home Assistant provides a selector restricted to this integration's config entries. Optional filters are:
 
-- `search`: partial match against wine name, appellation, region, country, grape or cuvée.
+- `search`: partial match against wine name, winery, appellation, region, country, grape, cuvée or comment.
 - `color`: partial match against the wine color.
 
 Example:
@@ -101,13 +109,16 @@ response_variable: cellar
 
 The response contains:
 
-- global totals: `total_bottles`, `stocked_wines`, `rack_count` and `occupied_positions`;
+- global totals: `total_bottles` counts all physically occupied positions; `stocked_wines` counts known Wine references with at least one position; `total_stock_bottles` also includes occupied positions whose Wine reference is temporarily unknown; `orders_without_wine` counts retained movements for unknown or deleted wines (these movements are excluded from known-wine stock calculations); `unlocated_wines` and `unlocated_bottles` describe reconstructed stock not assigned to rack positions; `negative_movement_wines` and `negative_movement_bottles` describe negative movement balances; `physical_surplus_wines` and `physical_surplus_bottles` describe physical bottles above non-negative movement stock. These Orders-derived values are `null` while `stock_reconstruction_complete` is false;
+- `rack_count`, `total_positions`, `occupied_positions` and `empty_positions`, the number of racks and the position breakdown; `positions_without_rack` and `positions_with_unknown_wine` report temporarily unresolved Rack or Wine references;
 - `matching_wines`, the number of wines matching the filters;
 - `racks`, the list of racks;
-- `wines`, wines with at least one bottle in stock, including their details and locations;
+- `wines`, normally only wines with positive effective stock. If reconstruction is incomplete, only known wines with physical bottles in rack positions are returned; their stock-derived quantities and diagnostics are `null`, as are global stock-derived totals;
+- `wine_diagnostics`, the unfiltered list of all wines with at least one unlocated-stock, negative-movement or physical-surplus diagnostic, including wines with zero effective stock. Each entry includes purchased, consumed, movement balance, physical quantity, effective stock and all three diagnostic quantities. It is `null` while stock reconstruction is incomplete;
+- `stock_reconstruction_complete`, whether a complete Orders snapshot is available;
 - `last_sync`, the date and time of the last successful synchronization.
 
-Filters do not change the global totals. Each wine location contains its rack name and ID, plus row and column when available.
+For each wine, `unlocated_bottles` is the difference between effective stock and physical bottles in rack positions; `negative_movement_bottles` is the absolute value of a negative incoming-minus-outgoing balance; and `physical_surplus_bottles` is the number of physical bottles above `max(0, movement_balance)`. These are separate diagnostics and may coexist for the same wine. Unlocated stock does not prove that a bottle was removed without declaring an outgoing movement: the bottle may never have been placed or may be stored outside the cellar. Raw `Wine.bo` values are informational and do not determine effective stock. No correction is sent to PLOUD. Filters do not change global totals. Each wine location contains its rack name and ID, plus row and column when available.
 
 ### `ploc_cellar.sync`
 
@@ -125,10 +136,10 @@ The PLOUD access token and device UUID are stored in the Home Assistant config e
 
 The local inventory and its matching synchronization cursor are stored through Home Assistant's persistent `Store`. Received changes are applied to a candidate model and saved before replacing the in-memory model, so a failed storage write does not advance the active cursor.
 
-The integration sends only the parameters required for synchronization and an empty `Objects` field. It does not send cellar objects or perform cellar modifications.
+The integration sends only the parameters required for synchronization and an empty `Objects` field. It does not send cellar objects or perform cellar modifications. PLOUD may still include reference collections in its response; the integration ignores collections it does not need. The `Owners` collection is processed only in memory to update `Wine.domain`. `Orders` movements are stored locally to calculate inventory diagnostics. Orders whose Wine reference is no longer present are retained as history and counted in `orders_without_wine`, but do not contribute to any known Wine stock. If an incremental Wine update references an Owner missing from the delta, the coordinator performs one full synchronization for resolution.
 
 ## Validation
 
-CI runs Ruff and Hassfest and performs strict Pyright type analysis against the latest stable Home Assistant release available from PyPI.
+CI runs Ruff, Hassfest, strict Pyright type analysis against the latest stable Home Assistant release available from PyPI, the unit test suite with pytest, and HACS integration validation.
 
 These static checks do not replace end-to-end testing against a real Home Assistant instance and the PLOUD cellar.
