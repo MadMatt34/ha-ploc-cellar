@@ -1,11 +1,11 @@
 """Tests for Ploc Cellar sensor definitions and values."""
 from __future__ import annotations
 
+import asyncio
 from datetime import UTC, datetime
 from types import SimpleNamespace
 from typing import cast
 
-import asyncio
 
 import pytest
 from ploc_cellar.coordinator import PlocCellarCoordinator
