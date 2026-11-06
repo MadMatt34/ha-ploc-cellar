@@ -508,7 +508,12 @@ def _parse_wine(
         vintage=vintage,
         appellation=(
             _reference_name(references, "appellations", fields.get("ap"))
-            or _merged_optional_text(raw, fields, previous.appellation if previous is not None else None, "appellation")
+            or _merged_optional_text(
+                raw,
+                fields,
+                previous.appellation if previous is not None else None,
+                "appellation",
+            )
         ),
         color=(
             _reference_name(references, "colors", fields.get("co")) or color
@@ -518,15 +523,30 @@ def _parse_wine(
         ),
         classification=(
             _reference_name(references, "classifications", fields.get("cl"))
-            or _merged_optional_text(raw, fields, previous.classification if previous is not None else None, "classification")
+            or _merged_optional_text(
+                raw,
+                fields,
+                previous.classification if previous is not None else None,
+                "classification",
+            )
         ),
         region=(
             _reference_name(references, "regions", fields.get("rn"))
-            or _merged_optional_text(raw, fields, previous.region if previous is not None else None, "region")
+            or _merged_optional_text(
+                raw,
+                fields,
+                previous.region if previous is not None else None,
+                "region",
+            )
         ),
         country=(
             _reference_name(references, "countries", fields.get("cn"))
-            or _merged_optional_text(raw, fields, previous.country if previous is not None else None, "country")
+            or _merged_optional_text(
+                raw,
+                fields,
+                previous.country if previous is not None else None,
+                "country",
+            )
         ),
         grapes=_merged_optional_text(
             raw, fields, previous.grapes if previous is not None else None,
