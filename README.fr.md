@@ -154,6 +154,7 @@ L'intégration fournit deux cartes Lovelace personnalisées facultatives :
 
 - **Ploc Cellar** : vue d'ensemble de la cave, indicateurs de stock et inventaire des vins avec recherche.
 - **Ploc Cellar Rack** : sélection d'un casier et représentation des emplacements à partir des coordonnées réelles de rangée et de colonne PLOUD.
+- **Ploc Cellar Inventory** : liste des vins avec recherche, filtres par couleur, région, appellation et millésime, tri, quantités et détails dépliables.
 
 Le module JavaScript est servi par Home Assistant à l'adresse
 `/ploc_cellar_static/ploc-cellar-card.js`. Ajoutez-le une seule fois dans

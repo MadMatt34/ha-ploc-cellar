@@ -1,6 +1,7 @@
 import { LitElement, css, html, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators.js";
 import "./ploc-cellar-rack-card";
+import "./ploc-cellar-inventory-card";
 
 import type {
   HomeAssistant,
