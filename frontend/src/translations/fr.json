@@ -45,5 +45,15 @@
   "grapes": "Cépages",
   "cuvee": "Cuvée",
   "bottle_volume": "Volume",
-  "locations": "Emplacements"
+  "locations": "Emplacements",
+  "picker_overview_name": "Cave Ploc",
+  "picker_overview_description": "Vue d’ensemble de la cave et indicateurs de stock.",
+  "picker_inventory_name": "Inventaire des vins",
+  "picker_inventory_description": "Rechercher, filtrer et parcourir l’inventaire des vins.",
+  "picker_rack_name": "Casiers de la cave",
+  "picker_rack_description": "Visualiser les emplacements des casiers et les vins qui y sont rangés.",
+  "editor_configuration": "Configuration Ploc Cellar",
+  "editor_configuration_helper": "Sélectionnez la connexion PLOUD utilisée par cette carte.",
+  "editor_title": "Titre de la carte",
+  "editor_title_helper": "Facultatif. Laissez vide pour utiliser le titre par défaut."
 }

@@ -7,7 +7,7 @@ import type {
   RackItem,
   Wine,
 } from "./types";
-import { translate, type TranslationKey } from "./translations";
+import { translate, translatePicker, type TranslationKey } from "./translations";
 
 @customElement("ploc-cellar-rack-card")
 export class PlocCellarRackCard extends LitElement {
@@ -42,17 +42,8 @@ export class PlocCellarRackCard extends LitElement {
     .unplaced-item { padding: 5px 0; }
   `;
 
-  static getConfigForm() {
-    return {
-      schema: [
-        {
-          name: "config_entry_id",
-          required: true,
-          selector: { config_entry: { integration: "ploc_cellar" } },
-        },
-        { name: "title", selector: { text: {} } },
-      ],
-    };
+  static getConfigElement(): HTMLElement {
+    return document.createElement("ploc-cellar-card-editor");
   }
 
   static getStubConfig(): Partial<PlocCellarCardConfig> {
@@ -264,6 +255,6 @@ declare global {
 window.customCards ??= [];
 window.customCards.push({
   type: "ploc-cellar-rack-card",
-  name: "Ploc Cellar Rack",
-  description: "Visualize physical rack positions and assigned wines.",
+  name: translatePicker("picker_rack_name"),
+  description: translatePicker("picker_rack_description"),
 });

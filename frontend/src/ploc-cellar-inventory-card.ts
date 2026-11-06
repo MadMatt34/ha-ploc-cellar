@@ -7,7 +7,7 @@ import type {
   PlocCellarCardConfig,
   Wine,
 } from "./types";
-import { translate, type TranslationKey } from "./translations";
+import { translate, translatePicker, type TranslationKey } from "./translations";
 
 type SortMode = "name" | "bottles" | "vintage";
 
@@ -65,17 +65,8 @@ export class PlocCellarInventoryCard extends LitElement {
     }
   `;
 
-  static getConfigForm() {
-    return {
-      schema: [
-        {
-          name: "config_entry_id",
-          required: true,
-          selector: { config_entry: { integration: "ploc_cellar" } },
-        },
-        { name: "title", selector: { text: {} } },
-      ],
-    };
+  static getConfigElement(): HTMLElement {
+    return document.createElement("ploc-cellar-card-editor");
   }
 
   static getStubConfig(): Partial<PlocCellarCardConfig> {
@@ -320,6 +311,6 @@ declare global {
 window.customCards ??= [];
 window.customCards.push({
   type: "ploc-cellar-inventory-card",
-  name: "Ploc Cellar Inventory",
-  description: "Search, filter and browse the wine inventory.",
+  name: translatePicker("picker_inventory_name"),
+  description: translatePicker("picker_inventory_description"),
 });
