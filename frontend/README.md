@@ -24,6 +24,5 @@ commits the lockfile and generated module. Node.js is not required by end users.
 
 The integration serves the compiled module at
 `/ploc_cellar_static/ploc-cellar-card.js`. Add this URL once under
-**Settings → Dashboards → Resources** with type **JavaScript module**. The card
-picker then offers `Ploc Cellar`, `Ploc Cellar Rack` and `Ploc Cellar Inventory`. The inventory card supports text search, filters for color, region, appellation and vintage, sorting, bottle quantities and expandable wine details. Each card editor
+**Settings → Dashboards → Resources** with type **JavaScript module**. The card picker then offers `Ploc Cellar`, `Ploc Cellar Rack` and `Ploc Cellar Inventory`. The overview card shows cellar-wide stock indicators; the inventory card provides text search, filters for color, region, appellation and vintage, sorting, bottle quantities and expandable wine details. Each card editor
 provides a native configuration-entry selector.
