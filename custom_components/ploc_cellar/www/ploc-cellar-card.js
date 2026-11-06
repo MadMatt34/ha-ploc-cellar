@@ -247,9 +247,9 @@ let N = class extends HTMLElement {
   }
 };
 N.elementStyles = [], N.shadowRootOptions = { mode: "open" }, N[U("elementProperties")] = /* @__PURE__ */ new Map(), N[U("finalized")] = /* @__PURE__ */ new Map(), Nt?.({ ReactiveElement: N }), (F.reactiveElementVersions ??= []).push("2.1.2");
-const Y = globalThis, at = (e) => e, V = Y.trustedTypes, ct = V ? V.createPolicy("lit-html", { createHTML: (e) => e }) : void 0, ft = "$lit$", w = `lit$${Math.random().toFixed(9).slice(2)}$`, vt = "?" + w, Ot = `<${vt}>`, S = document, I = () => S.createComment(""), z = (e) => e === null || typeof e != "object" && typeof e != "function", tt = Array.isArray, Rt = (e) => tt(e) || typeof e?.[Symbol.iterator] == "function", J = `[ 	
-\f\r]`, M = /<(?:(!--|\/[^a-zA-Z])|(\/?[a-zA-Z][^>\s]*)|(\/?$))/g, lt = /-->/g, dt = />/g, A = RegExp(`>|${J}(?:([^\\s"'>=/]+)(${J}*=${J}*(?:[^ 	
-\f\r"'\`<>=]|("|')|))|$)`, "g"), ht = /'/g, pt = /"/g, $t = /^(?:script|style|textarea|title)$/i, Dt = (e) => (t, ...s) => ({ _$litType$: e, strings: t, values: s }), l = Dt(1), O = /* @__PURE__ */ Symbol.for("lit-noChange"), h = /* @__PURE__ */ Symbol.for("lit-nothing"), ut = /* @__PURE__ */ new WeakMap(), C = S.createTreeWalker(S, 129);
+const Y = globalThis, at = (e) => e, V = Y.trustedTypes, ct = V ? V.createPolicy("lit-html", { createHTML: (e) => e }) : void 0, ft = "$lit$", x = `lit$${Math.random().toFixed(9).slice(2)}$`, vt = "?" + x, Ot = `<${vt}>`, E = document, I = () => E.createComment(""), z = (e) => e === null || typeof e != "object" && typeof e != "function", tt = Array.isArray, Rt = (e) => tt(e) || typeof e?.[Symbol.iterator] == "function", J = `[ 	
+\f\r]`, M = /<(?:(!--|\/[^a-zA-Z])|(\/?[a-zA-Z][^>\s]*)|(\/?$))/g, lt = /-->/g, dt = />/g, C = RegExp(`>|${J}(?:([^\\s"'>=/]+)(${J}*=${J}*(?:[^ 	
+\f\r"'\`<>=]|("|')|))|$)`, "g"), ht = /'/g, pt = /"/g, $t = /^(?:script|style|textarea|title)$/i, Dt = (e) => (t, ...s) => ({ _$litType$: e, strings: t, values: s }), l = Dt(1), O = /* @__PURE__ */ Symbol.for("lit-noChange"), h = /* @__PURE__ */ Symbol.for("lit-nothing"), ut = /* @__PURE__ */ new WeakMap(), S = E.createTreeWalker(E, 129);
 function yt(e, t) {
   if (!tt(e) || !e.hasOwnProperty("raw")) throw Error("invalid template strings array");
   return ct !== void 0 ? ct.createHTML(t) : t;
@@ -260,9 +260,9 @@ const Mt = (e, t) => {
   for (let d = 0; d < s; d++) {
     const a = e[d];
     let c, u, p = -1, m = 0;
-    for (; m < a.length && (n.lastIndex = m, u = n.exec(a), u !== null); ) m = n.lastIndex, n === M ? u[1] === "!--" ? n = lt : u[1] !== void 0 ? n = dt : u[2] !== void 0 ? ($t.test(u[2]) && (o = RegExp("</" + u[2], "g")), n = A) : u[3] !== void 0 && (n = A) : n === A ? u[0] === ">" ? (n = o ?? M, p = -1) : u[1] === void 0 ? p = -2 : (p = n.lastIndex - u[2].length, c = u[1], n = u[3] === void 0 ? A : u[3] === '"' ? pt : ht) : n === pt || n === ht ? n = A : n === lt || n === dt ? n = M : (n = A, o = void 0);
-    const $ = n === A && e[d + 1].startsWith("/>") ? " " : "";
-    r += n === M ? a + Ot : p >= 0 ? (i.push(c), a.slice(0, p) + ft + a.slice(p) + w + $) : a + w + (p === -2 ? d : $);
+    for (; m < a.length && (n.lastIndex = m, u = n.exec(a), u !== null); ) m = n.lastIndex, n === M ? u[1] === "!--" ? n = lt : u[1] !== void 0 ? n = dt : u[2] !== void 0 ? ($t.test(u[2]) && (o = RegExp("</" + u[2], "g")), n = C) : u[3] !== void 0 && (n = C) : n === C ? u[0] === ">" ? (n = o ?? M, p = -1) : u[1] === void 0 ? p = -2 : (p = n.lastIndex - u[2].length, c = u[1], n = u[3] === void 0 ? C : u[3] === '"' ? pt : ht) : n === pt || n === ht ? n = C : n === lt || n === dt ? n = M : (n = C, o = void 0);
+    const $ = n === C && e[d + 1].startsWith("/>") ? " " : "";
+    r += n === M ? a + Ot : p >= 0 ? (i.push(c), a.slice(0, p) + ft + a.slice(p) + x + $) : a + x + (p === -2 ? d : $);
   }
   return [yt(e, r + (e[s] || "<?>") + (t === 2 ? "</svg>" : t === 3 ? "</math>" : "")), i];
 };
@@ -272,34 +272,34 @@ class q {
     this.parts = [];
     let r = 0, n = 0;
     const d = t.length - 1, a = this.parts, [c, u] = Mt(t, s);
-    if (this.el = q.createElement(c, i), C.currentNode = this.el.content, s === 2 || s === 3) {
+    if (this.el = q.createElement(c, i), S.currentNode = this.el.content, s === 2 || s === 3) {
       const p = this.el.content.firstChild;
       p.replaceWith(...p.childNodes);
     }
-    for (; (o = C.nextNode()) !== null && a.length < d; ) {
+    for (; (o = S.nextNode()) !== null && a.length < d; ) {
       if (o.nodeType === 1) {
         if (o.hasAttributes()) for (const p of o.getAttributeNames()) if (p.endsWith(ft)) {
-          const m = u[n++], $ = o.getAttribute(p).split(w), P = /([.?@])?(.*)/.exec(m);
-          a.push({ type: 1, index: r, name: P[2], strings: $, ctor: P[1] === "." ? It : P[1] === "?" ? zt : P[1] === "@" ? qt : G }), o.removeAttribute(p);
-        } else p.startsWith(w) && (a.push({ type: 6, index: r }), o.removeAttribute(p));
+          const m = u[n++], $ = o.getAttribute(p).split(x), w = /([.?@])?(.*)/.exec(m);
+          a.push({ type: 1, index: r, name: w[2], strings: $, ctor: w[1] === "." ? It : w[1] === "?" ? zt : w[1] === "@" ? qt : G }), o.removeAttribute(p);
+        } else p.startsWith(x) && (a.push({ type: 6, index: r }), o.removeAttribute(p));
         if ($t.test(o.tagName)) {
-          const p = o.textContent.split(w), m = p.length - 1;
+          const p = o.textContent.split(x), m = p.length - 1;
           if (m > 0) {
             o.textContent = V ? V.emptyScript : "";
-            for (let $ = 0; $ < m; $++) o.append(p[$], I()), C.nextNode(), a.push({ type: 2, index: ++r });
+            for (let $ = 0; $ < m; $++) o.append(p[$], I()), S.nextNode(), a.push({ type: 2, index: ++r });
             o.append(p[m], I());
           }
         }
       } else if (o.nodeType === 8) if (o.data === vt) a.push({ type: 2, index: r });
       else {
         let p = -1;
-        for (; (p = o.data.indexOf(w, p + 1)) !== -1; ) a.push({ type: 7, index: r }), p += w.length - 1;
+        for (; (p = o.data.indexOf(x, p + 1)) !== -1; ) a.push({ type: 7, index: r }), p += x.length - 1;
       }
       r++;
     }
   }
   static createElement(t, s) {
-    const i = S.createElement("template");
+    const i = E.createElement("template");
     return i.innerHTML = t, i;
   }
 }
@@ -320,17 +320,17 @@ class Ut {
     return this._$AM._$AU;
   }
   u(t) {
-    const { el: { content: s }, parts: i } = this._$AD, o = (t?.creationScope ?? S).importNode(s, !0);
-    C.currentNode = o;
-    let r = C.nextNode(), n = 0, d = 0, a = i[0];
+    const { el: { content: s }, parts: i } = this._$AD, o = (t?.creationScope ?? E).importNode(s, !0);
+    S.currentNode = o;
+    let r = S.nextNode(), n = 0, d = 0, a = i[0];
     for (; a !== void 0; ) {
       if (n === a.index) {
         let c;
         a.type === 2 ? c = new T(r, r.nextSibling, this, t) : a.type === 1 ? c = new a.ctor(r, a.name, a.strings, this, t) : a.type === 6 && (c = new Tt(r, this, t)), this._$AV.push(c), a = i[++d];
       }
-      n !== a?.index && (r = C.nextNode(), n++);
+      n !== a?.index && (r = S.nextNode(), n++);
     }
-    return C.currentNode = S, o;
+    return S.currentNode = E, o;
   }
   p(t) {
     let s = 0;
@@ -365,7 +365,7 @@ class T {
     this._$AH !== t && (this._$AR(), this._$AH = this.O(t));
   }
   _(t) {
-    this._$AH !== h && z(this._$AH) ? this._$AA.nextSibling.data = t : this.T(S.createTextNode(t)), this._$AH = t;
+    this._$AH !== h && z(this._$AH) ? this._$AA.nextSibling.data = t : this.T(E.createTextNode(t)), this._$AH = t;
   }
   $(t) {
     const { values: s, _$litType$: i } = t, o = typeof i == "number" ? this._$AC(t) : (i.el === void 0 && (i.el = q.createElement(yt(i.h, i.h[0]), this.options)), i);
@@ -473,7 +473,7 @@ const jt = (e, t, s) => {
   return o._$AI(e), o;
 };
 const et = globalThis;
-class x extends N {
+class k extends N {
   constructor() {
     super(...arguments), this.renderOptions = { host: this }, this._$Do = void 0;
   }
@@ -495,9 +495,9 @@ class x extends N {
     return O;
   }
 }
-x._$litElement$ = !0, x.finalized = !0, et.litElementHydrateSupport?.({ LitElement: x });
+k._$litElement$ = !0, k.finalized = !0, et.litElementHydrateSupport?.({ LitElement: k });
 const Ht = et.litElementPolyfillSupport;
-Ht?.({ LitElement: x });
+Ht?.({ LitElement: k });
 (et.litElementVersions ??= []).push("4.2.2");
 const L = (e) => (t, s) => {
   s !== void 0 ? s.addInitializer(() => {
@@ -728,12 +728,12 @@ function D(e) {
   const t = typeof navigator > "u" ? "en" : navigator.language;
   return f(t, e);
 }
-var mo = Object.defineProperty, fo = Object.getOwnPropertyDescriptor, E = (e, t, s, i) => {
+var mo = Object.defineProperty, fo = Object.getOwnPropertyDescriptor, P = (e, t, s, i) => {
   for (var o = i > 1 ? void 0 : i ? fo(t, s) : t, r = e.length - 1, n; r >= 0; r--)
     (n = e[r]) && (o = (i ? n(t, s, o) : n(o)) || o);
   return i && o && mo(t, s, o), o;
 };
-let b = class extends x {
+let b = class extends k {
   constructor() {
     super(...arguments), this.loading = !1, this.requestGeneration = 0;
   }
@@ -906,25 +906,25 @@ b.styles = Q`
     .unplaced { border-top: 1px solid var(--divider-color); padding-top: 10px; margin-top: 10px; }
     .unplaced-item { padding: 5px 0; }
   `;
-E([
+P([
   j({ attribute: !1 })
 ], b.prototype, "hass", 2);
-E([
+P([
   g()
 ], b.prototype, "config", 2);
-E([
+P([
   g()
 ], b.prototype, "inventory", 2);
-E([
+P([
   g()
 ], b.prototype, "selectedRackId", 2);
-E([
+P([
   g()
 ], b.prototype, "loading", 2);
-E([
+P([
   g()
 ], b.prototype, "error", 2);
-b = E([
+b = P([
   L("ploc-cellar-rack-card")
 ], b);
 window.customCards ??= [];
@@ -938,7 +938,7 @@ var vo = Object.defineProperty, $o = Object.getOwnPropertyDescriptor, v = (e, t,
     (n = e[r]) && (o = (i ? n(t, s, o) : n(o)) || o);
   return i && o && vo(t, s, o), o;
 };
-let _ = class extends x {
+let _ = class extends k {
   constructor() {
     super(...arguments), this.loading = !1, this.search = "", this.color = "", this.region = "", this.appellation = "", this.vintage = "", this.sort = "name", this.requestGeneration = 0;
   }
@@ -1193,7 +1193,7 @@ var yo = Object.defineProperty, bo = Object.getOwnPropertyDescriptor, st = (e, t
     (n = e[r]) && (o = (i ? n(t, s, o) : n(o)) || o);
   return i && o && yo(t, s, o), o;
 };
-let W = class extends x {
+let W = class extends k {
   constructor() {
     super(...arguments), this.computeLabel = (e) => {
       const s = {
@@ -1268,7 +1268,7 @@ st([
 W = st([
   L("ploc-cellar-card-editor")
 ], W);
-var wo = Object.defineProperty, xo = Object.getOwnPropertyDescriptor, k = (e, t, s, i) => {
+var wo = Object.defineProperty, xo = Object.getOwnPropertyDescriptor, A = (e, t, s, i) => {
   for (var o = i > 1 ? void 0 : i ? xo(t, s) : t, r = e.length - 1, n; r >= 0; r--)
     (n = e[r]) && (o = (i ? n(t, s, o) : n(o)) || o);
   return i && o && wo(t, s, o), o;
@@ -1283,7 +1283,7 @@ const gt = [
   "#F0E442",
   "#6A3D9A"
 ];
-let y = class extends x {
+let y = class extends k {
   constructor() {
     super(...arguments), this.loading = !1, this.requestGeneration = 0;
   }
@@ -1396,15 +1396,15 @@ let y = class extends x {
 >
               <svg class="donut-chart" viewBox="0 0 100 100">
                 ${n.map((c) => {
-      const u = 2 * Math.PI * 42, p = (c.end - c.start) / 100 * u, m = `${p} ${u - p}`, $ = -(c.start / 100) * u, P = `${c.name}: ${this.formatNumber(c.bottles)} ${s("statistics_bottles")} (${new Intl.NumberFormat(this.hass?.language ?? void 0, { style: "percent", maximumFractionDigits: 1 }).format(c.bottles / o)}), ${this.formatNumber(c.wines)} ${s("statistics_references")}`;
+      const u = 2 * Math.PI * 42, p = (c.end - c.start) / 100 * u, m = `${p} ${u - p}`, $ = -(c.start / 100) * u, w = `${c.name}: ${this.formatNumber(c.bottles)} ${s("statistics_bottles")} (${new Intl.NumberFormat(this.hass?.language ?? void 0, { style: "percent", maximumFractionDigits: 1 }).format(c.bottles / o)}), ${this.formatNumber(c.wines)} ${s("statistics_references")}`;
       return l`
                     <circle class="donut-segment" cx="50" cy="50" r="42"
                       stroke="rgba(0, 0, 0, 0.01)"
-                      title=${P}
-                      aria-label=${P}
+                      title=${w}
+                      aria-label=${w}
                       stroke-dasharray=${m}
                       stroke-dashoffset=${$}>
-                      <title>${P}</title>
+                      <title>${w}</title>
                     </circle>
                   `;
     })}
@@ -1618,30 +1618,30 @@ y.styles = Q`
       .legend-item { font-size: .78rem; }
     }
   `;
-k([
+A([
   j({ attribute: !1 })
 ], y.prototype, "hass", 2);
-k([
+A([
   g()
 ], y.prototype, "config", 2);
-k([
+A([
   g()
 ], y.prototype, "inventory", 2);
-k([
+A([
   g()
 ], y.prototype, "loading", 2);
-k([
+A([
   g()
 ], y.prototype, "error", 2);
-k([
+A([
   g()
 ], y.prototype, "activeDiagnostic", 2);
-y = k([
+y = A([
   L("ploc-cellar-card")
 ], y);
 let _t = class extends y {
 };
-_t = k([
+_t = A([
   L("ploc-cellar-statistics-card")
 ], _t);
 window.customCards ??= [];
