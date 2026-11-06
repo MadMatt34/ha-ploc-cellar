@@ -252,3 +252,66 @@ def test_version_seven_round_trip_preserves_orphaned_physical_positions() -> Non
     assert restored.empty_positions == 0
     assert restored.positions_with_unknown_wine == 1
     assert restored.cursor == 1
+
+
+
+def test_reference_collections_and_compact_wine_fields_survive_storage() -> None:
+    """Persist lookup indexes and source IDs for future incremental updates."""
+    wine = Wine(
+        id="wine",
+        name="Vin",
+        bottles=1,
+        bottles_in_cellar=0,
+        vintage=2022,
+        appellation="Languedoc",
+        color="Rouge",
+        color_rgb=(201, 25, 58),
+        classification=None,
+        region="Languedoc-Roussillon",
+        country="France",
+        grapes="Syrah",
+        cuvee=None,
+        comment=None,
+        alcohol_percent=None,
+        service_temperature_min=None,
+        service_temperature_max=None,
+        bottle_format="Bouteille",
+        bottle_volume_l=0.75,
+        ploud_pid=None,
+        domain=None,
+        owner_id=None,
+        ploud_reference_fields={"ap": "app-1", "co": "color-1", "vf": "format-1"},
+    )
+    cellar = Cellar(
+        wines={"wine": wine},
+        references={
+            "appellations": {"app-1": {"id": "app-1", "nm": "Languedoc"}},
+            "colors": {"color-1": {"id": "color-1", "nm": "Rouge"}},
+            "bottleFormats": {
+                "format-1": {"id": "format-1", "nm": "Bouteille", "vo": 0.75}
+            },
+        },
+    )
+
+    restored = Cellar.from_storage(cellar.to_storage())
+
+    assert restored.references == cellar.references
+    assert (
+        restored.wines["wine"].ploud_reference_fields
+        == wine.ploud_reference_fields
+    )
+
+
+def test_legacy_cache_without_reference_indexes_requests_full_sync() -> None:
+    """An old cache without lookup indexes must bootstrap references on next refresh."""
+    cellar = Cellar(
+        cursor=123456,
+        initialized=True,
+        stock_reconstruction_complete=True,
+        wines={"wine": _wine("wine")},
+    )
+
+    restored = Cellar.from_storage(cellar.to_storage())
+
+    assert restored.cursor == 1
+    assert restored.stock_reconstruction_complete is True

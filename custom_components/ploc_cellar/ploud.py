@@ -21,6 +21,7 @@ from .const import (
     PLOUD_COLLECTION_RACKS,
     PLOUD_COLLECTION_WINES,
     PLOUD_HMAC_KEY,
+    PLOUD_REFERENCE_COLLECTIONS,
     PLOUD_SUPPORTED_COLLECTIONS,
     PLOUD_SYNC_METHOD,
     PLOUD_SYNC_PATH,
@@ -37,6 +38,7 @@ from .models import (
 )
 
 type PLOUDCollections = dict[str, list[JsonObject]]
+type PLOUDReferenceIndex = dict[str, dict[str, JsonObject]]
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -246,6 +248,117 @@ _COLOR_RGB_BY_ID: dict[str, tuple[int, int, int]] = {
 
 
 
+def _reference_entry(
+    references: PLOUDReferenceIndex,
+    collection: str,
+    value: object,
+) -> JsonObject | None:
+    """Resolve a PLOUD reference ID in its indexed collection."""
+    identifier = _reference_id(value)
+    return references.get(collection, {}).get(identifier) if identifier else None
+
+
+def _reference_name(
+    references: PLOUDReferenceIndex,
+    collection: str,
+    value: object,
+) -> str | None:
+    """Return the display name from a confirmed PLOUD reference object."""
+    entry = _reference_entry(references, collection, value)
+    return _optional_text(entry.get("nm")) if entry is not None else None
+
+
+def _reference_rgb(
+    references: PLOUDReferenceIndex,
+    value: object,
+) -> tuple[int, int, int] | None:
+    """Return the validated RGB triplet from a PLOUD color reference."""
+    entry = _reference_entry(references, "colors", value)
+    if entry is None:
+        return None
+    red = _int(entry.get("r"))
+    green = _int(entry.get("g"))
+    blue = _int(entry.get("b"))
+    if (
+        red is None
+        or green is None
+        or blue is None
+        or not all(0 <= component <= 255 for component in (red, green, blue))
+    ):
+        return None
+    return red, green, blue
+
+
+def _reference_float(value: object) -> float | None:
+    """Parse a finite numeric value from a reference record."""
+    return _float(value)
+
+
+def _resolve_wine_references(
+    wine: Wine,
+    references: PLOUDReferenceIndex,
+) -> Wine:
+    """Refresh display fields using the cached compact IDs and current lookups."""
+    fields = wine.ploud_reference_fields
+
+    def resolve_name(
+        collection: str,
+        compact_field: str,
+        expanded_field: str,
+        fallback: str | None,
+    ) -> str | None:
+        """Resolve a field while preserving omission-versus-clear semantics."""
+        if compact_field not in fields and expanded_field not in fields:
+            return fallback
+        identifier = fields.get(compact_field, fields.get(expanded_field))
+        if identifier is None or identifier == "":
+            return None
+        return _reference_name(references, collection, identifier) or fallback
+
+    def resolve_bottle_format(
+        fallback: str | None,
+    ) -> tuple[str | None, float | None]:
+        """Resolve bottle format label and volume from one lookup record."""
+        if "vf" not in fields and "bottle_format_id" not in fields:
+            return fallback, wine.bottle_volume_l
+        identifier = fields.get("vf", fields.get("bottle_format_id"))
+        if identifier is None or identifier == "":
+            return None, None
+        entry = _reference_entry(references, "bottleFormats", identifier)
+        if entry is None:
+            return fallback, wine.bottle_volume_l
+        return (
+            _optional_text(entry.get("nm")) or fallback,
+            _reference_float(entry.get("vo")) or wine.bottle_volume_l,
+        )
+
+    color_id = fields.get("co", fields.get("color_id"))
+    if "co" in fields or "color_id" in fields:
+        if color_id is None or color_id == "":
+            color_rgb = None
+        else:
+            color_rgb = _reference_rgb(references, color_id) or wine.color_rgb
+    else:
+        color_rgb = wine.color_rgb
+
+    bottle_format, bottle_volume_l = resolve_bottle_format(wine.bottle_format)
+    return replace(
+        wine,
+        appellation=resolve_name(
+            "appellations", "ap", "appellation_id", wine.appellation
+        ),
+        classification=resolve_name(
+            "classifications", "cl", "classification_id", wine.classification
+        ),
+        country=resolve_name("countries", "cn", "country_id", wine.country),
+        region=resolve_name("regions", "rn", "region_id", wine.region),
+        color=resolve_name("colors", "co", "color_id", wine.color),
+        color_rgb=color_rgb,
+        bottle_format=bottle_format,
+        bottle_volume_l=bottle_volume_l,
+    )
+
+
 def _owner_display_name(raw: JsonObject) -> tuple[bool, str | None]:
     """Return a validated Owner display name when its name field is present."""
     for key in ("fullname", "fullName", "full_name", "nm", "name", "Name"):
@@ -262,12 +375,27 @@ def _parse_wine(
     *,
     owner_names: dict[str, str | None],
     previous: Wine | None,
+    references: PLOUDReferenceIndex,
 ) -> Wine:
     """Convert a PLOUD Wine record, retaining fields omitted by an incremental delta."""
     stored_fields = raw.get("ploud_reference_fields")
     fields = (
-        cast(JsonObject, stored_fields) if isinstance(stored_fields, dict) else {}
+        dict(cast(JsonObject, stored_fields))
+        if isinstance(stored_fields, dict)
+        else dict(previous.ploud_reference_fields)
+        if previous is not None
+        else {}
     )
+    if previous is not None and isinstance(stored_fields, dict):
+        merged_fields = dict(previous.ploud_reference_fields)
+        merged_fields.update(fields)
+        fields = merged_fields
+    # Keep the original compact PLOUD properties so future reference updates
+    # can re-resolve cached wines without requiring another Wine delta.
+    for key, value in raw.items():
+        if key not in {"id", "sid", "nm", "tc", "tm", "tp", "ploud_reference_fields"}:
+            fields[key] = value
+
 
     wine_id = _object_id(raw, "Wine")
 
@@ -384,7 +512,21 @@ def _parse_wine(
     if owner_id is not None and owner_id in owner_names:
         domain = owner_names[owner_id]
 
-    return Wine(
+    bottle_format_entry = _reference_entry(
+        references, "bottleFormats", fields.get("vf", fields.get("bottle_format_id"))
+    )
+    bottle_format_name = (
+        _optional_text(bottle_format_entry.get("nm"))
+        if bottle_format_entry is not None
+        else None
+    )
+    bottle_volume_l = (
+        _reference_float(bottle_format_entry.get("vo"))
+        if bottle_format_entry is not None
+        else None
+    )
+
+    wine = Wine(
         id=wine_id,
         name=name,
         bottles=bottles,
@@ -392,25 +534,47 @@ def _parse_wine(
             previous.bottles_in_cellar if previous is not None else 0
         ),
         vintage=vintage,
-        appellation=_merged_optional_text(
-            raw,
-            fields,
-            previous.appellation if previous is not None else None,
-            "appellation",
+        appellation=(
+            _reference_name(references, "appellations", fields.get("ap"))
+            or _merged_optional_text(
+                raw,
+                fields,
+                previous.appellation if previous is not None else None,
+                "appellation",
+            )
         ),
-        color=color,
-        color_rgb=color_rgb,
-        classification=_merged_optional_text(
-            raw,
-            fields,
-            previous.classification if previous is not None else None,
-            "classification",
+        color=(
+            _reference_name(references, "colors", fields.get("co")) or color
         ),
-        region=_merged_optional_text(
-            raw, fields, previous.region if previous is not None else None, "region"
+        color_rgb=(
+            _reference_rgb(references, fields.get("co")) or color_rgb
         ),
-        country=_merged_optional_text(
-            raw, fields, previous.country if previous is not None else None, "country"
+        classification=(
+            _reference_name(references, "classifications", fields.get("cl"))
+            or _merged_optional_text(
+                raw,
+                fields,
+                previous.classification if previous is not None else None,
+                "classification",
+            )
+        ),
+        region=(
+            _reference_name(references, "regions", fields.get("rn"))
+            or _merged_optional_text(
+                raw,
+                fields,
+                previous.region if previous is not None else None,
+                "region",
+            )
+        ),
+        country=(
+            _reference_name(references, "countries", fields.get("cn"))
+            or _merged_optional_text(
+                raw,
+                fields,
+                previous.country if previous is not None else None,
+                "country",
+            )
         ),
         grapes=_merged_optional_text(
             raw, fields, previous.grapes if previous is not None else None,
@@ -439,14 +603,23 @@ def _parse_wine(
             previous.service_temperature_max if previous is not None else None,
             "service_temperature_max", "to",
         ),
-        bottle_format=_merged_optional_text(
-            raw, fields, previous.bottle_format if previous is not None else None,
-            "bottle_format",
+        bottle_format=(
+            bottle_format_name
+            or _merged_optional_text(
+                raw,
+                fields,
+                previous.bottle_format if previous is not None else None,
+                "bottle_format",
+            )
         ),
-        bottle_volume_l=_merged_positive_float(
-            raw, fields,
-            previous.bottle_volume_l if previous is not None else None,
-            "bottle_volume_l",
+        bottle_volume_l=(
+            bottle_volume_l
+            or _merged_positive_float(
+                raw,
+                fields,
+                previous.bottle_volume_l if previous is not None else None,
+                "bottle_volume_l",
+            )
         ),
         ploud_pid=_merged_optional_text(
             raw, fields, previous.ploud_pid if previous is not None else None,
@@ -454,7 +627,10 @@ def _parse_wine(
         ),
         domain=domain,
         owner_id=owner_id,
+        ploud_reference_fields=fields,
     )
+    return _resolve_wine_references(wine, references)
+
 
 def _collection(objects: PLOUDCollections, name: str) -> list[JsonObject]:
     """Return a named collection without trusting response item shapes."""
@@ -462,6 +638,43 @@ def _collection(objects: PLOUDCollections, name: str) -> list[JsonObject]:
         if key.casefold() == name.casefold():
             return values
     return []
+
+
+def _merge_reference_collections(
+    cellar: Cellar,
+    objects: PLOUDCollections,
+    *,
+    full_snapshot: bool,
+) -> None:
+    """Merge reference deltas into persistent ID-indexed lookup collections."""
+    references_changed = False
+    for collection in PLOUD_REFERENCE_COLLECTIONS:
+        if not any(name.casefold() == collection.casefold() for name in objects):
+            continue
+        previous_entries = cellar.references.get(collection, {})
+        entries = {} if full_snapshot else dict(previous_entries)
+        seen_ids: set[str] = set()
+        for raw in _collection(objects, collection):
+            identifier = _deleted_id(raw)
+            if identifier is None:
+                raise PloudError(
+                    f"PLOUD returned a {collection} reference without a valid ID"
+                )
+            if identifier in seen_ids:
+                raise PloudError(
+                    f"PLOUD returned duplicate ID {identifier} in {collection}"
+                )
+            seen_ids.add(identifier)
+            entries[identifier] = raw
+        if entries != previous_entries:
+            references_changed = True
+        cellar.references[collection] = entries
+
+    if references_changed:
+        for wine_id, wine in tuple(cellar.wines.items()):
+            cellar.wines[wine_id] = _resolve_wine_references(
+                wine, cellar.references
+            )
 
 
 def _deleted_id(raw: JsonObject) -> str | None:
@@ -613,6 +826,8 @@ def apply_sync(
     owner_names: dict[str, str | None] = {}
     owner_records_seen: set[str] = set()
 
+    _merge_reference_collections(cellar, objects, full_snapshot=full_snapshot)
+
     # Owner names are transient to this response only. The resolved winery
     # name is copied into each affected Wine record.
     seen_owner_ids: set[str] = set()
@@ -645,6 +860,7 @@ def apply_sync(
             raw,
             owner_names=owner_names,
             previous=previous,
+            references=cellar.references,
         )
         if (
             wine.owner_id is not None

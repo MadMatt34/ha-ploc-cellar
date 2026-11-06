@@ -150,9 +150,9 @@ Ces contrôles statiques ne remplacent pas les essais de bout en bout avec une i
 
 ### Cartes Lovelace
 
-L'intégration fournit deux cartes Lovelace personnalisées facultatives :
+L'intégration fournit trois cartes Lovelace personnalisées facultatives :
 
-- **Ploc Cellar** : vue d'ensemble de la cave, indicateurs de stock et inventaire des vins avec recherche.
+- **Ploc Cellar** : vue d'ensemble de la cave et indicateurs de stock.
 - **Ploc Cellar Rack** : sélection d'un casier et représentation des emplacements à partir des coordonnées réelles de rangée et de colonne PLOUD.
 - **Ploc Cellar Inventory** : liste des vins avec recherche, filtres par couleur, région, appellation et millésime, tri, quantités et détails dépliables.
 
