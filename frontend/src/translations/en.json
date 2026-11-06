@@ -45,5 +45,15 @@
   "grapes": "Grapes",
   "cuvee": "Cuvée",
   "bottle_volume": "Volume",
-  "locations": "Locations"
+  "locations": "Locations",
+  "picker_overview_name": "Ploc Cellar",
+  "picker_overview_description": "Cellar overview and stock indicators.",
+  "picker_inventory_name": "Wine inventory",
+  "picker_inventory_description": "Search, filter and browse the wine inventory.",
+  "picker_rack_name": "Cellar racks",
+  "picker_rack_description": "Visualize rack positions and the wines stored in them.",
+  "editor_configuration": "Ploc Cellar configuration",
+  "editor_configuration_helper": "Select the PLOUD connection used by this card.",
+  "editor_title": "Card title",
+  "editor_title_helper": "Optional. Leave empty to use the default title."
 }
