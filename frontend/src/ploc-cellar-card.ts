@@ -27,14 +27,14 @@ type DistributionField =
   | "bottle_format";
 
 const CHART_COLORS = [
-  "var(--label-badge-red, #c65a5a)",
-  "var(--label-badge-blue, #44739e)",
-  "var(--label-badge-green, #4b9b70)",
-  "var(--label-badge-yellow, #c7a13b)",
-  "var(--label-badge-purple, #8a68a8)",
-  "var(--label-badge-grey, #888888)",
-  "var(--label-badge-teal, #319b9b)",
-  "var(--secondary-text-color, #777777)",
+  "#c65a5a",
+  "#44739e",
+  "#4b9b70",
+  "#c7a13b",
+  "#8a68a8",
+  "#888888",
+  "#319b9b",
+  "#777777",
 ];
 
 @customElement("ploc-cellar-card")
@@ -69,9 +69,10 @@ export class PlocCellarCard extends LitElement {
     .group { min-width: 0; border: 1px solid var(--divider-color); border-radius: 10px; padding: 12px; }
     .group-title { margin: 0 0 12px; font-size: 1rem; font-weight: 500; }
     .chart-content { display: grid; grid-template-columns: minmax(112px, .85fr) minmax(0, 1.15fr); gap: 12px; align-items: center; }
-    .donut { display: block; width: 100%; max-width: 150px; height: auto; justify-self: center; overflow: visible; }
-    .donut-total { fill: var(--primary-text-color); font-size: 15px; font-weight: 600; text-anchor: middle; }
-    .donut-caption { fill: var(--secondary-text-color); font-size: 7px; text-anchor: middle; }
+    .donut { display: grid; place-items: center; width: 100%; max-width: 150px; aspect-ratio: 1; border-radius: 50%; justify-self: center; }
+    .donut-center { display: flex; flex-direction: column; align-items: center; justify-content: center; width: 66%; aspect-ratio: 1; border-radius: 50%; background: var(--card-background-color, var(--ha-card-background, #fff)); }
+    .donut-total { color: var(--primary-text-color); font-size: 1rem; font-weight: 600; font-variant-numeric: tabular-nums; }
+    .donut-caption { color: var(--secondary-text-color); font-size: .48rem; }
     .legend { display: grid; gap: 8px; min-width: 0; }
     .legend-item { display: grid; grid-template-columns: 10px minmax(0, 1fr) auto; align-items: center; gap: 7px; font-size: .82rem; }
     .legend-swatch { width: 9px; height: 9px; border-radius: 50%; }
@@ -211,21 +212,22 @@ export class PlocCellarCard extends LitElement {
       translate(this.hass?.language ?? "en", key);
     const items = this.distribution(field);
     const total = items.reduce((sum, item) => sum + item.bottles, 0);
-    const circumference = 2 * Math.PI * 42;
     let offset = 0;
     const segments = items
       .filter((item) => item.bottles > 0)
       .map((item, index) => {
-        const length = (item.bottles / total) * circumference;
-        const segment = {
+        const start = offset;
+        offset += (item.bottles / total) * 100;
+        return {
           ...item,
-          length,
-          offset,
+          start,
+          end: offset,
           color: item.color ?? CHART_COLORS[index % CHART_COLORS.length],
         };
-        offset += length;
-        return segment;
       });
+    const gradient = segments
+      .map((item) => `${item.color} ${item.start}% ${item.end}%`)
+      .join(", ");
     const chartLabel = items
       .map((item) => `${item.name}: ${this.formatNumber(item.bottles)}`)
       .join(", ");
@@ -235,20 +237,14 @@ export class PlocCellarCard extends LitElement {
         <h3 class="group-title">${t(titleKey)}</h3>
         ${total > 0 ? html`
           <div class="chart-content">
-            <svg class="donut" viewBox="0 0 120 120" role="img"
-              aria-label=${t(titleKey) + ": " + chartLabel}>
-              <circle cx="60" cy="60" r="42" fill="none"
-                stroke="var(--divider-color)" stroke-width="18"></circle>
-              ${segments.map((segment) => html`
-                <circle cx="60" cy="60" r="42" fill="none"
-                  stroke=${segment.color} stroke-width="18"
-                  stroke-dasharray=${segment.length + " " + (circumference - segment.length)}
-                  stroke-dashoffset=${-segment.offset}
-                  transform="rotate(-90 60 60)"></circle>
-              `)}
-              <text class="donut-total" x="60" y="58">${this.formatNumber(total)}</text>
-              <text class="donut-caption" x="60" y="70">${t("statistics_bottles")}</text>
-            </svg>
+            <div class="donut" role="img"
+              aria-label=${t(titleKey) + ": " + chartLabel}
+              style=${`background: conic-gradient(${gradient})`}>
+              <div class="donut-center">
+                <span class="donut-total">${this.formatNumber(total)}</span>
+                <span class="donut-caption">${t("statistics_bottles")}</span>
+              </div>
+            </div>
             <div class="legend">
               ${segments.map((item) => html`
                 <div class="legend-item">
@@ -362,11 +358,14 @@ export class PlocCellarCard extends LitElement {
   }
 
   getCardSize(): number {
-    return 12;
+    const height = this.shadowRoot
+      ?.querySelector("ha-card")
+      ?.getBoundingClientRect().height;
+    return Math.max(1, Math.ceil((height ?? 0) / 50));
   }
 
   getGridOptions() {
-    return { columns: 12, min_columns: 6, rows: 12, min_rows: 6 };
+    return { columns: 12, min_columns: 6, rows: 1, min_rows: 1 };
   }
 }
 
