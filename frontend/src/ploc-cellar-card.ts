@@ -287,10 +287,6 @@ export class PlocCellarCard extends LitElement {
         ].filter((item) => item.value > 0)
       : [];
     const wines = data?.wines ?? [];
-    const knownWineBottles = wines.reduce(
-      (total, wine) => total + this.getBottleCount(wine),
-      0,
-    );
     const referenceCount = data?.wine_references ?? wines.length;
 
     return html`
