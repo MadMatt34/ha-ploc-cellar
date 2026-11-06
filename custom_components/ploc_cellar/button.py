@@ -1,4 +1,4 @@
-"""Expose manual partial and full PLOUD synchronization buttons."""
+"""Expose manual differential and full PLOUD synchronization buttons."""
 from __future__ import annotations
 
 from collections.abc import Awaitable, Callable
@@ -65,7 +65,6 @@ class PlocCellarSyncButton(ButtonEntity):
         self._attr_translation_key = description.translation_key
         self._attr_unique_id = description.unique_id
         self._attr_icon = description.icon
-        self.entity_id = f"button.{const.DOMAIN}_{description.translation_key}"
 
     async def async_press(self) -> None:
         """Run the requested synchronization and propagate any failure."""
