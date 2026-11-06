@@ -33,9 +33,9 @@ class _HTTP:
     """Record static paths registered by the integration."""
 
     def __init__(self) -> None:
-        self.paths: list[object] = []
+        self.paths: list[Any] = []
 
-    async def async_register_static_paths(self, paths: list[object]) -> None:
+    async def async_register_static_paths(self, paths: list[Any]) -> None:
         self.paths.extend(paths)
 
 
