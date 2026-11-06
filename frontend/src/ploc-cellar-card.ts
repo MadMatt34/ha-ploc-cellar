@@ -181,13 +181,17 @@ export class PlocCellarCard extends LitElement {
 }
 
 declare global {
+  interface Window {
+    customCards?: Array<Record<string, string>>;
+  }
+
   interface HTMLElementTagNameMap {
     "ploc-cellar-card": PlocCellarCard;
   }
 }
 
-(window as Window & { customCards?: Array<Record<string, string>> }).customCards ??= [];
-(window as Window & { customCards: Array<Record<string, string>> }).customCards.push({
+window.customCards ??= [];
+window.customCards.push({
   type: "ploc-cellar-card",
   name: "Ploc Cellar",
   description: "Inventory overview for the Ploc Cellar integration.",
