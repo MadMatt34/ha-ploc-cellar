@@ -8,6 +8,7 @@ import type {
   PlocCellarCardConfig,
   Wine,
 } from "./types";
+import { translate, type TranslationKey } from "./translations";
 
 @customElement("ploc-cellar-card")
 export class PlocCellarCard extends LitElement {
@@ -103,7 +104,7 @@ export class PlocCellarCard extends LitElement {
   }
 
   private formatSync(value: string | null): string {
-    if (!value) return this.hass?.language === "fr" ? "Jamais" : "Never";
+    if (!value) return translate(this.hass?.language ?? "en", "never");
     const date = new Date(value);
     return Number.isNaN(date.getTime())
       ? value
@@ -114,30 +115,31 @@ export class PlocCellarCard extends LitElement {
   }
 
   protected render() {
-    const fr = (this.hass?.language ?? "").startsWith("fr");
+    const t = (key: TranslationKey): string =>
+      translate(this.hass?.language ?? "en", key);
     const data = this.inventory;
-    const title = this.config?.title ?? (fr ? "Cave Ploc" : "Ploc Cellar");
+    const title = this.config?.title ?? t("card_title");
     return html`
       <ha-card>
         <header>
           <h2>${title}</h2>
           <button ?disabled=${this.loading} @click=${() => this.refresh()}>
-            ${this.loading ? (fr ? "Chargement…" : "Loading…") : (fr ? "Actualiser" : "Refresh")}
+            ${this.loading ? t("loading") : t("refresh")}
           </button>
         </header>
         ${this.error ? html`<div class="error">${this.error}</div>` : nothing}
-        ${!this.config?.config_entry_id ? html`<div class="muted">${fr ? "Sélectionnez une configuration Ploc Cellar dans l'éditeur de carte." : "Select a Ploc Cellar configuration in the card editor."}</div>` : nothing}
+        ${!this.config?.config_entry_id ? html`<div class="muted">${t("select_config")}</div>` : nothing}
         ${data ? html`
-          ${data.stale ? html`<div class="warning">${fr ? "Données potentiellement obsolètes : la dernière synchronisation a échoué." : "Data may be stale: the latest synchronization failed."}</div>` : nothing}
+          ${data.stale ? html`<div class="warning">${t("stale")}</div>` : nothing}
           <div class="summary">
-            <div class="metric"><span class="value">${data.total_bottles}</span><span class="label">${fr ? "Bouteilles en cave" : "Bottles in cellar"}</span></div>
-            <div class="metric"><span class="value">${data.total_stock_bottles ?? "—"}</span><span class="label">${fr ? "Stock reconstitué" : "Reconstructed stock"}</span></div>
-            <div class="metric"><span class="value">${data.rack_count}</span><span class="label">${fr ? "Casiers" : "Racks"}</span></div>
-            <div class="metric"><span class="value">${data.empty_positions}</span><span class="label">${fr ? "Places libres" : "Empty positions"}</span></div>
+            <div class="metric"><span class="value">${data.total_bottles}</span><span class="label">${t("bottles_in_cellar")}</span></div>
+            <div class="metric"><span class="value">${data.total_stock_bottles ?? "—"}</span><span class="label">${t("reconstructed_stock")}</span></div>
+            <div class="metric"><span class="value">${data.rack_count}</span><span class="label">${t("racks")}</span></div>
+            <div class="metric"><span class="value">${data.empty_positions}</span><span class="label">${t("empty_positions")}</span></div>
           </div>
-          ${!data.stock_reconstruction_complete ? html`<div class="warning">${fr ? "Reconstitution du stock en cours : seules les quantités physiques sont disponibles." : "Stock reconstruction is incomplete: only physical quantities are available."}</div>` : nothing}
-          <div class="muted">${fr ? "Dernière synchronisation réussie" : "Last successful synchronization"} : ${this.formatSync(data.last_sync)}</div>
-          <input aria-label=${fr ? "Rechercher un vin" : "Search wines"} .value=${this.search} @input=${(event: Event) => { this.search = (event.target as HTMLInputElement).value; }} placeholder=${fr ? "Rechercher un vin…" : "Search wines…"} />
+          ${!data.stock_reconstruction_complete ? html`<div class="warning">${t("reconstruction_incomplete")}</div>` : nothing}
+          <div class="muted">${t("last_sync")} : ${this.formatSync(data.last_sync)}</div>
+          <input aria-label=${t("search_wine")} .value=${this.search} @input=${(event: Event) => { this.search = (event.target as HTMLInputElement).value; }} placeholder=${t("search_placeholder")} />
           ${this.filteredWines.map((wine) => html`
             <div class="wine">
               <div>
@@ -147,7 +149,7 @@ export class PlocCellarCard extends LitElement {
               <div class="count">${wine.bottles ?? wine.bottles_in_cellar}</div>
             </div>
           `)}
-          ${this.filteredWines.length === 0 ? html`<div class="muted">${fr ? "Aucun vin correspondant." : "No matching wines."}</div>` : nothing}
+          ${this.filteredWines.length === 0 ? html`<div class="muted">${t("no_matching_wines")}</div>` : nothing}
         ` : nothing}
       </ha-card>
     `;
