@@ -124,6 +124,8 @@ The response contains:
 - `rack_count`, `total_positions`, `occupied_positions` and `empty_positions`, the number of racks and the position breakdown; `positions_without_rack` and `positions_with_unknown_wine` report temporarily unresolved Rack or Wine references;
 - `matching_wines`, the number of wines matching the filters;
 - `racks`, the list of racks;
+- `rack_items`, the complete list of physical positions, including empty positions and unresolved rack/wine references. Each item contains `id`, `rack_id`, `wine_id` (`null` when unassigned), `row` and `column`;
+- `stale`, whether the displayed inventory is older than the last successful synchronization because a later synchronization failed;
 - `wines`, normally only wines with positive effective stock. If reconstruction is incomplete, only known wines with physical bottles in rack positions are returned; their stock-derived quantities and diagnostics are `null`, as are global stock-derived totals;
 - `wine_diagnostics`, the unfiltered list of all wines with at least one unlocated-stock, negative-movement or physical-surplus diagnostic, including wines with zero effective stock. Each entry includes purchased, consumed, movement balance, physical quantity, effective stock and all three diagnostic quantities. It is `null` while stock reconstruction is incomplete;
 - `stock_reconstruction_complete`, whether a complete Orders snapshot is available;
