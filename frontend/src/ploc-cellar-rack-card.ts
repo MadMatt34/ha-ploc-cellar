@@ -28,6 +28,7 @@ export class PlocCellarRackCard extends LitElement {
     button[aria-pressed="true"] { border-color: var(--primary-color); background: var(--secondary-background-color); }
     button[disabled] { opacity: .5; cursor: default; }
     .rack-picker { display: flex; flex-wrap: wrap; gap: 8px; margin: 14px 0; }
+    .rack-picker-select { width: 100%; max-width: 360px; min-height: 40px; padding: 8px 12px; color: var(--primary-text-color); background: var(--card-background-color); border: 1px solid var(--divider-color); border-radius: 8px; font: inherit; }
     .grid-wrap { overflow-x: auto; padding: 4px 0 12px; }
     .rack-grid { display: grid; gap: 6px; min-width: min-content; }
     .slot { min-width: 76px; min-height: 76px; display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 5px; text-align: center; padding: 7px 6px; border-radius: 8px; border: 1px solid var(--divider-color); background: var(--secondary-background-color); box-sizing: border-box; }
@@ -154,6 +155,12 @@ export class PlocCellarRackCard extends LitElement {
     return new Map((this.inventory?.wines ?? []).map((wine) => [wine.id, wine]));
   }
 
+  private selectRack(event: Event): void {
+    if (event.currentTarget instanceof HTMLSelectElement) {
+      this.selectedRackId = event.currentTarget.value;
+    }
+  }
+
   private wineLabel(item: RackItem): string {
     if (!item.wine_id) return "";
     const wine = this.wineById.get(item.wine_id);
@@ -226,12 +233,29 @@ export class PlocCellarRackCard extends LitElement {
         ${!this.config?.config_entry_id ? html`<div class="muted">${t("select_config")}</div>` : nothing}
         ${data?.stale ? html`<div class="warning">${t("stale")}</div>` : nothing}
         ${data?.racks.length ? html`
-          <nav class="rack-picker" aria-label=${t("rack_selection")}>
-            ${data.racks.map((item) => html`
-              <button aria-pressed=${item.id === this.selectedRackId}
-                @click=${() => { this.selectedRackId = item.id; }}>${item.name}</button>
-            `)}
-          </nav>
+          ${data.racks.length > 1
+            ? this.config?.rack_picker_mode === "dropdown"
+              ? html`
+                <div class="rack-picker">
+                  <select class="rack-picker-select"
+                    aria-label=${t("rack_selection")}
+                    .value=${this.selectedRackId ?? ""}
+                    @change=${this.selectRack}>
+                    ${data.racks.map((item) => html`
+                      <option value=${item.id}>${item.name}</option>
+                    `)}
+                  </select>
+                </div>
+              `
+              : html`
+                <nav class="rack-picker" aria-label=${t("rack_selection")}>
+                  ${data.racks.map((item) => html`
+                    <button aria-pressed=${item.id === this.selectedRackId}
+                      @click=${() => { this.selectedRackId = item.id; }}>${item.name}</button>
+                  `)}
+                </nav>
+              `
+            : nothing}
           <div class="legend">${rack?.name ?? ""} · ${this.selectedItems.filter((item) => item.wine_id).length} ${t("occupied")} · ${this.selectedItems.filter((item) => !item.wine_id).length} ${t("free")}</div>
           ${rows.length && columns.length ? html`
             <div class="grid-wrap">

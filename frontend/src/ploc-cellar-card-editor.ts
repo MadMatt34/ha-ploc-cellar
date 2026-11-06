@@ -17,6 +17,26 @@ export class PlocCellarCardEditor extends LitElement {
         selector: { config_entry: { integration: "ploc_cellar" } },
       },
       { name: "title", selector: { text: {} } },
+      ...(this.config?.type === "custom:ploc-cellar-rack-card"
+        ? [{
+            name: "rack_picker_mode",
+            selector: {
+              select: {
+                mode: "dropdown",
+                options: [
+                  {
+                    label: translate(this.hass?.language ?? "en", "editor_rack_picker_buttons"),
+                    value: "buttons",
+                  },
+                  {
+                    label: translate(this.hass?.language ?? "en", "editor_rack_picker_dropdown"),
+                    value: "dropdown",
+                  },
+                ],
+              },
+            },
+          }]
+        : []),
       { name: "show_occupancy", selector: { boolean: {} } },
       { name: "show_diagnostics", selector: { boolean: {} } },
       { name: "show_statistics", selector: { boolean: {} } },
@@ -29,6 +49,7 @@ export class PlocCellarCardEditor extends LitElement {
   setConfig(config: PlocCellarCardConfig): void {
     this.config = {
       ...config,
+      rack_picker_mode: config.rack_picker_mode ?? "buttons",
       show_occupancy: config.show_occupancy !== false,
       show_diagnostics: config.show_diagnostics !== false,
       show_statistics: config.show_statistics !== false,
@@ -39,6 +60,7 @@ export class PlocCellarCardEditor extends LitElement {
   private computeLabel = (schema: { name: string }): string => {
     const labels: Record<string, TranslationKey> = {
       config_entry_id: "editor_configuration", title: "editor_title",
+      rack_picker_mode: "editor_rack_picker_mode",
       show_occupancy: "editor_show_occupancy",
       show_diagnostics: "editor_show_diagnostics",
       show_statistics: "editor_show_statistics",

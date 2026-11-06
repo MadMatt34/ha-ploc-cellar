@@ -102,5 +102,8 @@
   "tooltip_cuvee": "Cuvée",
   "tooltip_format": "Bottle format",
   "tooltip_volume": "Volume",
-  "tooltip_temperature": "Serving temperature"
+  "tooltip_temperature": "Serving temperature",
+  "editor_rack_picker_mode": "Rack selection display",
+  "editor_rack_picker_buttons": "Buttons",
+  "editor_rack_picker_dropdown": "Dropdown list"
 }
