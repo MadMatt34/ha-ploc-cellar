@@ -35,7 +35,7 @@ const bt = (e) => new mt(typeof e == "string" ? e : e + "", void 0, Q), K = (e, 
   for (const i of t.cssRules) s += i.cssText;
   return bt(s);
 })(e) : e;
-const { is: xt, defineProperty: kt, getOwnPropertyDescriptor: At, getOwnPropertyNames: Ct, getOwnPropertySymbols: St, getPrototypeOf: Et } = Object, W = globalThis, ot = W.trustedTypes, Pt = ot ? ot.emptyScript : "", Ot = W.reactiveElementPolyfillSupport, U = (e, t) => e, B = { toAttribute(e, t) {
+const { is: xt, defineProperty: kt, getOwnPropertyDescriptor: At, getOwnPropertyNames: Ct, getOwnPropertySymbols: St, getPrototypeOf: Et } = Object, F = globalThis, ot = F.trustedTypes, Pt = ot ? ot.emptyScript : "", Ot = F.reactiveElementPolyfillSupport, U = (e, t) => e, B = { toAttribute(e, t) {
   switch (t) {
     case Boolean:
       e = e ? Pt : null;
@@ -64,7 +64,7 @@ const { is: xt, defineProperty: kt, getOwnPropertyDescriptor: At, getOwnProperty
   }
   return s;
 } }, X = (e, t) => !xt(e, t), rt = { attribute: !0, type: String, converter: B, reflect: !1, useDefault: !1, hasChanged: X };
-Symbol.metadata ??= /* @__PURE__ */ Symbol("metadata"), W.litPropertyMetadata ??= /* @__PURE__ */ new WeakMap();
+Symbol.metadata ??= /* @__PURE__ */ Symbol("metadata"), F.litPropertyMetadata ??= /* @__PURE__ */ new WeakMap();
 let P = class extends HTMLElement {
   static addInitializer(t) {
     this._$Ei(), (this.l ??= []).push(t);
@@ -246,7 +246,7 @@ let P = class extends HTMLElement {
   firstUpdated(t) {
   }
 };
-P.elementStyles = [], P.shadowRootOptions = { mode: "open" }, P[U("elementProperties")] = /* @__PURE__ */ new Map(), P[U("finalized")] = /* @__PURE__ */ new Map(), Ot?.({ ReactiveElement: P }), (W.reactiveElementVersions ??= []).push("2.1.2");
+P.elementStyles = [], P.shadowRootOptions = { mode: "open" }, P[U("elementProperties")] = /* @__PURE__ */ new Map(), P[U("finalized")] = /* @__PURE__ */ new Map(), Ot?.({ ReactiveElement: P }), (F.reactiveElementVersions ??= []).push("2.1.2");
 const Y = globalThis, at = (e) => e, V = Y.trustedTypes, ct = V ? V.createPolicy("lit-html", { createHTML: (e) => e }) : void 0, ft = "$lit$", w = `lit$${Math.random().toFixed(9).slice(2)}$`, vt = "?" + w, Nt = `<${vt}>`, C = document, z = () => C.createComment(""), I = (e) => e === null || typeof e != "object" && typeof e != "function", tt = Array.isArray, Rt = (e) => tt(e) || typeof e?.[Symbol.iterator] == "function", J = `[ 	
 \f\r]`, M = /<(?:(!--|\/[^a-zA-Z])|(\/?[a-zA-Z][^>\s]*)|(\/?$))/g, lt = /-->/g, dt = />/g, k = RegExp(`>|${J}(?:([^\\s"'>=/]+)(${J}*=${J}*(?:[^ 	
 \f\r"'\`<>=]|("|')|))|$)`, "g"), pt = /'/g, ht = /"/g, $t = /^(?:script|style|textarea|title)$/i, Mt = (e) => (t, ...s) => ({ _$litType$: e, strings: t, values: s }), d = Mt(1), O = /* @__PURE__ */ Symbol.for("lit-noChange"), p = /* @__PURE__ */ Symbol.for("lit-nothing"), ut = /* @__PURE__ */ new WeakMap(), A = C.createTreeWalker(C, 129);
@@ -280,7 +280,7 @@ class T {
       if (n.nodeType === 1) {
         if (n.hasAttributes()) for (const h of n.getAttributeNames()) if (h.endsWith(ft)) {
           const v = u[r++], b = n.getAttribute(h).split(w), H = /([.?@])?(.*)/.exec(v);
-          a.push({ type: 1, index: o, name: H[2], strings: b, ctor: H[1] === "." ? It : H[1] === "?" ? Tt : H[1] === "@" ? Dt : F }), n.removeAttribute(h);
+          a.push({ type: 1, index: o, name: H[2], strings: b, ctor: H[1] === "." ? It : H[1] === "?" ? Tt : H[1] === "@" ? Dt : W }), n.removeAttribute(h);
         } else h.startsWith(w) && (a.push({ type: 6, index: o }), n.removeAttribute(h));
         if ($t.test(n.tagName)) {
           const h = n.textContent.split(w), v = h.length - 1;
@@ -396,7 +396,7 @@ class D {
     this._$AM === void 0 && (this._$Cv = t, this._$AP?.(t));
   }
 }
-class F {
+class W {
   get tagName() {
     return this.element.tagName;
   }
@@ -421,7 +421,7 @@ class F {
     t === p ? this.element.removeAttribute(this.name) : this.element.setAttribute(this.name, t ?? "");
   }
 }
-class It extends F {
+class It extends W {
   constructor() {
     super(...arguments), this.type = 3;
   }
@@ -429,7 +429,7 @@ class It extends F {
     this.element[this.name] = t === p ? void 0 : t;
   }
 }
-class Tt extends F {
+class Tt extends W {
   constructor() {
     super(...arguments), this.type = 4;
   }
@@ -437,7 +437,7 @@ class Tt extends F {
     this.element.toggleAttribute(this.name, !!t && t !== p);
   }
 }
-class Dt extends F {
+class Dt extends W {
   constructor(t, s, i, n, o) {
     super(t, s, i, n, o), this.type = 5;
   }
@@ -534,10 +534,10 @@ function j(e) {
 function g(e) {
   return j({ ...e, state: !0, attribute: !1 });
 }
-const Gt = "Ploc Cellar", Wt = "Cellar storage", Ft = "Refresh", Jt = "Loading…", Zt = "Never", Qt = "Bottles in cellar", Kt = "Reconstructed stock", Xt = "Racks", Yt = "Empty positions", te = "Data may be stale: the latest synchronization failed.", ee = "Stock reconstruction is incomplete: only physical quantities are available.", se = "Last successful synchronization", ie = "Search wines", ne = "Search wines…", oe = "No matching wines.", re = "Select a Ploc Cellar configuration in the card editor.", ae = "Rack selection", ce = "occupied", le = "free", de = "Unknown wine", pe = "Empty position", he = "Row", ue = "Column", ge = "No row/column coordinates are available for this rack.", _e = "Positions without coordinates", me = "Not mapped", fe = "No racks available.", ve = "position(s) reference a missing rack.", $e = "Wine inventory", ye = "All colors", be = "All regions", we = "All appellations", xe = "All vintages", ke = "Sort by", Ae = "Name", Ce = "Quantity descending", Se = "Vintage descending", Ee = "{count} wine(s)", Pe = "{count} bottle(s)", Oe = "Clear filters", Ne = "btl.", Re = "Unknown vintage", Me = "Wine details", Ue = "Grapes", ze = "Cuvée", Ie = "Volume", Te = "Locations", De = "Ploc Cellar", Le = "Cellar overview and stock indicators.", je = "Wine inventory", He = "Search, filter and browse the wine inventory.", qe = "Cellar racks", Be = "Visualize rack positions and the wines stored in them.", Ve = "Ploc Cellar configuration", Ge = "Select the PLOUD connection used by this card.", We = "Card title", Fe = "Optional. Leave empty to use the default title.", Je = "Cellar statistics", Ze = "Bottles in stock", Qe = "wine references", Ke = "By color", Xe = "By region", Ye = "By appellation", ts = "By vintage", es = "By bottle format", ss = "Other", is = "Not specified", ns = "No data available for this category.", os = "Unknown", rs = "Wine references in stock", as = "Rack occupancy", cs = "Stock diagnostics", ls = "Unlocated bottles", ds = "Negative movement balance", ps = "Physical surplus", hs = "Breakdowns include known wine references only.", us = "{count} occupied position(s) have an unknown wine reference. They are included in total stock but not in the breakdowns.", gs = {
+const Gt = "Ploc Cellar", Ft = "Cellar storage", Wt = "Refresh", Jt = "Loading…", Zt = "Never", Qt = "Bottles in cellar", Kt = "Reconstructed stock", Xt = "Racks", Yt = "Empty positions", te = "Data may be stale: the latest synchronization failed.", ee = "Stock reconstruction is incomplete: only physical quantities are available.", se = "Last successful synchronization", ie = "Search wines", ne = "Search wines…", oe = "No matching wines.", re = "Select a Ploc Cellar configuration in the card editor.", ae = "Rack selection", ce = "occupied", le = "free", de = "Unknown wine", pe = "Empty position", he = "Row", ue = "Column", ge = "No row/column coordinates are available for this rack.", _e = "Positions without coordinates", me = "Not mapped", fe = "No racks available.", ve = "position(s) reference a missing rack.", $e = "Wine inventory", ye = "All colors", be = "All regions", we = "All appellations", xe = "All vintages", ke = "Sort by", Ae = "Name", Ce = "Quantity descending", Se = "Vintage descending", Ee = "{count} wine(s)", Pe = "{count} bottle(s)", Oe = "Clear filters", Ne = "btl.", Re = "Unknown vintage", Me = "Wine details", Ue = "Grapes", ze = "Cuvée", Ie = "Volume", Te = "Locations", De = "Ploc Cellar", Le = "Cellar overview and stock indicators.", je = "Wine inventory", He = "Search, filter and browse the wine inventory.", qe = "Cellar racks", Be = "Visualize rack positions and the wines stored in them.", Ve = "Ploc Cellar configuration", Ge = "Select the PLOUD connection used by this card.", Fe = "Card title", We = "Optional. Leave empty to use the default title.", Je = "Cellar statistics", Ze = "Bottles in stock", Qe = "wine references", Ke = "By color", Xe = "By region", Ye = "By appellation", ts = "By vintage", es = "By bottle format", ss = "Other", is = "Not specified", ns = "No data available for this category.", os = "Unknown", rs = "Wine references in stock", as = "Rack occupancy", cs = "Stock diagnostics", ls = "Unlocated bottles", ds = "Negative movement balance", ps = "Physical surplus", hs = "Breakdowns include known wine references only.", us = "{count} occupied position(s) have an unknown wine reference. They are included in total stock but not in the breakdowns.", gs = {
   card_title: Gt,
-  rack_title: Wt,
-  refresh: Ft,
+  rack_title: Ft,
+  refresh: Wt,
   loading: Jt,
   never: Zt,
   bottles_in_cellar: Qt,
@@ -590,8 +590,8 @@ const Gt = "Ploc Cellar", Wt = "Cellar storage", Ft = "Refresh", Jt = "Loading�
   picker_rack_description: Be,
   editor_configuration: Ve,
   editor_configuration_helper: Ge,
-  editor_title: We,
-  editor_title_helper: Fe,
+  editor_title: Fe,
+  editor_title_helper: We,
   statistics_title: Je,
   statistics_bottles: Ze,
   statistics_references: Qe,
@@ -612,7 +612,7 @@ const Gt = "Ploc Cellar", Wt = "Cellar storage", Ft = "Refresh", Jt = "Loading�
   diagnostic_surplus: ps,
   statistics_distribution_scope: hs,
   statistics_unknown_wine_positions: us
-}, _s = "Cave Ploc", ms = "Rangement de la cave", fs = "Actualiser", vs = "Chargement…", $s = "Jamais", ys = "Bouteilles en cave", bs = "Stock reconstitué", ws = "Casiers", xs = "Places libres", ks = "Données potentiellement obsolètes : la dernière synchronisation a échoué.", As = "Reconstitution du stock en cours : seules les quantités physiques sont disponibles.", Cs = "Dernière synchronisation réussie", Ss = "Rechercher un vin", Es = "Rechercher un vin…", Ps = "Aucun vin correspondant.", Os = "Sélectionnez une configuration Ploc Cellar dans l’éditeur de carte.", Ns = "Sélection du casier", Rs = "occupées", Ms = "libres", Us = "Vin inconnu", zs = "Emplacement libre", Is = "Rangée", Ts = "Colonne", Ds = "Aucune coordonnée de rangée/colonne disponible pour ce casier.", Ls = "Emplacements sans coordonnées", js = "Non renseigné", Hs = "Aucun casier disponible.", qs = "emplacement(s) référencent un casier absent.", Bs = "Inventaire des vins", Vs = "Toutes les couleurs", Gs = "Toutes les régions", Ws = "Toutes les appellations", Fs = "Tous les millésimes", Js = "Trier par", Zs = "Nom", Qs = "Quantité décroissante", Ks = "Millésime décroissant", Xs = "{count} référence(s)", Ys = "{count} bouteille(s)", ti = "Effacer les filtres", ei = "bt.", si = "Millésime inconnu", ii = "Détails du vin", ni = "Cépages", oi = "Cuvée", ri = "Volume", ai = "Emplacements", ci = "Cave Ploc", li = "Vue d’ensemble de la cave et indicateurs de stock.", di = "Inventaire des vins", pi = "Rechercher, filtrer et parcourir l’inventaire des vins.", hi = "Casiers de la cave", ui = "Visualiser les emplacements des casiers et les vins qui y sont rangés.", gi = "Configuration Ploc Cellar", _i = "Sélectionnez la connexion PLOUD utilisée par cette carte.", mi = "Titre de la carte", fi = "Facultatif. Laissez vide pour utiliser le titre par défaut.", vi = "Statistiques de la cave", $i = "Bouteilles en stock", yi = "références de vin", bi = "Par couleur", wi = "Par région", xi = "Par appellation", ki = "Par millésime", Ai = "Par format de bouteille", Ci = "Autres", Si = "Non renseigné", Ei = "Aucune donnée disponible pour cette catégorie.", Pi = "Inconnu", Oi = "Références de vins en stock", Ni = "Occupation des casiers", Ri = "Diagnostics du stock", Mi = "Bouteilles non localisées", Ui = "Solde de mouvements négatif", zi = "Excédent physique", Ii = "Les répartitions ne portent que sur les références de vins connues.", Ti = "{count} emplacement(s) occupé(s) font référence à un vin inconnu. Ils sont inclus dans le stock total, mais pas dans les répartitions.", Di = {
+}, _s = "Cave Ploc", ms = "Rangement de la cave", fs = "Actualiser", vs = "Chargement…", $s = "Jamais", ys = "Bouteilles en cave", bs = "Stock reconstitué", ws = "Casiers", xs = "Places libres", ks = "Données potentiellement obsolètes : la dernière synchronisation a échoué.", As = "Reconstitution du stock en cours : seules les quantités physiques sont disponibles.", Cs = "Dernière synchronisation réussie", Ss = "Rechercher un vin", Es = "Rechercher un vin…", Ps = "Aucun vin correspondant.", Os = "Sélectionnez une configuration Ploc Cellar dans l’éditeur de carte.", Ns = "Sélection du casier", Rs = "occupées", Ms = "libres", Us = "Vin inconnu", zs = "Emplacement libre", Is = "Rangée", Ts = "Colonne", Ds = "Aucune coordonnée de rangée/colonne disponible pour ce casier.", Ls = "Emplacements sans coordonnées", js = "Non renseigné", Hs = "Aucun casier disponible.", qs = "emplacement(s) référencent un casier absent.", Bs = "Inventaire des vins", Vs = "Toutes les couleurs", Gs = "Toutes les régions", Fs = "Toutes les appellations", Ws = "Tous les millésimes", Js = "Trier par", Zs = "Nom", Qs = "Quantité décroissante", Ks = "Millésime décroissant", Xs = "{count} référence(s)", Ys = "{count} bouteille(s)", ti = "Effacer les filtres", ei = "bt.", si = "Millésime inconnu", ii = "Détails du vin", ni = "Cépages", oi = "Cuvée", ri = "Volume", ai = "Emplacements", ci = "Cave Ploc", li = "Vue d’ensemble de la cave et indicateurs de stock.", di = "Inventaire des vins", pi = "Rechercher, filtrer et parcourir l’inventaire des vins.", hi = "Casiers de la cave", ui = "Visualiser les emplacements des casiers et les vins qui y sont rangés.", gi = "Configuration Ploc Cellar", _i = "Sélectionnez la connexion PLOUD utilisée par cette carte.", mi = "Titre de la carte", fi = "Facultatif. Laissez vide pour utiliser le titre par défaut.", vi = "Statistiques de la cave", $i = "Bouteilles en stock", yi = "références de vin", bi = "Par couleur", wi = "Par région", xi = "Par appellation", ki = "Par millésime", Ai = "Par format de bouteille", Ci = "Autres", Si = "Non renseigné", Ei = "Aucune donnée disponible pour cette catégorie.", Pi = "Inconnu", Oi = "Références de vins en stock", Ni = "Occupation des casiers", Ri = "Diagnostics du stock", Mi = "Bouteilles non localisées", Ui = "Solde de mouvements négatif", zi = "Excédent physique", Ii = "Les répartitions ne portent que sur les références de vins connues.", Ti = "{count} emplacement(s) occupé(s) font référence à un vin inconnu. Ils sont inclus dans le stock total, mais pas dans les répartitions.", Di = {
   card_title: _s,
   rack_title: ms,
   refresh: fs,
@@ -644,8 +644,8 @@ const Gt = "Ploc Cellar", Wt = "Cellar storage", Ft = "Refresh", Jt = "Loading�
   inventory_title: Bs,
   filter_color: Vs,
   filter_region: Gs,
-  filter_appellation: Ws,
-  filter_vintage: Fs,
+  filter_appellation: Fs,
+  filter_vintage: Ws,
   sort_by: Js,
   sort_name: Zs,
   sort_bottles: Qs,
@@ -1219,8 +1219,8 @@ st([
 G = st([
   L("ploc-cellar-card-editor")
 ], G);
-var Gi = Object.defineProperty, Wi = Object.getOwnPropertyDescriptor, E = (e, t, s, i) => {
-  for (var n = i > 1 ? void 0 : i ? Wi(t, s) : t, o = e.length - 1, r; o >= 0; o--)
+var Gi = Object.defineProperty, Fi = Object.getOwnPropertyDescriptor, E = (e, t, s, i) => {
+  for (var n = i > 1 ? void 0 : i ? Fi(t, s) : t, o = e.length - 1, r; o >= 0; o--)
     (r = e[o]) && (n = (i ? r(t, s, n) : r(n)) || n);
   return i && n && Gi(t, s, n), n;
 };
