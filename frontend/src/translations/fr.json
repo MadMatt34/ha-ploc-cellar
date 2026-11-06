@@ -55,5 +55,18 @@
   "editor_configuration": "Configuration Ploc Cellar",
   "editor_configuration_helper": "Sélectionnez la connexion PLOUD utilisée par cette carte.",
   "editor_title": "Titre de la carte",
-  "editor_title_helper": "Facultatif. Laissez vide pour utiliser le titre par défaut."
+  "editor_title_helper": "Facultatif. Laissez vide pour utiliser le titre par défaut.",
+  "statistics_title": "Statistiques de la cave",
+  "statistics_bottles": "Bouteilles en stock",
+  "statistics_references": "références de vin",
+  "statistics_color": "Par couleur",
+  "statistics_region": "Par région",
+  "statistics_appellation": "Par appellation",
+  "statistics_vintage": "Par millésime",
+  "statistics_format": "Par format de bouteille",
+  "statistics_other": "Autres",
+  "statistics_unknown": "Non renseigné",
+  "statistics_empty": "Aucune donnée disponible pour cette catégorie.",
+  "picker_statistics_name": "Statistiques des vins",
+  "picker_statistics_description": "Répartition du stock par couleur, région, appellation, millésime et format de bouteille."
 }
