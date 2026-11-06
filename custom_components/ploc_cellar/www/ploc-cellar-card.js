@@ -1347,7 +1347,7 @@ let y = class extends x {
                   transform="rotate(-90 60 60)"></circle>
               `)}
               <text class="donut-total" x="60" y="58">${this.formatNumber(o)}</text>
-              <text class="donut-caption" x="60" y="70">${s("bottles_in_cellar")}</text>
+              <text class="donut-caption" x="60" y="70">${s("statistics_bottles")}</text>
             </svg>
             <div class="legend">
               ${c.map((l) => d`
