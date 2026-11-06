@@ -103,11 +103,27 @@ export class PlocCellarRackCard extends LitElement {
   }
 
   private get rowValues(): number[] {
-    return [...new Set(this.positionedItems.map((item) => item.row as number))].sort((a, b) => a - b);
+    return this.positionedItems.map((item) => item.row as number);
   }
 
   private get columnValues(): number[] {
-    return [...new Set(this.positionedItems.map((item) => item.column as number))].sort((a, b) => a - b);
+    return this.positionedItems.map((item) => item.column as number);
+  }
+
+  private get firstRow(): number {
+    return Math.min(...this.rowValues);
+  }
+
+  private get firstColumn(): number {
+    return Math.min(...this.columnValues);
+  }
+
+  private get rowCount(): number {
+    return Math.max(...this.rowValues) - this.firstRow + 1;
+  }
+
+  private get columnCount(): number {
+    return Math.max(...this.columnValues) - this.firstColumn + 1;
   }
 
   private get wineById(): Map<string, Wine> {
@@ -151,10 +167,10 @@ export class PlocCellarRackCard extends LitElement {
           <div class="legend">${rack?.name ?? ""} · ${this.selectedItems.filter((item) => item.wine_id).length} ${fr ? "occupées" : "occupied"} · ${this.selectedItems.filter((item) => !item.wine_id).length} ${fr ? "libres" : "empty"}</div>
           ${rows.length && columns.length ? html`
             <div class="grid-wrap">
-              <div class="rack-grid" style=${`grid-template-columns: repeat(${columns.length}, minmax(88px, 1fr)); grid-template-rows: repeat(${rows.length}, minmax(72px, auto));`}>
+              <div class="rack-grid" style=${`grid-template-columns: repeat(${this.columnCount}, minmax(88px, 1fr)); grid-template-rows: repeat(${this.rowCount}, minmax(72px, auto));`}>
                 ${items.map((item) => {
-                  const row = rows.indexOf(item.row as number) + 1;
-                  const column = columns.indexOf(item.column as number) + 1;
+                  const row = (item.row as number) - this.firstRow + 1;
+                  const column = (item.column as number) - this.firstColumn + 1;
                   const occupied = Boolean(item.wine_id);
                   return html`
                     <div class=${occupied ? "slot occupied" : "slot"}
