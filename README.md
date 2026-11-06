@@ -66,36 +66,36 @@ Saving the options reloads the config entry. The PLOUD server endpoint cannot be
 
 All 14 sensors and two synchronization buttons are linked to the same **Ploc Cellar** device and use the same PLOUD coordinator. The integration does not create one entity per wine, rack or position.
 
-| Family | Entity ID | Meaning |
+| Family | Entity name | Meaning |
 |---|---|---|
-| Inventory | `sensor.ploc_cellar_bottles_in_stock` | Bottles physically assigned to cellar positions (occupied `RackItems`). |
-| Inventory | `sensor.ploc_cellar_bottles_stock_total` | Total reconstructed stock: movement stock or physical stock, whichever is greater, including unresolved occupied positions. |
-| Inventory | `sensor.ploc_cellar_wines_references` | Known wine references with positive effective stock. |
-| Inventory | `sensor.ploc_cellar_wines_in_stock` | Known wine references with at least one physical cellar position. |
-| Racks | `sensor.ploc_cellar_rack_count` | Number of known racks. |
-| Racks | `sensor.ploc_cellar_rack_positions_total` | Total physical rack positions. |
-| Racks | `sensor.ploc_cellar_rack_positions_available` | Empty rack positions. |
-| Diagnostics | `sensor.ploc_cellar_diagnostic_bottles_unalocated` | Reconstructed bottles not assigned to a rack position. |
-| Diagnostics | `sensor.ploc_cellar_diagnostic_wines_unlocated` | Wine references with unlocated stock. |
-| Diagnostics | `sensor.ploc_cellar_diagnostic_bottles_negative_movements` | Absolute total of negative incoming-minus-outgoing balances. |
-| Diagnostics | `sensor.ploc_cellar_diagnostic_wines_negative_movements` | Wine references with a negative movement balance. |
-| Diagnostics | `sensor.ploc_cellar_diagnostic_bottles_physical_surplus` | Physical bottles above non-negative movement stock. |
-| Diagnostics | `sensor.ploc_cellar_diagnostic_wines_physical_surplus` | Wine references with a physical surplus. |
-| Diagnostics | `sensor.ploc_cellar_diagnostic_last_successful_sync` | Timestamp of the last successful synchronization; its `stale` attribute is true when a later synchronization has failed. |
-| Actions | `button.ploc_cellar_sync` | Triggers an immediate partial synchronization using the saved PLOUD cursor. |
-| Actions | `button.ploc_cellar_sync_full` | Forces a complete PLOUD snapshot and rebuilds the local inventory. |
+| Inventory | Bottles in cellar | Bottles physically assigned to cellar positions (occupied `RackItems`). |
+| Inventory | Total stock bottles | Total reconstructed stock: movement stock or physical stock, whichever is greater, including occupied positions with an unknown wine. |
+| Inventory | Wine references in stock | Known wine references with positive effective stock. |
+| Inventory | Wine references physically in cellar | Known wine references with at least one physical cellar position. |
+| Racks | Number of racks | Number of known racks. |
+| Racks | Total rack positions | Total physical rack positions. |
+| Racks | Available rack positions | Empty rack positions. |
+| Diagnostics | Unlocated bottles | Reconstructed bottles not assigned to a rack position. |
+| Diagnostics | Wines with unlocated stock | Wine references with unlocated stock. |
+| Diagnostics | Bottles with negative movement balance | Absolute total of negative incoming-minus-outgoing balances. |
+| Diagnostics | Wines with negative movement balance | Wine references with a negative movement balance. |
+| Diagnostics | Bottles in physical surplus | Physical bottles above non-negative movement stock. |
+| Diagnostics | Wines with physical surplus | Wine references with a physical surplus. |
+| Diagnostics | Last successful synchronization | Timestamp of the last successful synchronization; its `stale` attribute is true when a later synchronization has failed. |
+| Actions | Differential synchronization | Fetches changes since the saved PLOUD cursor. |
+| Actions | Full synchronization | Forces a complete PLOUD snapshot and rebuilds the local inventory. |
 
 Movement-derived inventory and diagnostic sensors show `unknown` until a complete PLOUD `Orders` snapshot has been validated. Physical bottle and rack-position counts remain available. After a synchronization failure, the last successful timestamp is retained and the `stale` attribute on the last-sync sensor becomes true; a successful synchronization resets it to false.
 
-The existing inventory sensor unique ID is retained. On upgrade, the default entity ID `sensor.ploc_cellar_inventory` is migrated to `sensor.ploc_cellar_bottles_in_stock`; a user-customized entity ID is left unchanged.
+The integration does not force entity IDs. Home Assistant generates them from the naming format configured on the instance (area, parent device, device and entity name). Existing entity IDs in the registry are preserved during upgrades. To regenerate them using the current format, use **Recreate entity IDs** from the device menu.
 ## Actions
 
 ### Synchronization buttons
 
 The two buttons are available on the **Ploc Cellar** device:
 
-- `button.ploc_cellar_sync`: applies changes since the last synchronization using the stored cursor.
-- `button.ploc_cellar_sync_full`: requests a complete PLOUD snapshot and rebuilds the local inventory. The existing validated inventory remains available until the new snapshot has been validated and persisted.
+- the differential synchronization button applies changes since the last synchronization using the stored cursor.
+- the full synchronization button requests a complete PLOUD snapshot and rebuilds the local inventory. The existing validated inventory remains available until the new snapshot has been validated and persisted.
 
 They invoke the same coordinator operations as the `ploc_cellar.sync` and `ploc_cellar.sync_full` actions. Both can also be used from an automation with the standard `button.press` action.
 
