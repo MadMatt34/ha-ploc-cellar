@@ -233,9 +233,6 @@ export class PlocCellarCard extends LitElement {
     };
   }
 
-  private hideDonutTooltip(): void {
-    this.donutTooltip = undefined;
-  }
 
   private formatSync(value: string | null): string {
     if (!value) return translate(this.hass?.language ?? "en", "never");
