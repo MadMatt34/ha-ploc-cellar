@@ -247,7 +247,7 @@ export class PlocCellarCard extends LitElement {
                   transform="rotate(-90 60 60)"></circle>
               `)}
               <text class="donut-total" x="60" y="58">${this.formatNumber(total)}</text>
-              <text class="donut-caption" x="60" y="70">${t("bottles_in_cellar")}</text>
+              <text class="donut-caption" x="60" y="70">${t("statistics_bottles")}</text>
             </svg>
             <div class="legend">
               ${segments.map((item) => html`
