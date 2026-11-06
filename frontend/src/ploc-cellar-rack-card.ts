@@ -185,6 +185,15 @@ export class PlocCellarRackCard extends LitElement {
   getCardSize(): number {
     return 5;
   }
+
+  getGridOptions() {
+    return {
+      columns: 12,
+      min_columns: 6,
+      rows: 5,
+      min_rows: 4,
+    };
+  }
 }
 
 declare global {
