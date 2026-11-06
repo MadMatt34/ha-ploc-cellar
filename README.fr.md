@@ -19,7 +19,6 @@ Intégration personnalisée Home Assistant permettant de consulter une cave PLOC
 - Inventaire détaillé accessible à la demande avec l'action `ploc_cellar.get_inventory`.
 - Deux boutons sur l'appareil Cave Ploc déclenchent une synchronisation différentielle ou une synchronisation complète.
 - Les UUID sont normalisés sous leur forme canonique minuscule pour les vins, casiers, positions, mouvements, propriétaires et suppressions ; les identifiants non UUID sont débarrassés des espaces périphériques sans changement de casse.
-- Synchronisation immédiate à la demande avec l'action `ploc_cellar.sync`.
 - Une seule entrée de configuration Ploc Cellar par instance Home Assistant.
 - Aucune opération d'écriture n'est envoyée à PLOUD.
 
@@ -83,8 +82,8 @@ Les 14 capteurs et les deux boutons de synchronisation sont rattachés au même 
 | Diagnostics | Bouteilles en excédent physique | Bouteilles physiques au-delà du stock non négatif issu des mouvements. |
 | Diagnostics | Vins avec excédent physique | Références de vins présentant un excédent physique. |
 | Diagnostics | Dernière synchronisation réussie | Date et heure de la dernière synchronisation réussie ; son attribut `stale` passe à true lorsqu’une synchronisation ultérieure échoue. |
-| Actions | Synchronisation différentielle | Récupère les modifications depuis le curseur PLOUD enregistré. |
-| Actions | Synchronisation complète | Force un instantané PLOUD complet et reconstruit l’inventaire local. |
+| Boutons | Synchronisation différentielle | Récupère les modifications depuis le curseur PLOUD enregistré. |
+| Boutons | Synchronisation complète | Force un instantané PLOUD complet et reconstruit l’inventaire local. |
 
 Les capteurs de stock et de diagnostic dépendant des mouvements affichent `unknown` tant qu’un instantané PLOUD complet de la collection `Orders` n’a pas été validé. Les compteurs physiques de bouteilles et d’emplacements restent disponibles. Après un échec de synchronisation, la date de dernière réussite est conservée et l’attribut `stale` du capteur de synchronisation passe à true ; une synchronisation réussie le remet à false.
 
@@ -98,7 +97,7 @@ Les deux boutons sont disponibles sur l’appareil **Cave Ploc** :
 - **Synchronisation différentielle** : applique les modifications depuis la dernière synchronisation à partir du curseur enregistré.
 - **Synchronisation complète** : demande un instantané PLOUD complet et reconstruit l’inventaire local. L’inventaire validé existant reste disponible tant que le nouvel instantané n’a pas été validé et enregistré.
 
-Ils appellent les mêmes méthodes du coordinateur que les actions `ploc_cellar.sync` et `ploc_cellar.sync_full`. Ils peuvent également être utilisés dans une automatisation avec l’action standard `button.press`.
+Ils peuvent également être utilisés dans une automatisation avec l’action standard `button.press`.
 
 ### `ploc_cellar.get_inventory`
 
@@ -131,16 +130,6 @@ La réponse contient :
 - `last_sync`, la date et l'heure de la dernière synchronisation réussie.
 
 Pour chaque vin, `unlocated_bottles` correspond à la différence entre le stock effectif et les bouteilles physiquement placées ; `negative_movement_bottles` est la valeur absolue d'un solde entrées-sorties négatif ; `physical_surplus_bottles` compte les bouteilles physiquement présentes au-delà de `max(0, movement_balance)`. Ces diagnostics sont distincts et peuvent coexister pour une même référence. Un stock non localisé ne prouve pas qu'une bouteille a été retirée sans déclarer sa sortie : elle peut ne jamais avoir été rangée ou être conservée hors de la cave. Les valeurs brutes `Wine.bo` restent informatives et ne déterminent pas le stock effectif. Aucune correction n'est envoyée à PLOUD. Les filtres ne modifient pas les totaux globaux. Chaque emplacement associé à un vin contient le nom et l'identifiant du casier, ainsi que la rangée et la colonne lorsqu'elles sont disponibles.
-
-### `ploc_cellar.sync`
-
-Déclenche immédiatement une synchronisation en lecture seule :
-
-```yaml
-action: ploc_cellar.sync
-data:
-  config_entry_id: IDENTIFIANT_DE_CONFIGURATION
-```
 
 ## Stockage et confidentialité
 

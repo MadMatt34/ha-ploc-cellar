@@ -18,25 +18,15 @@ from ploc_cellar.const import (
     DOMAIN,
     PLOUD_DEFAULT_SERVER,
     SERVICE_GET_INVENTORY,
-    SERVICE_SYNC,
-    SERVICE_SYNC_FULL,
 )
 from ploc_cellar.models import Cellar
 
 
 class _Coordinator:
-    """Capture the public synchronization calls made by registered services."""
+    """Provide the cached inventory data used by the inventory service."""
 
     def __init__(self) -> None:
         self.data = Cellar()
-        self.partial_calls = 0
-        self.full_calls = 0
-
-    async def async_force_sync(self) -> None:
-        self.partial_calls += 1
-
-    async def async_force_full_sync(self) -> None:
-        self.full_calls += 1
 
 
 class _Services:
@@ -71,31 +61,13 @@ def _hass(coordinator: _Coordinator) -> SimpleNamespace:
     )
 
 
-def test_async_setup_registers_all_public_services() -> None:
-    """Setup registers inventory, partial sync and full sync handlers."""
+def test_async_setup_registers_only_the_inventory_service() -> None:
+    """Register only inventory; synchronization is exposed through entity buttons."""
     coordinator = _Coordinator()
     hass = _hass(coordinator)
 
     assert asyncio.run(async_setup(hass, {})) is True
-    assert set(hass.services.handlers) == {
-        SERVICE_GET_INVENTORY,
-        SERVICE_SYNC,
-        SERVICE_SYNC_FULL,
-    }
-
-
-def test_sync_services_dispatch_to_the_selected_coordinator() -> None:
-    """The sync handlers invoke their matching coordinator methods."""
-    coordinator = _Coordinator()
-    hass = _hass(coordinator)
-    asyncio.run(async_setup(hass, {}))
-    call = SimpleNamespace(data={"config_entry_id": "entry-1"})
-
-    asyncio.run(hass.services.handlers[SERVICE_SYNC](call))
-    asyncio.run(hass.services.handlers[SERVICE_SYNC_FULL](call))
-
-    assert coordinator.partial_calls == 1
-    assert coordinator.full_calls == 1
+    assert set(hass.services.handlers) == {SERVICE_GET_INVENTORY}
 
 
 def test_inventory_service_returns_json_safe_empty_inventory() -> None:
@@ -133,8 +105,7 @@ def test_services_reject_missing_wrong_or_unloaded_entries(entry: object) -> Non
     call = SimpleNamespace(data={"config_entry_id": "entry-1"})
 
     with pytest.raises(ServiceValidationError):
-        asyncio.run(hass.services.handlers[SERVICE_SYNC](call))
-
+        asyncio.run(hass.services.handlers[SERVICE_GET_INVENTORY](call))
 
 
 def test_setup_entry_loads_coordinator_and_forwards_platforms(
