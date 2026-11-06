@@ -79,5 +79,16 @@
   "editor_show_occupancy": "Show rack occupancy",
   "editor_show_diagnostics": "Show diagnostics",
   "editor_show_statistics": "Show statistics",
-  "editor_show_statistics_legends": "Show chart legends"
+  "editor_show_statistics_legends": "Show chart legends",
+  "diagnostic_detail_open": "View details",
+  "diagnostic_detail_unlocated": "Wine references with stock that is not assigned to a physical rack position.",
+  "diagnostic_detail_negative": "Wine references where recorded outgoing movements exceed incoming movements.",
+  "diagnostic_detail_surplus": "Wine references with more bottles physically stored than the reconstructed movement stock.",
+  "diagnostic_detail_quantity": "Bottles concerned",
+  "diagnostic_detail_in_cellar": "In cellar",
+  "diagnostic_detail_stock": "Reconstructed stock",
+  "diagnostic_detail_purchased": "Incoming",
+  "diagnostic_detail_consumed": "Outgoing",
+  "diagnostic_detail_balance": "Movement balance",
+  "diagnostic_detail_empty": "No wine-level details are available for this diagnostic."
 }
