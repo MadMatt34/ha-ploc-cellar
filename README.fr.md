@@ -19,7 +19,6 @@ Intégration personnalisée Home Assistant permettant de consulter une cave PLOC
 - Inventaire détaillé accessible à la demande avec l'action `ploc_cellar.get_inventory`.
 - Deux boutons sur l'appareil Cave Ploc déclenchent une synchronisation différentielle ou une synchronisation complète.
 - Les UUID sont normalisés sous leur forme canonique minuscule pour les vins, casiers, positions, mouvements, propriétaires et suppressions ; les identifiants non UUID sont débarrassés des espaces périphériques sans changement de casse.
-- Synchronisation différentielle et complète à la demande avec les deux boutons de l'appareil **Cave Ploc**.
 - Une seule entrée de configuration Ploc Cellar par instance Home Assistant.
 - Aucune opération d'écriture n'est envoyée à PLOUD.
 
