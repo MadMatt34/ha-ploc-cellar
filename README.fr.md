@@ -150,12 +150,13 @@ Ces contrôles statiques ne remplacent pas les essais de bout en bout avec une i
 
 ### Cartes Lovelace
 
-L'intégration fournit quatre cartes Lovelace personnalisées facultatives :
+L'intégration fournit trois cartes Lovelace personnalisées facultatives :
 
-- **Ploc Cellar** : vue d'ensemble avec stock physique et reconstitué, taux d'occupation des casiers et diagnostics du stock.
+- **Ploc Cellar** : vue d'ensemble et statistiques réunies : stock physique et reconstitué, occupation des casiers, diagnostics du stock et graphiques en anneau pour les répartitions par couleur, région, appellation, millésime et format de bouteille. Les graphiques portent uniquement sur les références Wine connues ; les emplacements occupés dont la référence est inconnue restent inclus dans les totaux globaux et font l'objet d'un avertissement distinct.
 - **Ploc Cellar Rack** : sélection d'un casier et représentation des emplacements à partir des coordonnées réelles de rangée et de colonne PLOUD.
 - **Ploc Cellar Inventory** : liste des vins avec recherche, filtres par couleur, région, appellation et millésime, tri, quantités et détails dépliables.
-- **Ploc Cellar Statistics** : répartition du stock par couleur, région, appellation, millésime et format de bouteille. Le total inclut les emplacements occupés dont la référence Wine est inconnue ; les répartitions portent uniquement sur les références Wine connues.
+
+L'ancien type de carte **Ploc Cellar Statistics** reste enregistré comme alias de compatibilité : les tableaux de bord existants utilisant `custom:ploc-cellar-statistics-card` continuent de fonctionner et affichent désormais la vue d'ensemble unifiée. Pour les nouveaux tableaux de bord, utilisez **Ploc Cellar**.
 
 Le module JavaScript est servi par Home Assistant à l'adresse
 `/ploc_cellar_static/ploc-cellar-card.js`. Ajoutez-le une seule fois dans
