@@ -1349,9 +1349,6 @@ let y = class extends k {
       top: Math.max(8, Math.min(e.clientY + 14, window.innerHeight - 90))
     });
   }
-  hideDonutTooltip() {
-    this.donutTooltip = void 0;
-  }
   formatSync(e) {
     if (!e) return v(this.hass?.language ?? "en", "never");
     const t = new Date(e);
@@ -1420,7 +1417,9 @@ let y = class extends k {
             <div class="donut" role="img"
               aria-label=${s(t) + ": " + a}
               @pointermove=${(c) => this.handleDonutPointerMove(c, n)}
-              @pointerleave=${this.hideDonutTooltip}
+              @pointerleave=${() => {
+      this.donutTooltip = void 0;
+    }}
               style=${`background: conic-gradient(${d})`}>
               <svg class="donut-chart" viewBox="0 0 100 100" aria-hidden="true">
                 ${n.map((c) => {
