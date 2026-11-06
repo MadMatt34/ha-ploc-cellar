@@ -29,6 +29,16 @@ class _Coordinator:
         self.data = Cellar()
 
 
+class _HTTP:
+    """Record static paths registered by the integration."""
+
+    def __init__(self) -> None:
+        self.paths: list[object] = []
+
+    async def async_register_static_paths(self, paths: list[object]) -> None:
+        self.paths.extend(paths)
+
+
 class _Services:
     """Record service handlers registered by the integration."""
 
@@ -55,6 +65,7 @@ def _hass(coordinator: _Coordinator) -> SimpleNamespace:
     )
     return SimpleNamespace(
         services=_Services(),
+        http=_HTTP(),
         config_entries=SimpleNamespace(
             async_get_entry=lambda entry_id: entry if entry_id == "entry-1" else None
         ),
@@ -101,6 +112,7 @@ def test_services_reject_missing_wrong_or_unloaded_entries(entry: object) -> Non
     """A service cannot dispatch against an absent or unloaded config entry."""
     hass = SimpleNamespace(
         services=_Services(),
+        http=_HTTP(),
         config_entries=SimpleNamespace(async_get_entry=lambda entry_id: entry),
     )
     asyncio.run(async_setup(hass, {}))
