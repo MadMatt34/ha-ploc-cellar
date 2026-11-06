@@ -252,13 +252,17 @@ export class PlocCellarRackCard extends LitElement {
 }
 
 declare global {
+  interface Window {
+    customCards?: Array<Record<string, string>>;
+  }
+
   interface HTMLElementTagNameMap {
     "ploc-cellar-rack-card": PlocCellarRackCard;
   }
 }
 
-(window as Window & { customCards?: Array<Record<string, string>> }).customCards ??= [];
-(window as Window & { customCards: Array<Record<string, string>> }).customCards.push({
+window.customCards ??= [];
+window.customCards.push({
   type: "ploc-cellar-rack-card",
   name: "Ploc Cellar Rack",
   description: "Visualize physical rack positions and assigned wines.",
