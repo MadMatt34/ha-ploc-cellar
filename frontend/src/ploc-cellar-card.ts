@@ -228,9 +228,6 @@ export class PlocCellarCard extends LitElement {
           color: item.color ?? CHART_COLORS[index % CHART_COLORS.length],
         };
       });
-    const gradient = segments
-      .map((item) => `${item.color} ${item.start}% ${item.end}%`)
-      .join(", ");
     const chartLabel = items
       .map((item) => `${item.name}: ${this.formatNumber(item.bottles)}`)
       .join(", ");
