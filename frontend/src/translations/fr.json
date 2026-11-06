@@ -67,8 +67,6 @@
   "statistics_other": "Autres",
   "statistics_unknown": "Non renseigné",
   "statistics_empty": "Aucune donnée disponible pour cette catégorie.",
-  "picker_statistics_name": "Statistiques des vins",
-  "picker_statistics_description": "Répartition du stock par couleur, région, appellation, millésime et format de bouteille.",
   "unknown_value": "Inconnu",
   "stocked_references": "Références de vins en stock",
   "rack_occupancy": "Occupation des casiers",
