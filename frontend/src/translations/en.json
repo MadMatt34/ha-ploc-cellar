@@ -75,5 +75,9 @@
   "diagnostic_negative": "Negative movement balance",
   "diagnostic_surplus": "Physical surplus",
   "statistics_distribution_scope": "Breakdowns include known wine references only.",
-  "statistics_unknown_wine_positions": "{count} occupied position(s) have an unknown wine reference. They are included in total stock but not in the breakdowns."
+  "statistics_unknown_wine_positions": "{count} occupied position(s) have an unknown wine reference. They are included in total stock but not in the breakdowns.",
+  "editor_show_occupancy": "Show rack occupancy",
+  "editor_show_diagnostics": "Show diagnostics",
+  "editor_show_statistics": "Show statistics",
+  "editor_show_statistics_legends": "Show chart legends"
 }

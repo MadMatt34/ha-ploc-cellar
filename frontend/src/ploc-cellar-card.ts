@@ -69,8 +69,9 @@ export class PlocCellarCard extends LitElement {
     .group { min-width: 0; border: 1px solid var(--divider-color); border-radius: 10px; padding: 12px; }
     .group-title { margin: 0 0 12px; font-size: 1rem; font-weight: 500; }
     .chart-content { display: grid; grid-template-columns: minmax(112px, .85fr) minmax(0, 1.15fr); gap: 12px; align-items: center; }
-    .donut { position: relative; display: grid; place-items: center; width: 100%; max-width: 150px; aspect-ratio: 1; justify-self: center; }
-    .donut-chart { display: block; width: 100%; height: 100%; overflow: visible; }
+    .chart-content.chart-content-no-legend { grid-template-columns: minmax(0, 1fr); }
+    .donut { position: relative; display: grid; place-items: center; width: 100%; max-width: 150px; aspect-ratio: 1; border-radius: 50%; justify-self: center; }
+    .donut-chart { position: absolute; inset: 0; display: block; width: 100%; height: 100%; overflow: visible; }
     .donut-segment { fill: none; stroke-width: 16; pointer-events: stroke; cursor: help; }
     .donut-segment:focus { outline: none; }
     .donut-center { position: absolute; inset: 17%; display: flex; flex-direction: column; align-items: center; justify-content: center; border-radius: 50%; background: var(--card-background-color, var(--ha-card-background, #fff)); pointer-events: none; }
@@ -103,7 +104,13 @@ export class PlocCellarCard extends LitElement {
   setConfig(config: PlocCellarCardConfig): void {
     this.requestGeneration += 1;
     this.loading = false;
-    this.config = config;
+    this.config = {
+      ...config,
+      show_occupancy: config.show_occupancy !== false,
+      show_diagnostics: config.show_diagnostics !== false,
+      show_statistics: config.show_statistics !== false,
+      show_statistics_legends: config.show_statistics_legends !== false,
+    };
     this.inventory = undefined;
     this.error = undefined;
     if (config.config_entry_id) void this.refresh();
@@ -236,10 +243,14 @@ export class PlocCellarCard extends LitElement {
       <section class="group">
         <h3 class="group-title">${t(titleKey)}</h3>
         ${total > 0 ? html`
-          <div class="chart-content">
-            <div class="donut">
+          <div class=${this.config?.show_statistics_legends === false
+            ? "chart-content chart-content-no-legend"
+            : "chart-content"}>
+            <div class="donut" role="img"
+              aria-label=${t(titleKey) + ": " + chartLabel}
+>
               <svg class="donut-chart" viewBox="0 0 100 100"
-                role="img" aria-label=${t(titleKey) + ": " + chartLabel}>
+                aria-hidden="true">
                 ${segments.map((item) => {
                   const circumference = 2 * Math.PI * 42;
                   const segmentLength = ((item.end - item.start) / 100) * circumference;
@@ -261,8 +272,9 @@ export class PlocCellarCard extends LitElement {
                 <span class="donut-caption">${t("statistics_bottles")}</span>
               </div>
             </div>
-            <div class="legend">
-              ${segments.map((item) => html`
+            ${this.config?.show_statistics_legends === false ? nothing : html`
+              <div class="legend">
+                ${segments.map((item) => html`
                 <div class="legend-item">
                   <span class="legend-swatch" style=${`background: ${item.color}`}></span>
                   <span class="legend-name">${item.name}</span>
@@ -275,8 +287,9 @@ export class PlocCellarCard extends LitElement {
                     · ${this.formatNumber(item.wines)} ${t("statistics_references")}
                   </span>
                 </div>
-              `)}
-            </div>
+                `)}
+              </div>
+            `}
           </div>
         ` : html`<p class="muted">${t("statistics_empty")}</p>`}
       </section>
@@ -288,6 +301,9 @@ export class PlocCellarCard extends LitElement {
       translate(this.hass?.language ?? "en", key);
     const data = this.inventory;
     const title = this.config?.title ?? t("card_title");
+    const showOccupancy = this.config?.show_occupancy !== false;
+    const showDiagnostics = this.config?.show_diagnostics !== false;
+    const showStatistics = this.config?.show_statistics !== false;
     const occupancy = data && data.total_positions > 0
       ? Math.round((data.occupied_positions / data.total_positions) * 100)
       : 0;
@@ -298,6 +314,11 @@ export class PlocCellarCard extends LitElement {
           { key: "diagnostic_surplus" as const, value: data.physical_surplus_bottles ?? 0 },
         ].filter((item) => item.value > 0)
       : [];
+    const hasDiagnostics = Boolean(data && (
+      !data.stock_reconstruction_complete ||
+      diagnostics.length > 0 ||
+      data.positions_with_unknown_wine > 0
+    ));
     const wines = data?.wines ?? [];
     const referenceCount = data?.wine_references ?? wines.length;
 
@@ -324,49 +345,55 @@ export class PlocCellarCard extends LitElement {
             ${this.metric(referenceCount, t("stocked_references"))}
             ${this.metric(data.rack_count, t("racks"))}
           </div>
-          <section class="section" aria-label=${t("rack_occupancy")}>
-            <div class="occupancy-heading">
-              <span>${t("rack_occupancy")}</span>
-              <span>${this.formatNumber(data.occupied_positions)} / ${this.formatNumber(data.total_positions)}</span>
-            </div>
-            <div class="occupancy-bar" role="progressbar"
-              aria-label=${t("rack_occupancy")}
-              aria-valuemin="0" aria-valuemax=${data.total_positions}
-              aria-valuenow=${data.occupied_positions}>
-              <div class="occupancy-fill" style=${`width: ${occupancy}%`}></div>
-            </div>
-            <div class="muted">${t("empty_positions")}: ${this.formatNumber(Math.max(0, data.total_positions - data.occupied_positions))}</div>
-          </section>
-          ${!data.stock_reconstruction_complete
-            ? html`<div class="warning">${t("reconstruction_incomplete")}</div>`
-            : nothing}
-          ${diagnostics.length ? html`
+          ${showOccupancy ? html`
+            <section class="section" aria-label=${t("rack_occupancy")}>
+              <div class="occupancy-heading">
+                <span>${t("rack_occupancy")}</span>
+                <span>${this.formatNumber(data.occupied_positions)} / ${this.formatNumber(data.total_positions)}</span>
+              </div>
+              <div class="occupancy-bar" role="progressbar"
+                aria-label=${t("rack_occupancy")}
+                aria-valuemin="0" aria-valuemax=${data.total_positions}
+                aria-valuenow=${data.occupied_positions}>
+                <div class="occupancy-fill" style=${`width: ${occupancy}%`}></div>
+              </div>
+              <div class="muted">${t("empty_positions")}: ${this.formatNumber(Math.max(0, data.total_positions - data.occupied_positions))}</div>
+            </section>
+          ` : nothing}
+          ${showDiagnostics && hasDiagnostics ? html`
             <section class="section">
               <h3 class="section-title">${t("inventory_diagnostics")}</h3>
-              <div class="diagnostics">
-                ${diagnostics.map((item) => html`
-                  <div class="diagnostic">
-                    <span class="diagnostic-value">${this.formatNumber(item.value)}</span>
-                    <span class="label">${t(item.key)}</span>
-                  </div>
-                `)}
+              ${!data.stock_reconstruction_complete
+                ? html`<div class="warning">${t("reconstruction_incomplete")}</div>`
+                : nothing}
+              ${diagnostics.length ? html`
+                <div class="diagnostics">
+                  ${diagnostics.map((item) => html`
+                    <div class="diagnostic">
+                      <span class="diagnostic-value">${this.formatNumber(item.value)}</span>
+                      <span class="label">${t(item.key)}</span>
+                    </div>
+                  `)}
+                </div>
+              ` : nothing}
+              ${data.positions_with_unknown_wine > 0
+                ? html`<div class="warning">${t("statistics_unknown_wine_positions").replace("{count}", this.formatNumber(data.positions_with_unknown_wine))}</div>`
+                : nothing}
+            </section>
+          ` : nothing}
+          ${showStatistics ? html`
+            <section class="section">
+              <h3 class="section-title">${t("statistics_title")}</h3>
+              <p class="muted">${t("statistics_distribution_scope")}</p>
+              <div class="groups">
+                ${this.renderDistribution("color", "statistics_color")}
+                ${this.renderDistribution("region", "statistics_region")}
+                ${this.renderDistribution("appellation", "statistics_appellation")}
+                ${this.renderDistribution("vintage", "statistics_vintage")}
+                ${this.renderDistribution("bottle_format", "statistics_format")}
               </div>
             </section>
           ` : nothing}
-          ${data.positions_with_unknown_wine > 0
-            ? html`<div class="warning">${t("statistics_unknown_wine_positions").replace("{count}", this.formatNumber(data.positions_with_unknown_wine))}</div>`
-            : nothing}
-          <section class="section">
-            <h3 class="section-title">${t("statistics_title")}</h3>
-            <p class="muted">${t("statistics_distribution_scope")}</p>
-            <div class="groups">
-              ${this.renderDistribution("color", "statistics_color")}
-              ${this.renderDistribution("region", "statistics_region")}
-              ${this.renderDistribution("appellation", "statistics_appellation")}
-              ${this.renderDistribution("vintage", "statistics_vintage")}
-              ${this.renderDistribution("bottle_format", "statistics_format")}
-            </div>
-          </section>
           <div class="muted section">${t("last_sync")}: ${this.formatSync(data.last_sync)}</div>
         ` : nothing}
       </ha-card>

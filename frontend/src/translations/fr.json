@@ -75,5 +75,9 @@
   "diagnostic_negative": "Solde de mouvements négatif",
   "diagnostic_surplus": "Excédent physique",
   "statistics_distribution_scope": "Les répartitions ne portent que sur les références de vins connues.",
-  "statistics_unknown_wine_positions": "{count} emplacement(s) occupé(s) font référence à un vin inconnu. Ils sont inclus dans le stock total, mais pas dans les répartitions."
+  "statistics_unknown_wine_positions": "{count} emplacement(s) occupé(s) font référence à un vin inconnu. Ils sont inclus dans le stock total, mais pas dans les répartitions.",
+  "editor_show_occupancy": "Afficher l’occupation des casiers",
+  "editor_show_diagnostics": "Afficher les diagnostics",
+  "editor_show_statistics": "Afficher les statistiques",
+  "editor_show_statistics_legends": "Afficher les légendes des graphiques"
 }

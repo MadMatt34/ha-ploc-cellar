@@ -18,24 +18,24 @@ let mt = class {
   }
 };
 const bt = (e) => new mt(typeof e == "string" ? e : e + "", void 0, Q), K = (e, ...t) => {
-  const s = e.length === 1 ? e[0] : t.reduce((i, n, o) => i + ((r) => {
-    if (r._$cssResult$ === !0) return r.cssText;
-    if (typeof r == "number") return r;
-    throw Error("Value passed to 'css' function must be a 'css' function result: " + r + ". Use 'unsafeCSS' to pass non-literal values, but take care to ensure page security.");
-  })(n) + e[o + 1], e[0]);
+  const s = e.length === 1 ? e[0] : t.reduce((i, o, n) => i + ((a) => {
+    if (a._$cssResult$ === !0) return a.cssText;
+    if (typeof a == "number") return a;
+    throw Error("Value passed to 'css' function must be a 'css' function result: " + a + ". Use 'unsafeCSS' to pass non-literal values, but take care to ensure page security.");
+  })(o) + e[n + 1], e[0]);
   return new mt(s, e, Q);
 }, wt = (e, t) => {
   if (Z) e.adoptedStyleSheets = t.map((s) => s instanceof CSSStyleSheet ? s : s.styleSheet);
   else for (const s of t) {
-    const i = document.createElement("style"), n = q.litNonce;
-    n !== void 0 && i.setAttribute("nonce", n), i.textContent = s.cssText, e.appendChild(i);
+    const i = document.createElement("style"), o = q.litNonce;
+    o !== void 0 && i.setAttribute("nonce", o), i.textContent = s.cssText, e.appendChild(i);
   }
-}, nt = Z ? (e) => e : (e) => e instanceof CSSStyleSheet ? ((t) => {
+}, ot = Z ? (e) => e : (e) => e instanceof CSSStyleSheet ? ((t) => {
   let s = "";
   for (const i of t.cssRules) s += i.cssText;
   return bt(s);
 })(e) : e;
-const { is: xt, defineProperty: kt, getOwnPropertyDescriptor: At, getOwnPropertyNames: Ct, getOwnPropertySymbols: St, getPrototypeOf: Et } = Object, G = globalThis, ot = G.trustedTypes, Pt = ot ? ot.emptyScript : "", Ot = G.reactiveElementPolyfillSupport, U = (e, t) => e, B = { toAttribute(e, t) {
+const { is: xt, defineProperty: kt, getOwnPropertyDescriptor: At, getOwnPropertyNames: Ct, getOwnPropertySymbols: St, getPrototypeOf: Et } = Object, G = globalThis, nt = G.trustedTypes, Pt = nt ? nt.emptyScript : "", Ot = G.reactiveElementPolyfillSupport, U = (e, t) => e, B = { toAttribute(e, t) {
   switch (t) {
     case Boolean:
       e = e ? Pt : null;
@@ -74,19 +74,19 @@ let P = class extends HTMLElement {
   }
   static createProperty(t, s = rt) {
     if (s.state && (s.attribute = !1), this._$Ei(), this.prototype.hasOwnProperty(t) && ((s = Object.create(s)).wrapped = !0), this.elementProperties.set(t, s), !s.noAccessor) {
-      const i = /* @__PURE__ */ Symbol(), n = this.getPropertyDescriptor(t, i, s);
-      n !== void 0 && kt(this.prototype, t, n);
+      const i = /* @__PURE__ */ Symbol(), o = this.getPropertyDescriptor(t, i, s);
+      o !== void 0 && kt(this.prototype, t, o);
     }
   }
   static getPropertyDescriptor(t, s, i) {
-    const { get: n, set: o } = At(this.prototype, t) ?? { get() {
+    const { get: o, set: n } = At(this.prototype, t) ?? { get() {
       return this[s];
-    }, set(r) {
-      this[s] = r;
+    }, set(a) {
+      this[s] = a;
     } };
-    return { get: n, set(r) {
-      const c = n?.call(this);
-      o?.call(this, r), this.requestUpdate(t, c, i);
+    return { get: o, set(a) {
+      const c = o?.call(this);
+      n?.call(this, a), this.requestUpdate(t, c, i);
     }, configurable: !0, enumerable: !0 };
   }
   static getPropertyOptions(t) {
@@ -101,17 +101,17 @@ let P = class extends HTMLElement {
     if (this.hasOwnProperty(U("finalized"))) return;
     if (this.finalized = !0, this._$Ei(), this.hasOwnProperty(U("properties"))) {
       const s = this.properties, i = [...Ct(s), ...St(s)];
-      for (const n of i) this.createProperty(n, s[n]);
+      for (const o of i) this.createProperty(o, s[o]);
     }
     const t = this[Symbol.metadata];
     if (t !== null) {
       const s = litPropertyMetadata.get(t);
-      if (s !== void 0) for (const [i, n] of s) this.elementProperties.set(i, n);
+      if (s !== void 0) for (const [i, o] of s) this.elementProperties.set(i, o);
     }
     this._$Eh = /* @__PURE__ */ new Map();
     for (const [s, i] of this.elementProperties) {
-      const n = this._$Eu(s, i);
-      n !== void 0 && this._$Eh.set(n, s);
+      const o = this._$Eu(s, i);
+      o !== void 0 && this._$Eh.set(o, s);
     }
     this.elementStyles = this.finalizeStyles(this.styles);
   }
@@ -119,8 +119,8 @@ let P = class extends HTMLElement {
     const s = [];
     if (Array.isArray(t)) {
       const i = new Set(t.flat(1 / 0).reverse());
-      for (const n of i) s.unshift(nt(n));
-    } else t !== void 0 && s.push(nt(t));
+      for (const o of i) s.unshift(ot(o));
+    } else t !== void 0 && s.push(ot(t));
     return s;
   }
   static _$Eu(t, s) {
@@ -160,31 +160,31 @@ let P = class extends HTMLElement {
     this._$AK(t, i);
   }
   _$ET(t, s) {
-    const i = this.constructor.elementProperties.get(t), n = this.constructor._$Eu(t, i);
-    if (n !== void 0 && i.reflect === !0) {
-      const o = (i.converter?.toAttribute !== void 0 ? i.converter : B).toAttribute(s, i.type);
-      this._$Em = t, o == null ? this.removeAttribute(n) : this.setAttribute(n, o), this._$Em = null;
+    const i = this.constructor.elementProperties.get(t), o = this.constructor._$Eu(t, i);
+    if (o !== void 0 && i.reflect === !0) {
+      const n = (i.converter?.toAttribute !== void 0 ? i.converter : B).toAttribute(s, i.type);
+      this._$Em = t, n == null ? this.removeAttribute(o) : this.setAttribute(o, n), this._$Em = null;
     }
   }
   _$AK(t, s) {
-    const i = this.constructor, n = i._$Eh.get(t);
-    if (n !== void 0 && this._$Em !== n) {
-      const o = i.getPropertyOptions(n), r = typeof o.converter == "function" ? { fromAttribute: o.converter } : o.converter?.fromAttribute !== void 0 ? o.converter : B;
-      this._$Em = n;
-      const c = r.fromAttribute(s, o.type);
-      this[n] = c ?? this._$Ej?.get(n) ?? c, this._$Em = null;
+    const i = this.constructor, o = i._$Eh.get(t);
+    if (o !== void 0 && this._$Em !== o) {
+      const n = i.getPropertyOptions(o), a = typeof n.converter == "function" ? { fromAttribute: n.converter } : n.converter?.fromAttribute !== void 0 ? n.converter : B;
+      this._$Em = o;
+      const c = a.fromAttribute(s, n.type);
+      this[o] = c ?? this._$Ej?.get(o) ?? c, this._$Em = null;
     }
   }
-  requestUpdate(t, s, i, n = !1, o) {
+  requestUpdate(t, s, i, o = !1, n) {
     if (t !== void 0) {
-      const r = this.constructor;
-      if (n === !1 && (o = this[t]), i ??= r.getPropertyOptions(t), !((i.hasChanged ?? X)(o, s) || i.useDefault && i.reflect && o === this._$Ej?.get(t) && !this.hasAttribute(r._$Eu(t, i)))) return;
+      const a = this.constructor;
+      if (o === !1 && (n = this[t]), i ??= a.getPropertyOptions(t), !((i.hasChanged ?? X)(n, s) || i.useDefault && i.reflect && n === this._$Ej?.get(t) && !this.hasAttribute(a._$Eu(t, i)))) return;
       this.C(t, s, i);
     }
     this.isUpdatePending === !1 && (this._$ES = this._$EP());
   }
-  C(t, s, { useDefault: i, reflect: n, wrapped: o }, r) {
-    i && !(this._$Ej ??= /* @__PURE__ */ new Map()).has(t) && (this._$Ej.set(t, r ?? s ?? this[t]), o !== !0 || r !== void 0) || (this._$AL.has(t) || (this.hasUpdated || i || (s = void 0), this._$AL.set(t, s)), n === !0 && this._$Em !== t && (this._$Eq ??= /* @__PURE__ */ new Set()).add(t));
+  C(t, s, { useDefault: i, reflect: o, wrapped: n }, a) {
+    i && !(this._$Ej ??= /* @__PURE__ */ new Map()).has(t) && (this._$Ej.set(t, a ?? s ?? this[t]), n !== !0 || a !== void 0) || (this._$AL.has(t) || (this.hasUpdated || i || (s = void 0), this._$AL.set(t, s)), o === !0 && this._$Em !== t && (this._$Eq ??= /* @__PURE__ */ new Set()).add(t));
   }
   async _$EP() {
     this.isUpdatePending = !0;
@@ -203,13 +203,13 @@ let P = class extends HTMLElement {
     if (!this.isUpdatePending) return;
     if (!this.hasUpdated) {
       if (this.renderRoot ??= this.createRenderRoot(), this._$Ep) {
-        for (const [n, o] of this._$Ep) this[n] = o;
+        for (const [o, n] of this._$Ep) this[o] = n;
         this._$Ep = void 0;
       }
       const i = this.constructor.elementProperties;
-      if (i.size > 0) for (const [n, o] of i) {
-        const { wrapped: r } = o, c = this[n];
-        r !== !0 || this._$AL.has(n) || c === void 0 || this.C(n, void 0, o, c);
+      if (i.size > 0) for (const [o, n] of i) {
+        const { wrapped: a } = n, c = this[o];
+        a !== !0 || this._$AL.has(o) || c === void 0 || this.C(o, void 0, n, c);
       }
     }
     let t = !1;
@@ -249,53 +249,53 @@ let P = class extends HTMLElement {
 P.elementStyles = [], P.shadowRootOptions = { mode: "open" }, P[U("elementProperties")] = /* @__PURE__ */ new Map(), P[U("finalized")] = /* @__PURE__ */ new Map(), Ot?.({ ReactiveElement: P }), (G.reactiveElementVersions ??= []).push("2.1.2");
 const Y = globalThis, at = (e) => e, V = Y.trustedTypes, ct = V ? V.createPolicy("lit-html", { createHTML: (e) => e }) : void 0, ft = "$lit$", w = `lit$${Math.random().toFixed(9).slice(2)}$`, vt = "?" + w, Nt = `<${vt}>`, C = document, I = () => C.createComment(""), z = (e) => e === null || typeof e != "object" && typeof e != "function", tt = Array.isArray, Rt = (e) => tt(e) || typeof e?.[Symbol.iterator] == "function", J = `[ 	
 \f\r]`, M = /<(?:(!--|\/[^a-zA-Z])|(\/?[a-zA-Z][^>\s]*)|(\/?$))/g, lt = /-->/g, dt = />/g, k = RegExp(`>|${J}(?:([^\\s"'>=/]+)(${J}*=${J}*(?:[^ 	
-\f\r"'\`<>=]|("|')|))|$)`, "g"), pt = /'/g, ht = /"/g, $t = /^(?:script|style|textarea|title)$/i, Mt = (e) => (t, ...s) => ({ _$litType$: e, strings: t, values: s }), l = Mt(1), O = /* @__PURE__ */ Symbol.for("lit-noChange"), d = /* @__PURE__ */ Symbol.for("lit-nothing"), ut = /* @__PURE__ */ new WeakMap(), A = C.createTreeWalker(C, 129);
+\f\r"'\`<>=]|("|')|))|$)`, "g"), ht = /'/g, pt = /"/g, $t = /^(?:script|style|textarea|title)$/i, Mt = (e) => (t, ...s) => ({ _$litType$: e, strings: t, values: s }), l = Mt(1), O = /* @__PURE__ */ Symbol.for("lit-noChange"), d = /* @__PURE__ */ Symbol.for("lit-nothing"), ut = /* @__PURE__ */ new WeakMap(), A = C.createTreeWalker(C, 129);
 function yt(e, t) {
   if (!tt(e) || !e.hasOwnProperty("raw")) throw Error("invalid template strings array");
   return ct !== void 0 ? ct.createHTML(t) : t;
 }
 const Ut = (e, t) => {
   const s = e.length - 1, i = [];
-  let n, o = t === 2 ? "<svg>" : t === 3 ? "<math>" : "", r = M;
+  let o, n = t === 2 ? "<svg>" : t === 3 ? "<math>" : "", a = M;
   for (let c = 0; c < s; c++) {
-    const a = e[c];
-    let p, u, h = -1, v = 0;
-    for (; v < a.length && (r.lastIndex = v, u = r.exec(a), u !== null); ) v = r.lastIndex, r === M ? u[1] === "!--" ? r = lt : u[1] !== void 0 ? r = dt : u[2] !== void 0 ? ($t.test(u[2]) && (n = RegExp("</" + u[2], "g")), r = k) : u[3] !== void 0 && (r = k) : r === k ? u[0] === ">" ? (r = n ?? M, h = -1) : u[1] === void 0 ? h = -2 : (h = r.lastIndex - u[2].length, p = u[1], r = u[3] === void 0 ? k : u[3] === '"' ? ht : pt) : r === ht || r === pt ? r = k : r === lt || r === dt ? r = M : (r = k, n = void 0);
-    const $ = r === k && e[c + 1].startsWith("/>") ? " " : "";
-    o += r === M ? a + Nt : h >= 0 ? (i.push(p), a.slice(0, h) + ft + a.slice(h) + w + $) : a + w + (h === -2 ? c : $);
+    const r = e[c];
+    let h, u, p = -1, v = 0;
+    for (; v < r.length && (a.lastIndex = v, u = a.exec(r), u !== null); ) v = a.lastIndex, a === M ? u[1] === "!--" ? a = lt : u[1] !== void 0 ? a = dt : u[2] !== void 0 ? ($t.test(u[2]) && (o = RegExp("</" + u[2], "g")), a = k) : u[3] !== void 0 && (a = k) : a === k ? u[0] === ">" ? (a = o ?? M, p = -1) : u[1] === void 0 ? p = -2 : (p = a.lastIndex - u[2].length, h = u[1], a = u[3] === void 0 ? k : u[3] === '"' ? pt : ht) : a === pt || a === ht ? a = k : a === lt || a === dt ? a = M : (a = k, o = void 0);
+    const $ = a === k && e[c + 1].startsWith("/>") ? " " : "";
+    n += a === M ? r + Nt : p >= 0 ? (i.push(h), r.slice(0, p) + ft + r.slice(p) + w + $) : r + w + (p === -2 ? c : $);
   }
-  return [yt(e, o + (e[s] || "<?>") + (t === 2 ? "</svg>" : t === 3 ? "</math>" : "")), i];
+  return [yt(e, n + (e[s] || "<?>") + (t === 2 ? "</svg>" : t === 3 ? "</math>" : "")), i];
 };
 class D {
   constructor({ strings: t, _$litType$: s }, i) {
-    let n;
+    let o;
     this.parts = [];
-    let o = 0, r = 0;
-    const c = t.length - 1, a = this.parts, [p, u] = Ut(t, s);
-    if (this.el = D.createElement(p, i), A.currentNode = this.el.content, s === 2 || s === 3) {
-      const h = this.el.content.firstChild;
-      h.replaceWith(...h.childNodes);
+    let n = 0, a = 0;
+    const c = t.length - 1, r = this.parts, [h, u] = Ut(t, s);
+    if (this.el = D.createElement(h, i), A.currentNode = this.el.content, s === 2 || s === 3) {
+      const p = this.el.content.firstChild;
+      p.replaceWith(...p.childNodes);
     }
-    for (; (n = A.nextNode()) !== null && a.length < c; ) {
-      if (n.nodeType === 1) {
-        if (n.hasAttributes()) for (const h of n.getAttributeNames()) if (h.endsWith(ft)) {
-          const v = u[r++], $ = n.getAttribute(h).split(w), j = /([.?@])?(.*)/.exec(v);
-          a.push({ type: 1, index: o, name: j[2], strings: $, ctor: j[1] === "." ? zt : j[1] === "?" ? Dt : j[1] === "@" ? Tt : W }), n.removeAttribute(h);
-        } else h.startsWith(w) && (a.push({ type: 6, index: o }), n.removeAttribute(h));
-        if ($t.test(n.tagName)) {
-          const h = n.textContent.split(w), v = h.length - 1;
+    for (; (o = A.nextNode()) !== null && r.length < c; ) {
+      if (o.nodeType === 1) {
+        if (o.hasAttributes()) for (const p of o.getAttributeNames()) if (p.endsWith(ft)) {
+          const v = u[a++], $ = o.getAttribute(p).split(w), j = /([.?@])?(.*)/.exec(v);
+          r.push({ type: 1, index: n, name: j[2], strings: $, ctor: j[1] === "." ? zt : j[1] === "?" ? Dt : j[1] === "@" ? Tt : W }), o.removeAttribute(p);
+        } else p.startsWith(w) && (r.push({ type: 6, index: n }), o.removeAttribute(p));
+        if ($t.test(o.tagName)) {
+          const p = o.textContent.split(w), v = p.length - 1;
           if (v > 0) {
-            n.textContent = V ? V.emptyScript : "";
-            for (let $ = 0; $ < v; $++) n.append(h[$], I()), A.nextNode(), a.push({ type: 2, index: ++o });
-            n.append(h[v], I());
+            o.textContent = V ? V.emptyScript : "";
+            for (let $ = 0; $ < v; $++) o.append(p[$], I()), A.nextNode(), r.push({ type: 2, index: ++n });
+            o.append(p[v], I());
           }
         }
-      } else if (n.nodeType === 8) if (n.data === vt) a.push({ type: 2, index: o });
+      } else if (o.nodeType === 8) if (o.data === vt) r.push({ type: 2, index: n });
       else {
-        let h = -1;
-        for (; (h = n.data.indexOf(w, h + 1)) !== -1; ) a.push({ type: 7, index: o }), h += w.length - 1;
+        let p = -1;
+        for (; (p = o.data.indexOf(w, p + 1)) !== -1; ) r.push({ type: 7, index: n }), p += w.length - 1;
       }
-      o++;
+      n++;
     }
   }
   static createElement(t, s) {
@@ -305,9 +305,9 @@ class D {
 }
 function N(e, t, s = e, i) {
   if (t === O) return t;
-  let n = i !== void 0 ? s._$Co?.[i] : s._$Cl;
-  const o = z(t) ? void 0 : t._$litDirective$;
-  return n?.constructor !== o && (n?._$AO?.(!1), o === void 0 ? n = void 0 : (n = new o(e), n._$AT(e, s, i)), i !== void 0 ? (s._$Co ??= [])[i] = n : s._$Cl = n), n !== void 0 && (t = N(e, n._$AS(e, t.values), n, i)), t;
+  let o = i !== void 0 ? s._$Co?.[i] : s._$Cl;
+  const n = z(t) ? void 0 : t._$litDirective$;
+  return o?.constructor !== n && (o?._$AO?.(!1), n === void 0 ? o = void 0 : (o = new n(e), o._$AT(e, s, i)), i !== void 0 ? (s._$Co ??= [])[i] = o : s._$Cl = o), o !== void 0 && (t = N(e, o._$AS(e, t.values), o, i)), t;
 }
 class It {
   constructor(t, s) {
@@ -320,17 +320,17 @@ class It {
     return this._$AM._$AU;
   }
   u(t) {
-    const { el: { content: s }, parts: i } = this._$AD, n = (t?.creationScope ?? C).importNode(s, !0);
-    A.currentNode = n;
-    let o = A.nextNode(), r = 0, c = 0, a = i[0];
-    for (; a !== void 0; ) {
-      if (r === a.index) {
-        let p;
-        a.type === 2 ? p = new T(o, o.nextSibling, this, t) : a.type === 1 ? p = new a.ctor(o, a.name, a.strings, this, t) : a.type === 6 && (p = new Lt(o, this, t)), this._$AV.push(p), a = i[++c];
+    const { el: { content: s }, parts: i } = this._$AD, o = (t?.creationScope ?? C).importNode(s, !0);
+    A.currentNode = o;
+    let n = A.nextNode(), a = 0, c = 0, r = i[0];
+    for (; r !== void 0; ) {
+      if (a === r.index) {
+        let h;
+        r.type === 2 ? h = new T(n, n.nextSibling, this, t) : r.type === 1 ? h = new r.ctor(n, r.name, r.strings, this, t) : r.type === 6 && (h = new Lt(n, this, t)), this._$AV.push(h), r = i[++c];
       }
-      r !== a?.index && (o = A.nextNode(), r++);
+      a !== r?.index && (n = A.nextNode(), a++);
     }
-    return A.currentNode = C, n;
+    return A.currentNode = C, o;
   }
   p(t) {
     let s = 0;
@@ -341,8 +341,8 @@ class T {
   get _$AU() {
     return this._$AM?._$AU ?? this._$Cv;
   }
-  constructor(t, s, i, n) {
-    this.type = 2, this._$AH = d, this._$AN = void 0, this._$AA = t, this._$AB = s, this._$AM = i, this.options = n, this._$Cv = n?.isConnected ?? !0;
+  constructor(t, s, i, o) {
+    this.type = 2, this._$AH = d, this._$AN = void 0, this._$AA = t, this._$AB = s, this._$AM = i, this.options = o, this._$Cv = o?.isConnected ?? !0;
   }
   get parentNode() {
     let t = this._$AA.parentNode;
@@ -368,11 +368,11 @@ class T {
     this._$AH !== d && z(this._$AH) ? this._$AA.nextSibling.data = t : this.T(C.createTextNode(t)), this._$AH = t;
   }
   $(t) {
-    const { values: s, _$litType$: i } = t, n = typeof i == "number" ? this._$AC(t) : (i.el === void 0 && (i.el = D.createElement(yt(i.h, i.h[0]), this.options)), i);
-    if (this._$AH?._$AD === n) this._$AH.p(s);
+    const { values: s, _$litType$: i } = t, o = typeof i == "number" ? this._$AC(t) : (i.el === void 0 && (i.el = D.createElement(yt(i.h, i.h[0]), this.options)), i);
+    if (this._$AH?._$AD === o) this._$AH.p(s);
     else {
-      const o = new It(n, this), r = o.u(this.options);
-      o.p(s), this.T(r), this._$AH = o;
+      const n = new It(o, this), a = n.u(this.options);
+      n.p(s), this.T(a), this._$AH = n;
     }
   }
   _$AC(t) {
@@ -382,9 +382,9 @@ class T {
   k(t) {
     tt(this._$AH) || (this._$AH = [], this._$AR());
     const s = this._$AH;
-    let i, n = 0;
-    for (const o of t) n === s.length ? s.push(i = new T(this.O(I()), this.O(I()), this, this.options)) : i = s[n], i._$AI(o), n++;
-    n < s.length && (this._$AR(i && i._$AB.nextSibling, n), s.length = n);
+    let i, o = 0;
+    for (const n of t) o === s.length ? s.push(i = new T(this.O(I()), this.O(I()), this, this.options)) : i = s[o], i._$AI(n), o++;
+    o < s.length && (this._$AR(i && i._$AB.nextSibling, o), s.length = o);
   }
   _$AR(t = this._$AA.nextSibling, s) {
     for (this._$AP?.(!1, !0, s); t !== this._$AB; ) {
@@ -403,19 +403,19 @@ class W {
   get _$AU() {
     return this._$AM._$AU;
   }
-  constructor(t, s, i, n, o) {
-    this.type = 1, this._$AH = d, this._$AN = void 0, this.element = t, this.name = s, this._$AM = n, this.options = o, i.length > 2 || i[0] !== "" || i[1] !== "" ? (this._$AH = Array(i.length - 1).fill(new String()), this.strings = i) : this._$AH = d;
+  constructor(t, s, i, o, n) {
+    this.type = 1, this._$AH = d, this._$AN = void 0, this.element = t, this.name = s, this._$AM = o, this.options = n, i.length > 2 || i[0] !== "" || i[1] !== "" ? (this._$AH = Array(i.length - 1).fill(new String()), this.strings = i) : this._$AH = d;
   }
-  _$AI(t, s = this, i, n) {
-    const o = this.strings;
-    let r = !1;
-    if (o === void 0) t = N(this, t, s, 0), r = !z(t) || t !== this._$AH && t !== O, r && (this._$AH = t);
+  _$AI(t, s = this, i, o) {
+    const n = this.strings;
+    let a = !1;
+    if (n === void 0) t = N(this, t, s, 0), a = !z(t) || t !== this._$AH && t !== O, a && (this._$AH = t);
     else {
       const c = t;
-      let a, p;
-      for (t = o[0], a = 0; a < o.length - 1; a++) p = N(this, c[i + a], s, a), p === O && (p = this._$AH[a]), r ||= !z(p) || p !== this._$AH[a], p === d ? t = d : t !== d && (t += (p ?? "") + o[a + 1]), this._$AH[a] = p;
+      let r, h;
+      for (t = n[0], r = 0; r < n.length - 1; r++) h = N(this, c[i + r], s, r), h === O && (h = this._$AH[r]), a ||= !z(h) || h !== this._$AH[r], h === d ? t = d : t !== d && (t += (h ?? "") + n[r + 1]), this._$AH[r] = h;
     }
-    r && !n && this.j(t);
+    a && !o && this.j(t);
   }
   j(t) {
     t === d ? this.element.removeAttribute(this.name) : this.element.setAttribute(this.name, t ?? "");
@@ -438,13 +438,13 @@ class Dt extends W {
   }
 }
 class Tt extends W {
-  constructor(t, s, i, n, o) {
-    super(t, s, i, n, o), this.type = 5;
+  constructor(t, s, i, o, n) {
+    super(t, s, i, o, n), this.type = 5;
   }
   _$AI(t, s = this) {
     if ((t = N(this, t, s, 0) ?? d) === O) return;
-    const i = this._$AH, n = t === d && i !== d || t.capture !== i.capture || t.once !== i.once || t.passive !== i.passive, o = t !== d && (i === d || n);
-    n && this.element.removeEventListener(this.name, this, i), o && this.element.addEventListener(this.name, this, t), this._$AH = t;
+    const i = this._$AH, o = t === d && i !== d || t.capture !== i.capture || t.once !== i.once || t.passive !== i.passive, n = t !== d && (i === d || o);
+    o && this.element.removeEventListener(this.name, this, i), n && this.element.addEventListener(this.name, this, t), this._$AH = t;
   }
   handleEvent(t) {
     typeof this._$AH == "function" ? this._$AH.call(this.options?.host ?? this.element, t) : this._$AH.handleEvent(t);
@@ -465,12 +465,12 @@ const Ht = Y.litHtmlPolyfillSupport;
 Ht?.(D, T), (Y.litHtmlVersions ??= []).push("3.3.3");
 const jt = (e, t, s) => {
   const i = s?.renderBefore ?? t;
-  let n = i._$litPart$;
-  if (n === void 0) {
-    const o = s?.renderBefore ?? null;
-    i._$litPart$ = n = new T(t.insertBefore(I(), o), o, void 0, s ?? {});
+  let o = i._$litPart$;
+  if (o === void 0) {
+    const n = s?.renderBefore ?? null;
+    i._$litPart$ = o = new T(t.insertBefore(I(), n), n, void 0, s ?? {});
   }
-  return n._$AI(e), n;
+  return o._$AI(e), o;
 };
 const et = globalThis;
 class x extends P {
@@ -505,36 +505,36 @@ const L = (e) => (t, s) => {
   }) : customElements.define(e, t);
 };
 const Bt = { attribute: !0, type: String, converter: B, reflect: !1, hasChanged: X }, Vt = (e = Bt, t, s) => {
-  const { kind: i, metadata: n } = s;
-  let o = globalThis.litPropertyMetadata.get(n);
-  if (o === void 0 && globalThis.litPropertyMetadata.set(n, o = /* @__PURE__ */ new Map()), i === "setter" && ((e = Object.create(e)).wrapped = !0), o.set(s.name, e), i === "accessor") {
-    const { name: r } = s;
+  const { kind: i, metadata: o } = s;
+  let n = globalThis.litPropertyMetadata.get(o);
+  if (n === void 0 && globalThis.litPropertyMetadata.set(o, n = /* @__PURE__ */ new Map()), i === "setter" && ((e = Object.create(e)).wrapped = !0), n.set(s.name, e), i === "accessor") {
+    const { name: a } = s;
     return { set(c) {
-      const a = t.get.call(this);
-      t.set.call(this, c), this.requestUpdate(r, a, e, !0, c);
+      const r = t.get.call(this);
+      t.set.call(this, c), this.requestUpdate(a, r, e, !0, c);
     }, init(c) {
-      return c !== void 0 && this.C(r, void 0, e, c), c;
+      return c !== void 0 && this.C(a, void 0, e, c), c;
     } };
   }
   if (i === "setter") {
-    const { name: r } = s;
+    const { name: a } = s;
     return function(c) {
-      const a = this[r];
-      t.call(this, c), this.requestUpdate(r, a, e, !0, c);
+      const r = this[a];
+      t.call(this, c), this.requestUpdate(a, r, e, !0, c);
     };
   }
   throw Error("Unsupported decorator location: " + i);
 };
 function H(e) {
-  return (t, s) => typeof s == "object" ? Vt(e, t, s) : ((i, n, o) => {
-    const r = n.hasOwnProperty(o);
-    return n.constructor.createProperty(o, i), r ? Object.getOwnPropertyDescriptor(n, o) : void 0;
+  return (t, s) => typeof s == "object" ? Vt(e, t, s) : ((i, o, n) => {
+    const a = o.hasOwnProperty(n);
+    return o.constructor.createProperty(n, i), a ? Object.getOwnPropertyDescriptor(o, n) : void 0;
   })(e, t, s);
 }
 function g(e) {
   return H({ ...e, state: !0, attribute: !1 });
 }
-const Ft = "Ploc Cellar", Gt = "Cellar storage", Wt = "Refresh", Jt = "Loading…", Zt = "Never", Qt = "Bottles in cellar", Kt = "Reconstructed stock", Xt = "Racks", Yt = "Empty positions", te = "Data may be stale: the latest synchronization failed.", ee = "Stock reconstruction is incomplete: only physical quantities are available.", se = "Last successful synchronization", ie = "Search wines", ne = "Search wines…", oe = "No matching wines.", re = "Select a Ploc Cellar configuration in the card editor.", ae = "Rack selection", ce = "occupied", le = "free", de = "Unknown wine", pe = "Empty position", he = "Row", ue = "Column", ge = "No row/column coordinates are available for this rack.", _e = "Positions without coordinates", me = "Not mapped", fe = "No racks available.", ve = "position(s) reference a missing rack.", $e = "Wine inventory", ye = "All colors", be = "All regions", we = "All appellations", xe = "All vintages", ke = "Sort by", Ae = "Name", Ce = "Quantity descending", Se = "Vintage descending", Ee = "{count} wine(s)", Pe = "{count} bottle(s)", Oe = "Clear filters", Ne = "btl.", Re = "Unknown vintage", Me = "Wine details", Ue = "Grapes", Ie = "Cuvée", ze = "Volume", De = "Locations", Te = "Ploc Cellar", Le = "Cellar overview and stock indicators.", He = "Wine inventory", je = "Search, filter and browse the wine inventory.", qe = "Cellar racks", Be = "Visualize rack positions and the wines stored in them.", Ve = "Ploc Cellar configuration", Fe = "Select the PLOUD connection used by this card.", Ge = "Card title", We = "Optional. Leave empty to use the default title.", Je = "Cellar statistics", Ze = "Bottles in stock", Qe = "wine references", Ke = "By color", Xe = "By region", Ye = "By appellation", ts = "By vintage", es = "By bottle format", ss = "Other", is = "Not specified", ns = "No data available for this category.", os = "Unknown", rs = "Wine references in stock", as = "Rack occupancy", cs = "Stock diagnostics", ls = "Unlocated bottles", ds = "Negative movement balance", ps = "Physical surplus", hs = "Breakdowns include known wine references only.", us = "{count} occupied position(s) have an unknown wine reference. They are included in total stock but not in the breakdowns.", gs = {
+const Ft = "Ploc Cellar", Gt = "Cellar storage", Wt = "Refresh", Jt = "Loading…", Zt = "Never", Qt = "Bottles in cellar", Kt = "Reconstructed stock", Xt = "Racks", Yt = "Empty positions", te = "Data may be stale: the latest synchronization failed.", ee = "Stock reconstruction is incomplete: only physical quantities are available.", se = "Last successful synchronization", ie = "Search wines", oe = "Search wines…", ne = "No matching wines.", re = "Select a Ploc Cellar configuration in the card editor.", ae = "Rack selection", ce = "occupied", le = "free", de = "Unknown wine", he = "Empty position", pe = "Row", ue = "Column", ge = "No row/column coordinates are available for this rack.", _e = "Positions without coordinates", me = "Not mapped", fe = "No racks available.", ve = "position(s) reference a missing rack.", $e = "Wine inventory", ye = "All colors", be = "All regions", we = "All appellations", xe = "All vintages", ke = "Sort by", Ae = "Name", Ce = "Quantity descending", Se = "Vintage descending", Ee = "{count} wine(s)", Pe = "{count} bottle(s)", Oe = "Clear filters", Ne = "btl.", Re = "Unknown vintage", Me = "Wine details", Ue = "Grapes", Ie = "Cuvée", ze = "Volume", De = "Locations", Te = "Ploc Cellar", Le = "Cellar overview and stock indicators.", He = "Wine inventory", je = "Search, filter and browse the wine inventory.", qe = "Cellar racks", Be = "Visualize rack positions and the wines stored in them.", Ve = "Ploc Cellar configuration", Fe = "Select the PLOUD connection used by this card.", Ge = "Card title", We = "Optional. Leave empty to use the default title.", Je = "Cellar statistics", Ze = "Bottles in stock", Qe = "wine references", Ke = "By color", Xe = "By region", Ye = "By appellation", ts = "By vintage", es = "By bottle format", ss = "Other", is = "Not specified", os = "No data available for this category.", ns = "Unknown", rs = "Wine references in stock", as = "Rack occupancy", cs = "Stock diagnostics", ls = "Unlocated bottles", ds = "Negative movement balance", hs = "Physical surplus", ps = "Breakdowns include known wine references only.", us = "{count} occupied position(s) have an unknown wine reference. They are included in total stock but not in the breakdowns.", gs = "Show rack occupancy", _s = "Show diagnostics", ms = "Show statistics", fs = "Show chart legends", vs = {
   card_title: Ft,
   rack_title: Gt,
   refresh: Wt,
@@ -548,15 +548,15 @@ const Ft = "Ploc Cellar", Gt = "Cellar storage", Wt = "Refresh", Jt = "Loading�
   reconstruction_incomplete: ee,
   last_sync: se,
   search_wine: ie,
-  search_placeholder: ne,
-  no_matching_wines: oe,
+  search_placeholder: oe,
+  no_matching_wines: ne,
   select_config: re,
   rack_selection: ae,
   occupied: ce,
   free: le,
   unknown_wine: de,
-  empty_position: pe,
-  row: he,
+  empty_position: he,
+  row: pe,
   column: ue,
   no_coordinates: ge,
   positions_without_coordinates: _e,
@@ -602,106 +602,114 @@ const Ft = "Ploc Cellar", Gt = "Cellar storage", Wt = "Refresh", Jt = "Loading�
   statistics_format: es,
   statistics_other: ss,
   statistics_unknown: is,
-  statistics_empty: ns,
-  unknown_value: os,
+  statistics_empty: os,
+  unknown_value: ns,
   stocked_references: rs,
   rack_occupancy: as,
   inventory_diagnostics: cs,
   diagnostic_unlocated: ls,
   diagnostic_negative: ds,
-  diagnostic_surplus: ps,
-  statistics_distribution_scope: hs,
-  statistics_unknown_wine_positions: us
-}, _s = "Cave Ploc", ms = "Rangement de la cave", fs = "Actualiser", vs = "Chargement…", $s = "Jamais", ys = "Bouteilles en cave", bs = "Stock reconstitué", ws = "Casiers", xs = "Places libres", ks = "Données potentiellement obsolètes : la dernière synchronisation a échoué.", As = "Reconstitution du stock en cours : seules les quantités physiques sont disponibles.", Cs = "Dernière synchronisation réussie", Ss = "Rechercher un vin", Es = "Rechercher un vin…", Ps = "Aucun vin correspondant.", Os = "Sélectionnez une configuration Ploc Cellar dans l’éditeur de carte.", Ns = "Sélection du casier", Rs = "occupées", Ms = "libres", Us = "Vin inconnu", Is = "Emplacement libre", zs = "Rangée", Ds = "Colonne", Ts = "Aucune coordonnée de rangée/colonne disponible pour ce casier.", Ls = "Emplacements sans coordonnées", Hs = "Non renseigné", js = "Aucun casier disponible.", qs = "emplacement(s) référencent un casier absent.", Bs = "Inventaire des vins", Vs = "Toutes les couleurs", Fs = "Toutes les régions", Gs = "Toutes les appellations", Ws = "Tous les millésimes", Js = "Trier par", Zs = "Nom", Qs = "Quantité décroissante", Ks = "Millésime décroissant", Xs = "{count} référence(s)", Ys = "{count} bouteille(s)", ti = "Effacer les filtres", ei = "bt.", si = "Millésime inconnu", ii = "Détails du vin", ni = "Cépages", oi = "Cuvée", ri = "Volume", ai = "Emplacements", ci = "Cave Ploc", li = "Vue d’ensemble de la cave et indicateurs de stock.", di = "Inventaire des vins", pi = "Rechercher, filtrer et parcourir l’inventaire des vins.", hi = "Casiers de la cave", ui = "Visualiser les emplacements des casiers et les vins qui y sont rangés.", gi = "Configuration Ploc Cellar", _i = "Sélectionnez la connexion PLOUD utilisée par cette carte.", mi = "Titre de la carte", fi = "Facultatif. Laissez vide pour utiliser le titre par défaut.", vi = "Statistiques de la cave", $i = "Bouteilles en stock", yi = "références de vin", bi = "Par couleur", wi = "Par région", xi = "Par appellation", ki = "Par millésime", Ai = "Par format de bouteille", Ci = "Autres", Si = "Non renseigné", Ei = "Aucune donnée disponible pour cette catégorie.", Pi = "Inconnu", Oi = "Références de vins en stock", Ni = "Occupation des casiers", Ri = "Diagnostics du stock", Mi = "Bouteilles non localisées", Ui = "Solde de mouvements négatif", Ii = "Excédent physique", zi = "Les répartitions ne portent que sur les références de vins connues.", Di = "{count} emplacement(s) occupé(s) font référence à un vin inconnu. Ils sont inclus dans le stock total, mais pas dans les répartitions.", Ti = {
-  card_title: _s,
-  rack_title: ms,
-  refresh: fs,
-  loading: vs,
-  never: $s,
-  bottles_in_cellar: ys,
-  reconstructed_stock: bs,
-  racks: ws,
-  empty_positions: xs,
-  stale: ks,
-  reconstruction_incomplete: As,
-  last_sync: Cs,
-  search_wine: Ss,
-  search_placeholder: Es,
-  no_matching_wines: Ps,
-  select_config: Os,
-  rack_selection: Ns,
-  occupied: Rs,
-  free: Ms,
-  unknown_wine: Us,
-  empty_position: Is,
-  row: zs,
-  column: Ds,
-  no_coordinates: Ts,
-  positions_without_coordinates: Ls,
-  not_mapped: Hs,
-  no_racks: js,
-  missing_rack: qs,
-  inventory_title: Bs,
-  filter_color: Vs,
-  filter_region: Fs,
-  filter_appellation: Gs,
-  filter_vintage: Ws,
-  sort_by: Js,
-  sort_name: Zs,
-  sort_bottles: Qs,
-  sort_vintage: Ks,
-  inventory_results: Xs,
-  inventory_bottle_total: Ys,
-  clear_filters: ti,
-  bottles_short: ei,
-  unknown_vintage: si,
-  wine_details: ii,
-  grapes: ni,
-  cuvee: oi,
-  bottle_volume: ri,
-  locations: ai,
-  picker_overview_name: ci,
-  picker_overview_description: li,
-  picker_inventory_name: di,
-  picker_inventory_description: pi,
-  picker_rack_name: hi,
-  picker_rack_description: ui,
-  editor_configuration: gi,
-  editor_configuration_helper: _i,
-  editor_title: mi,
-  editor_title_helper: fi,
-  statistics_title: vi,
-  statistics_bottles: $i,
-  statistics_references: yi,
-  statistics_color: bi,
-  statistics_region: wi,
-  statistics_appellation: xi,
-  statistics_vintage: ki,
-  statistics_format: Ai,
-  statistics_other: Ci,
-  statistics_unknown: Si,
-  statistics_empty: Ei,
-  unknown_value: Pi,
-  stocked_references: Oi,
-  rack_occupancy: Ni,
-  inventory_diagnostics: Ri,
-  diagnostic_unlocated: Mi,
-  diagnostic_negative: Ui,
-  diagnostic_surplus: Ii,
-  statistics_distribution_scope: zi,
-  statistics_unknown_wine_positions: Di
+  diagnostic_surplus: hs,
+  statistics_distribution_scope: ps,
+  statistics_unknown_wine_positions: us,
+  editor_show_occupancy: gs,
+  editor_show_diagnostics: _s,
+  editor_show_statistics: ms,
+  editor_show_statistics_legends: fs
+}, $s = "Cave Ploc", ys = "Rangement de la cave", bs = "Actualiser", ws = "Chargement…", xs = "Jamais", ks = "Bouteilles en cave", As = "Stock reconstitué", Cs = "Casiers", Ss = "Places libres", Es = "Données potentiellement obsolètes : la dernière synchronisation a échoué.", Ps = "Reconstitution du stock en cours : seules les quantités physiques sont disponibles.", Os = "Dernière synchronisation réussie", Ns = "Rechercher un vin", Rs = "Rechercher un vin…", Ms = "Aucun vin correspondant.", Us = "Sélectionnez une configuration Ploc Cellar dans l’éditeur de carte.", Is = "Sélection du casier", zs = "occupées", Ds = "libres", Ts = "Vin inconnu", Ls = "Emplacement libre", Hs = "Rangée", js = "Colonne", qs = "Aucune coordonnée de rangée/colonne disponible pour ce casier.", Bs = "Emplacements sans coordonnées", Vs = "Non renseigné", Fs = "Aucun casier disponible.", Gs = "emplacement(s) référencent un casier absent.", Ws = "Inventaire des vins", Js = "Toutes les couleurs", Zs = "Toutes les régions", Qs = "Toutes les appellations", Ks = "Tous les millésimes", Xs = "Trier par", Ys = "Nom", ti = "Quantité décroissante", ei = "Millésime décroissant", si = "{count} référence(s)", ii = "{count} bouteille(s)", oi = "Effacer les filtres", ni = "bt.", ri = "Millésime inconnu", ai = "Détails du vin", ci = "Cépages", li = "Cuvée", di = "Volume", hi = "Emplacements", pi = "Cave Ploc", ui = "Vue d’ensemble de la cave et indicateurs de stock.", gi = "Inventaire des vins", _i = "Rechercher, filtrer et parcourir l’inventaire des vins.", mi = "Casiers de la cave", fi = "Visualiser les emplacements des casiers et les vins qui y sont rangés.", vi = "Configuration Ploc Cellar", $i = "Sélectionnez la connexion PLOUD utilisée par cette carte.", yi = "Titre de la carte", bi = "Facultatif. Laissez vide pour utiliser le titre par défaut.", wi = "Statistiques de la cave", xi = "Bouteilles en stock", ki = "références de vin", Ai = "Par couleur", Ci = "Par région", Si = "Par appellation", Ei = "Par millésime", Pi = "Par format de bouteille", Oi = "Autres", Ni = "Non renseigné", Ri = "Aucune donnée disponible pour cette catégorie.", Mi = "Inconnu", Ui = "Références de vins en stock", Ii = "Occupation des casiers", zi = "Diagnostics du stock", Di = "Bouteilles non localisées", Ti = "Solde de mouvements négatif", Li = "Excédent physique", Hi = "Les répartitions ne portent que sur les références de vins connues.", ji = "{count} emplacement(s) occupé(s) font référence à un vin inconnu. Ils sont inclus dans le stock total, mais pas dans les répartitions.", qi = "Afficher l’occupation des casiers", Bi = "Afficher les diagnostics", Vi = "Afficher les statistiques", Fi = "Afficher les légendes des graphiques", Gi = {
+  card_title: $s,
+  rack_title: ys,
+  refresh: bs,
+  loading: ws,
+  never: xs,
+  bottles_in_cellar: ks,
+  reconstructed_stock: As,
+  racks: Cs,
+  empty_positions: Ss,
+  stale: Es,
+  reconstruction_incomplete: Ps,
+  last_sync: Os,
+  search_wine: Ns,
+  search_placeholder: Rs,
+  no_matching_wines: Ms,
+  select_config: Us,
+  rack_selection: Is,
+  occupied: zs,
+  free: Ds,
+  unknown_wine: Ts,
+  empty_position: Ls,
+  row: Hs,
+  column: js,
+  no_coordinates: qs,
+  positions_without_coordinates: Bs,
+  not_mapped: Vs,
+  no_racks: Fs,
+  missing_rack: Gs,
+  inventory_title: Ws,
+  filter_color: Js,
+  filter_region: Zs,
+  filter_appellation: Qs,
+  filter_vintage: Ks,
+  sort_by: Xs,
+  sort_name: Ys,
+  sort_bottles: ti,
+  sort_vintage: ei,
+  inventory_results: si,
+  inventory_bottle_total: ii,
+  clear_filters: oi,
+  bottles_short: ni,
+  unknown_vintage: ri,
+  wine_details: ai,
+  grapes: ci,
+  cuvee: li,
+  bottle_volume: di,
+  locations: hi,
+  picker_overview_name: pi,
+  picker_overview_description: ui,
+  picker_inventory_name: gi,
+  picker_inventory_description: _i,
+  picker_rack_name: mi,
+  picker_rack_description: fi,
+  editor_configuration: vi,
+  editor_configuration_helper: $i,
+  editor_title: yi,
+  editor_title_helper: bi,
+  statistics_title: wi,
+  statistics_bottles: xi,
+  statistics_references: ki,
+  statistics_color: Ai,
+  statistics_region: Ci,
+  statistics_appellation: Si,
+  statistics_vintage: Ei,
+  statistics_format: Pi,
+  statistics_other: Oi,
+  statistics_unknown: Ni,
+  statistics_empty: Ri,
+  unknown_value: Mi,
+  stocked_references: Ui,
+  rack_occupancy: Ii,
+  inventory_diagnostics: zi,
+  diagnostic_unlocated: Di,
+  diagnostic_negative: Ti,
+  diagnostic_surplus: Li,
+  statistics_distribution_scope: Hi,
+  statistics_unknown_wine_positions: ji,
+  editor_show_occupancy: qi,
+  editor_show_diagnostics: Bi,
+  editor_show_statistics: Vi,
+  editor_show_statistics_legends: Fi
 };
 function m(e, t) {
-  return (e.toLocaleLowerCase().startsWith("fr") ? Ti : gs)[t];
+  return (e.toLocaleLowerCase().startsWith("fr") ? Gi : vs)[t];
 }
 function R(e) {
   const t = typeof navigator > "u" ? "en" : navigator.language;
   return m(t, e);
 }
-var Li = Object.defineProperty, Hi = Object.getOwnPropertyDescriptor, S = (e, t, s, i) => {
-  for (var n = i > 1 ? void 0 : i ? Hi(t, s) : t, o = e.length - 1, r; o >= 0; o--)
-    (r = e[o]) && (n = (i ? r(t, s, n) : r(n)) || n);
-  return i && n && Li(t, s, n), n;
+var Wi = Object.defineProperty, Ji = Object.getOwnPropertyDescriptor, S = (e, t, s, i) => {
+  for (var o = i > 1 ? void 0 : i ? Ji(t, s) : t, n = e.length - 1, a; n >= 0; n--)
+    (a = e[n]) && (o = (i ? a(t, s, o) : a(o)) || o);
+  return i && o && Wi(t, s, o), o;
 };
 let y = class extends x {
   constructor() {
@@ -725,16 +733,16 @@ let y = class extends x {
     const s = t.config_entry_id, i = ++this.requestGeneration;
     this.loading = !0, this.error = void 0;
     try {
-      const n = await e.callWS({
+      const o = await e.callWS({
         type: "call_service",
         domain: "ploc_cellar",
         service: "get_inventory",
         service_data: { config_entry_id: s },
         return_response: !0
       });
-      i === this.requestGeneration && (this.inventory = n.response, (!this.selectedRackId || !this.inventory.racks.some((o) => o.id === this.selectedRackId)) && (this.selectedRackId = this.inventory.racks[0]?.id));
-    } catch (n) {
-      i === this.requestGeneration && (this.error = n instanceof Error ? n.message : String(n));
+      i === this.requestGeneration && (this.inventory = o.response, (!this.selectedRackId || !this.inventory.racks.some((n) => n.id === this.selectedRackId)) && (this.selectedRackId = this.inventory.racks[0]?.id));
+    } catch (o) {
+      i === this.requestGeneration && (this.error = o instanceof Error ? o.message : String(o));
     } finally {
       i === this.requestGeneration && (this.loading = !1);
     }
@@ -784,8 +792,8 @@ let y = class extends x {
     return t ? t.name : m(this.hass?.language ?? "en", "unknown_wine");
   }
   render() {
-    const e = (a) => m(this.hass?.language ?? "en", a), t = this.inventory, s = t?.racks.find((a) => a.id === this.selectedRackId), i = this.rowValues, n = this.columnValues, o = this.positionedItems, r = this.selectedItems.filter((a) => a.row === null || a.column === null), c = (t?.rack_items ?? []).filter(
-      (a) => !t?.racks.some((p) => p.id === a.rack_id)
+    const e = (r) => m(this.hass?.language ?? "en", r), t = this.inventory, s = t?.racks.find((r) => r.id === this.selectedRackId), i = this.rowValues, o = this.columnValues, n = this.positionedItems, a = this.selectedItems.filter((r) => r.row === null || r.column === null), c = (t?.rack_items ?? []).filter(
+      (r) => !t?.racks.some((h) => h.id === r.rack_id)
     );
     return l`
       <ha-card>
@@ -798,31 +806,31 @@ let y = class extends x {
         ${t?.stale ? l`<div class="warning">${e("stale")}</div>` : d}
         ${t?.racks.length ? l`
           <nav class="rack-picker" aria-label=${e("rack_selection")}>
-            ${t.racks.map((a) => l`
-              <button aria-pressed=${a.id === this.selectedRackId}
+            ${t.racks.map((r) => l`
+              <button aria-pressed=${r.id === this.selectedRackId}
                 @click=${() => {
-      this.selectedRackId = a.id;
-    }}>${a.name}</button>
+      this.selectedRackId = r.id;
+    }}>${r.name}</button>
             `)}
           </nav>
-          <div class="legend">${s?.name ?? ""} · ${this.selectedItems.filter((a) => a.wine_id).length} ${e("occupied")} · ${this.selectedItems.filter((a) => !a.wine_id).length} ${e("free")}</div>
-          ${i.length && n.length ? l`
+          <div class="legend">${s?.name ?? ""} · ${this.selectedItems.filter((r) => r.wine_id).length} ${e("occupied")} · ${this.selectedItems.filter((r) => !r.wine_id).length} ${e("free")}</div>
+          ${i.length && o.length ? l`
             <div class="grid-wrap">
               <div class="rack-grid" style=${`grid-template-columns: repeat(${this.columnCount}, minmax(88px, 1fr)); grid-template-rows: repeat(${this.rowCount}, minmax(72px, auto));`}>
-                ${o.map((a) => {
-      const p = a.row - this.firstRow + 1, u = a.column - this.firstColumn + 1, h = !!a.wine_id;
+                ${n.map((r) => {
+      const h = r.row - this.firstRow + 1, u = r.column - this.firstColumn + 1, p = !!r.wine_id;
       return l`
-                    <div class=${h ? "slot occupied" : "slot"}
-                      style=${`grid-row: ${p}; grid-column: ${u};`}
-                      title=${this.wineLabel(a) || e("empty_position")}>
-                      <strong>${h ? this.wineLabel(a) : "—"}</strong>
-                      <small>${e("row")} ${a.row} · ${e("column")} ${a.column}</small>
+                    <div class=${p ? "slot occupied" : "slot"}
+                      style=${`grid-row: ${h}; grid-column: ${u};`}
+                      title=${this.wineLabel(r) || e("empty_position")}>
+                      <strong>${p ? this.wineLabel(r) : "—"}</strong>
+                      <small>${e("row")} ${r.row} · ${e("column")} ${r.column}</small>
                     </div>
                   `;
     })}
-                ${this.missingCoordinates.map((a) => l`
+                ${this.missingCoordinates.map((r) => l`
                   <div class="slot missing"
-                    style=${`grid-row: ${a.row - this.firstRow + 1}; grid-column: ${a.column - this.firstColumn + 1};`}>
+                    style=${`grid-row: ${r.row - this.firstRow + 1}; grid-column: ${r.column - this.firstColumn + 1};`}>
                     <strong>—</strong>
                     <small>${e("not_mapped")}</small>
                   </div>
@@ -830,10 +838,10 @@ let y = class extends x {
               </div>
             </div>
           ` : l`<div class="warning">${e("no_coordinates")}</div>`}
-          ${r.length ? l`
+          ${a.length ? l`
             <div class="unplaced">
               <strong>${e("positions_without_coordinates")}</strong>
-              ${r.map((a) => l`<div class="unplaced-item">${this.wineLabel(a) || e("empty_position")}</div>`)}
+              ${a.map((r) => l`<div class="unplaced-item">${this.wineLabel(r) || e("empty_position")}</div>`)}
             </div>
           ` : d}
         ` : l`<p class="muted">${e("no_racks")}</p>`}
@@ -850,8 +858,7 @@ let y = class extends x {
     return {
       columns: 12,
       min_columns: 6,
-      rows: 5,
-      min_rows: 4
+      rows: "auto"
     };
   }
 };
@@ -904,10 +911,10 @@ window.customCards.push({
   name: R("picker_rack_name"),
   description: R("picker_rack_description")
 });
-var ji = Object.defineProperty, qi = Object.getOwnPropertyDescriptor, f = (e, t, s, i) => {
-  for (var n = i > 1 ? void 0 : i ? qi(t, s) : t, o = e.length - 1, r; o >= 0; o--)
-    (r = e[o]) && (n = (i ? r(t, s, n) : r(n)) || n);
-  return i && n && ji(t, s, n), n;
+var Zi = Object.defineProperty, Qi = Object.getOwnPropertyDescriptor, f = (e, t, s, i) => {
+  for (var o = i > 1 ? void 0 : i ? Qi(t, s) : t, n = e.length - 1, a; n >= 0; n--)
+    (a = e[n]) && (o = (i ? a(t, s, o) : a(o)) || o);
+  return i && o && Zi(t, s, o), o;
 };
 let _ = class extends x {
   constructor() {
@@ -963,11 +970,11 @@ let _ = class extends x {
       i.color,
       i.vintage,
       i.bottle_format
-    ].filter((n) => n != null).join(" ").toLocaleLowerCase().includes(e) : !0), s = new Intl.Collator(this.hass?.language ?? void 0, {
+    ].filter((o) => o != null).join(" ").toLocaleLowerCase().includes(e) : !0), s = new Intl.Collator(this.hass?.language ?? void 0, {
       numeric: !0,
       sensitivity: "base"
     });
-    return [...t].sort((i, n) => this.sort === "bottles" ? n.bottles_in_cellar - i.bottles_in_cellar || s.compare(i.name, n.name) : this.sort === "vintage" && (n.vintage ?? 0) - (i.vintage ?? 0) || s.compare(i.name, n.name));
+    return [...t].sort((i, o) => this.sort === "bottles" ? o.bottles_in_cellar - i.bottles_in_cellar || s.compare(i.name, o.name) : this.sort === "vintage" && (o.vintage ?? 0) - (i.vintage ?? 0) || s.compare(i.name, o.name));
   }
   clearFilters() {
     this.search = "", this.color = "", this.region = "", this.appellation = "", this.vintage = "", this.sort = "name";
@@ -975,12 +982,12 @@ let _ = class extends x {
   selectFilter(e, t, s, i) {
     return l`
       <select aria-label=${t} .value=${s}
-        @change=${(n) => {
-      const o = n.target.value;
-      e === "color" ? this.color = o : e === "region" ? this.region = o : e === "appellation" ? this.appellation = o : this.vintage = o;
+        @change=${(o) => {
+      const n = o.target.value;
+      e === "color" ? this.color = n : e === "region" ? this.region = n : e === "appellation" ? this.appellation = n : this.vintage = n;
     }}>
         <option value="" ?selected=${!s}>${t}</option>
-        ${i.map((n) => l`<option value=${n} ?selected=${n === s}>${n}</option>`)}
+        ${i.map((o) => l`<option value=${o} ?selected=${o === s}>${o}</option>`)}
       </select>
     `;
   }
@@ -988,10 +995,10 @@ let _ = class extends x {
     return t == null || t === "" ? d : l`<div><span class="detail-label">${e}</span>${t}</div>`;
   }
   renderWine(e) {
-    const t = (o) => m(this.hass?.language ?? "en", o), s = e.locations.map((o) => {
-      const r = o.row !== null && o.column !== null ? ` · ${t("row")} ${o.row}, ${t("column")} ${o.column}` : "";
-      return `${o.rack}${r}`;
-    }), i = e.vintage === null ? t("unknown_vintage") : String(e.vintage), n = e.bottle_volume_l === null ? null : `${e.bottle_volume_l.toLocaleString(this.hass?.language ?? void 0)} L`;
+    const t = (n) => m(this.hass?.language ?? "en", n), s = e.locations.map((n) => {
+      const a = n.row !== null && n.column !== null ? ` · ${t("row")} ${n.row}, ${t("column")} ${n.column}` : "";
+      return `${n.rack}${a}`;
+    }), i = e.vintage === null ? t("unknown_vintage") : String(e.vintage), o = e.bottle_volume_l === null ? null : `${e.bottle_volume_l.toLocaleString(this.hass?.language ?? void 0)} L`;
     return l`
       <article class="wine">
         <div class="wine-main">
@@ -1016,7 +1023,7 @@ let _ = class extends x {
           <div class="details">
             ${this.detail(t("grapes"), e.grapes)}
             ${this.detail(t("cuvee"), e.cuvee)}
-            ${this.detail(t("bottle_volume"), n)}
+            ${this.detail(t("bottle_volume"), o)}
             ${this.detail(t("locations"), s.length ? s.join(" · ") : null)}
           </div>
         </details>
@@ -1024,7 +1031,7 @@ let _ = class extends x {
     `;
   }
   render() {
-    const e = (n) => m(this.hass?.language ?? "en", n), t = this.filteredWines, s = t.reduce((n, o) => n + o.bottles_in_cellar, 0), i = !!(this.search || this.color || this.region || this.appellation || this.vintage);
+    const e = (o) => m(this.hass?.language ?? "en", o), t = this.filteredWines, s = t.reduce((o, n) => o + n.bottles_in_cellar, 0), i = !!(this.search || this.color || this.region || this.appellation || this.vintage);
     return l`
       <ha-card>
         <header>
@@ -1042,16 +1049,16 @@ let _ = class extends x {
           <div class="toolbar">
             <input class="search" type="search" aria-label=${e("search_wine")}
               placeholder=${e("search_placeholder")} .value=${this.search}
-              @input=${(n) => {
-      this.search = n.target.value;
+              @input=${(o) => {
+      this.search = o.target.value;
     }} />
             ${this.selectFilter("color", e("filter_color"), this.color, this.valuesFor("color"))}
             ${this.selectFilter("region", e("filter_region"), this.region, this.valuesFor("region"))}
             ${this.selectFilter("appellation", e("filter_appellation"), this.appellation, this.valuesFor("appellation"))}
             ${this.selectFilter("vintage", e("filter_vintage"), this.vintage, this.valuesFor("vintage"))}
             <select aria-label=${e("sort_by")} .value=${this.sort}
-              @change=${(n) => {
-      this.sort = n.target.value;
+              @change=${(o) => {
+      this.sort = o.target.value;
     }}>
               <option value="name" ?selected=${this.sort === "name"}>${e("sort_name")}</option>
               <option value="bottles" ?selected=${this.sort === "bottles"}>${e("sort_bottles")}</option>
@@ -1065,7 +1072,7 @@ let _ = class extends x {
           </div>
           ${this.inventory.stock_reconstruction_complete ? d : l`<div class="warning">${e("reconstruction_incomplete")}</div>`}
           <div class="wine-list">
-            ${t.map((n) => this.renderWine(n))}
+            ${t.map((o) => this.renderWine(o))}
           </div>
           ${t.length === 0 ? l`<p class="muted">${e("no_matching_wines")}</p>` : d}
         ` : d}
@@ -1076,7 +1083,7 @@ let _ = class extends x {
     return 6;
   }
   getGridOptions() {
-    return { columns: 12, min_columns: 6, rows: 6, min_rows: 4 };
+    return { columns: 12, min_columns: 6, rows: "auto" };
   }
 };
 _.styles = K`
@@ -1159,10 +1166,10 @@ window.customCards.push({
   name: R("picker_inventory_name"),
   description: R("picker_inventory_description")
 });
-var Bi = Object.defineProperty, Vi = Object.getOwnPropertyDescriptor, st = (e, t, s, i) => {
-  for (var n = i > 1 ? void 0 : i ? Vi(t, s) : t, o = e.length - 1, r; o >= 0; o--)
-    (r = e[o]) && (n = (i ? r(t, s, n) : r(n)) || n);
-  return i && n && Bi(t, s, n), n;
+var Ki = Object.defineProperty, Xi = Object.getOwnPropertyDescriptor, st = (e, t, s, i) => {
+  for (var o = i > 1 ? void 0 : i ? Xi(t, s) : t, n = e.length - 1, a; n >= 0; n--)
+    (a = e[n]) && (o = (i ? a(t, s, o) : a(o)) || o);
+  return i && o && Ki(t, s, o), o;
 };
 let F = class extends x {
   constructor() {
@@ -1172,10 +1179,21 @@ let F = class extends x {
         required: !0,
         selector: { config_entry: { integration: "ploc_cellar" } }
       },
-      { name: "title", selector: { text: {} } }
+      { name: "title", selector: { text: {} } },
+      { name: "show_occupancy", selector: { boolean: {} } },
+      { name: "show_diagnostics", selector: { boolean: {} } },
+      { name: "show_statistics", selector: { boolean: {} } },
+      { name: "show_statistics_legends", selector: { boolean: {} } }
     ], this.computeLabel = (e) => {
-      const t = e.name === "config_entry_id" ? "editor_configuration" : "editor_title";
-      return m(this.hass?.language ?? "en", t);
+      const s = {
+        config_entry_id: "editor_configuration",
+        title: "editor_title",
+        show_occupancy: "editor_show_occupancy",
+        show_diagnostics: "editor_show_diagnostics",
+        show_statistics: "editor_show_statistics",
+        show_statistics_legends: "editor_show_statistics_legends"
+      }[e.name];
+      return m(this.hass?.language ?? "en", s);
     }, this.computeHelper = (e) => {
       if (e.name === "config_entry_id")
         return m(this.hass?.language ?? "en", "editor_configuration_helper");
@@ -1184,7 +1202,13 @@ let F = class extends x {
     };
   }
   setConfig(e) {
-    this.config = e;
+    this.config = {
+      ...e,
+      show_occupancy: e.show_occupancy !== !1,
+      show_diagnostics: e.show_diagnostics !== !1,
+      show_statistics: e.show_statistics !== !1,
+      show_statistics_legends: e.show_statistics_legends !== !1
+    };
   }
   valueChanged(e) {
     e.stopPropagation();
@@ -1219,10 +1243,10 @@ st([
 F = st([
   L("ploc-cellar-card-editor")
 ], F);
-var Fi = Object.defineProperty, Gi = Object.getOwnPropertyDescriptor, E = (e, t, s, i) => {
-  for (var n = i > 1 ? void 0 : i ? Gi(t, s) : t, o = e.length - 1, r; o >= 0; o--)
-    (r = e[o]) && (n = (i ? r(t, s, n) : r(n)) || n);
-  return i && n && Fi(t, s, n), n;
+var Yi = Object.defineProperty, to = Object.getOwnPropertyDescriptor, E = (e, t, s, i) => {
+  for (var o = i > 1 ? void 0 : i ? to(t, s) : t, n = e.length - 1, a; n >= 0; n--)
+    (a = e[n]) && (o = (i ? a(t, s, o) : a(o)) || o);
+  return i && o && Yi(t, s, o), o;
 };
 const gt = [
   "#D55E00",
@@ -1245,7 +1269,13 @@ let b = class extends x {
     return {};
   }
   setConfig(e) {
-    this.requestGeneration += 1, this.loading = !1, this.config = e, this.inventory = void 0, this.error = void 0, e.config_entry_id && this.refresh();
+    this.requestGeneration += 1, this.loading = !1, this.config = {
+      ...e,
+      show_occupancy: e.show_occupancy !== !1,
+      show_diagnostics: e.show_diagnostics !== !1,
+      show_statistics: e.show_statistics !== !1,
+      show_statistics_legends: e.show_statistics_legends !== !1
+    }, this.inventory = void 0, this.error = void 0, e.config_entry_id && this.refresh();
   }
   updated() {
     this.hass && this.config && !this.inventory && !this.loading && !this.error && this.refresh();
@@ -1256,16 +1286,16 @@ let b = class extends x {
     const s = t.config_entry_id, i = ++this.requestGeneration;
     this.loading = !0, this.error = void 0;
     try {
-      const n = await e.callWS({
+      const o = await e.callWS({
         type: "call_service",
         domain: "ploc_cellar",
         service: "get_inventory",
         service_data: { config_entry_id: s },
         return_response: !0
       });
-      i === this.requestGeneration && (this.inventory = n.response);
-    } catch (n) {
-      i === this.requestGeneration && (this.error = n instanceof Error ? n.message : String(n));
+      i === this.requestGeneration && (this.inventory = o.response);
+    } catch (o) {
+      i === this.requestGeneration && (this.error = o instanceof Error ? o.message : String(o));
     } finally {
       i === this.requestGeneration && (this.loading = !1);
     }
@@ -1293,57 +1323,59 @@ let b = class extends x {
     return this.inventory?.stock_reconstruction_complete ? e.bottles ?? e.bottles_in_cellar : e.bottles_in_cellar;
   }
   distribution(e) {
-    const t = (r) => m(this.hass?.language ?? "en", r), s = /* @__PURE__ */ new Map();
-    for (const r of this.inventory?.wines ?? []) {
-      const c = r[e], a = c === null || c === "" ? t("statistics_unknown") : String(c), p = s.get(a) ?? { name: a, bottles: 0, wines: 0 };
-      if (p.bottles += this.getBottleCount(r), p.wines += 1, e === "color" && r.color_rgb && !p.color) {
-        const u = r.color_rgb.map(
-          (h) => Math.min(255, Math.max(0, Math.round(h)))
+    const t = (a) => m(this.hass?.language ?? "en", a), s = /* @__PURE__ */ new Map();
+    for (const a of this.inventory?.wines ?? []) {
+      const c = a[e], r = c === null || c === "" ? t("statistics_unknown") : String(c), h = s.get(r) ?? { name: r, bottles: 0, wines: 0 };
+      if (h.bottles += this.getBottleCount(a), h.wines += 1, e === "color" && a.color_rgb && !h.color) {
+        const u = a.color_rgb.map(
+          (p) => Math.min(255, Math.max(0, Math.round(p)))
         );
-        p.color = `rgb(${u.join(", ")})`;
+        h.color = `rgb(${u.join(", ")})`;
       }
-      s.set(a, p);
+      s.set(r, h);
     }
     const i = [...s.values()].sort(
-      (r, c) => c.bottles - r.bottles || r.name.localeCompare(c.name, this.hass?.language)
+      (a, c) => c.bottles - a.bottles || a.name.localeCompare(c.name, this.hass?.language)
     );
     if (i.length <= 8) return i;
-    const n = i.slice(0, 7), o = i.slice(7).reduce(
-      (r, c) => ({
+    const o = i.slice(0, 7), n = i.slice(7).reduce(
+      (a, c) => ({
         name: t("statistics_other"),
-        bottles: r.bottles + c.bottles,
-        wines: r.wines + c.wines
+        bottles: a.bottles + c.bottles,
+        wines: a.wines + c.wines
       }),
       { name: t("statistics_other"), bottles: 0, wines: 0 }
     );
-    return [...n, o];
+    return [...o, n];
   }
   renderDistribution(e, t) {
-    const s = (a) => m(this.hass?.language ?? "en", a), i = this.distribution(e), n = i.reduce((a, p) => a + p.bottles, 0);
-    let o = 0;
-    const r = i.filter((a) => a.bottles > 0).map((a, p) => {
-      const u = o;
-      return o += a.bottles / n * 100, {
-        ...a,
+    const s = (r) => m(this.hass?.language ?? "en", r), i = this.distribution(e), o = i.reduce((r, h) => r + h.bottles, 0);
+    let n = 0;
+    const a = i.filter((r) => r.bottles > 0).map((r, h) => {
+      const u = n;
+      return n += r.bottles / o * 100, {
+        ...r,
         start: u,
-        end: o,
-        color: a.color ?? gt[p % gt.length]
+        end: n,
+        color: r.color ?? gt[h % gt.length]
       };
-    }), c = i.map((a) => `${a.name}: ${this.formatNumber(a.bottles)}`).join(", ");
+    }), c = i.map((r) => `${r.name}: ${this.formatNumber(r.bottles)}`).join(", ");
     return l`
       <section class="group">
         <h3 class="group-title">${s(t)}</h3>
-        ${n > 0 ? l`
-          <div class="chart-content">
-            <div class="donut">
+        ${o > 0 ? l`
+          <div class=${this.config?.show_statistics_legends === !1 ? "chart-content chart-content-no-legend" : "chart-content"}>
+            <div class="donut" role="img"
+              aria-label=${s(t) + ": " + c}
+>
               <svg class="donut-chart" viewBox="0 0 100 100"
-                role="img" aria-label=${s(t) + ": " + c}>
-                ${r.map((a) => {
-      const p = 2 * Math.PI * 42, u = (a.end - a.start) / 100 * p, h = `${u} ${p - u}`, v = -(a.start / 100) * p, $ = `${a.name}: ${this.formatNumber(a.bottles)} ${s("statistics_bottles")} (${new Intl.NumberFormat(this.hass?.language ?? void 0, { style: "percent", maximumFractionDigits: 1 }).format(a.bottles / n)}), ${this.formatNumber(a.wines)} ${s("statistics_references")}`;
+                aria-hidden="true">
+                ${a.map((r) => {
+      const h = 2 * Math.PI * 42, u = (r.end - r.start) / 100 * h, p = `${u} ${h - u}`, v = -(r.start / 100) * h, $ = `${r.name}: ${this.formatNumber(r.bottles)} ${s("statistics_bottles")} (${new Intl.NumberFormat(this.hass?.language ?? void 0, { style: "percent", maximumFractionDigits: 1 }).format(r.bottles / o)}), ${this.formatNumber(r.wines)} ${s("statistics_references")}`;
       return l`
                     <circle class="donut-segment" cx="50" cy="50" r="42"
-                      style=${`stroke: ${a.color}`}
-                      stroke-dasharray=${h}
+                      style=${`stroke: ${r.color}`}
+                      stroke-dasharray=${p}
                       stroke-dashoffset=${v}>
                       <title>${$}</title>
                     </circle>
@@ -1351,37 +1383,39 @@ let b = class extends x {
     })}
               </svg>
               <div class="donut-center">
-                <span class="donut-total">${this.formatNumber(n)}</span>
+                <span class="donut-total">${this.formatNumber(o)}</span>
                 <span class="donut-caption">${s("statistics_bottles")}</span>
               </div>
             </div>
-            <div class="legend">
-              ${r.map((a) => l`
+            ${this.config?.show_statistics_legends === !1 ? d : l`
+              <div class="legend">
+                ${a.map((r) => l`
                 <div class="legend-item">
-                  <span class="legend-swatch" style=${`background: ${a.color}`}></span>
-                  <span class="legend-name">${a.name}</span>
-                  <span class="legend-value">${this.formatNumber(a.bottles)}</span>
+                  <span class="legend-swatch" style=${`background: ${r.color}`}></span>
+                  <span class="legend-name">${r.name}</span>
+                  <span class="legend-value">${this.formatNumber(r.bottles)}</span>
                   <span class="legend-meta">
                     ${new Intl.NumberFormat(this.hass?.language ?? void 0, {
       style: "percent",
       maximumFractionDigits: 1
-    }).format(a.bottles / n)}
-                    · ${this.formatNumber(a.wines)} ${s("statistics_references")}
+    }).format(r.bottles / o)}
+                    · ${this.formatNumber(r.wines)} ${s("statistics_references")}
                   </span>
                 </div>
-              `)}
-            </div>
+                `)}
+              </div>
+            `}
           </div>
         ` : l`<p class="muted">${s("statistics_empty")}</p>`}
       </section>
     `;
   }
   render() {
-    const e = (c) => m(this.hass?.language ?? "en", c), t = this.inventory, s = this.config?.title ?? e("card_title"), i = t && t.total_positions > 0 ? Math.round(t.occupied_positions / t.total_positions * 100) : 0, n = t?.stock_reconstruction_complete ? [
+    const e = (p) => m(this.hass?.language ?? "en", p), t = this.inventory, s = this.config?.title ?? e("card_title"), i = this.config?.show_occupancy !== !1, o = this.config?.show_diagnostics !== !1, n = this.config?.show_statistics !== !1, a = t && t.total_positions > 0 ? Math.round(t.occupied_positions / t.total_positions * 100) : 0, c = t?.stock_reconstruction_complete ? [
       { key: "diagnostic_unlocated", value: t.unlocated_bottles ?? 0 },
       { key: "diagnostic_negative", value: t.negative_movement_bottles ?? 0 },
       { key: "diagnostic_surplus", value: t.physical_surplus_bottles ?? 0 }
-    ].filter((c) => c.value > 0) : [], o = t?.wines ?? [], r = t?.wine_references ?? o.length;
+    ].filter((p) => p.value > 0) : [], r = !!(t && (!t.stock_reconstruction_complete || c.length > 0 || t.positions_with_unknown_wine > 0)), h = t?.wines ?? [], u = t?.wine_references ?? h.length;
     return l`
       <ha-card>
         <header>
@@ -1400,48 +1434,54 @@ let b = class extends x {
       t.total_stock_bottles ?? e("unknown_value"),
       e("reconstructed_stock")
     )}
-            ${this.metric(r, e("stocked_references"))}
+            ${this.metric(u, e("stocked_references"))}
             ${this.metric(t.rack_count, e("racks"))}
           </div>
-          <section class="section" aria-label=${e("rack_occupancy")}>
-            <div class="occupancy-heading">
-              <span>${e("rack_occupancy")}</span>
-              <span>${this.formatNumber(t.occupied_positions)} / ${this.formatNumber(t.total_positions)}</span>
-            </div>
-            <div class="occupancy-bar" role="progressbar"
-              aria-label=${e("rack_occupancy")}
-              aria-valuemin="0" aria-valuemax=${t.total_positions}
-              aria-valuenow=${t.occupied_positions}>
-              <div class="occupancy-fill" style=${`width: ${i}%`}></div>
-            </div>
-            <div class="muted">${e("empty_positions")}: ${this.formatNumber(Math.max(0, t.total_positions - t.occupied_positions))}</div>
-          </section>
-          ${t.stock_reconstruction_complete ? d : l`<div class="warning">${e("reconstruction_incomplete")}</div>`}
-          ${n.length ? l`
+          ${i ? l`
+            <section class="section" aria-label=${e("rack_occupancy")}>
+              <div class="occupancy-heading">
+                <span>${e("rack_occupancy")}</span>
+                <span>${this.formatNumber(t.occupied_positions)} / ${this.formatNumber(t.total_positions)}</span>
+              </div>
+              <div class="occupancy-bar" role="progressbar"
+                aria-label=${e("rack_occupancy")}
+                aria-valuemin="0" aria-valuemax=${t.total_positions}
+                aria-valuenow=${t.occupied_positions}>
+                <div class="occupancy-fill" style=${`width: ${a}%`}></div>
+              </div>
+              <div class="muted">${e("empty_positions")}: ${this.formatNumber(Math.max(0, t.total_positions - t.occupied_positions))}</div>
+            </section>
+          ` : d}
+          ${o && r ? l`
             <section class="section">
               <h3 class="section-title">${e("inventory_diagnostics")}</h3>
-              <div class="diagnostics">
-                ${n.map((c) => l`
-                  <div class="diagnostic">
-                    <span class="diagnostic-value">${this.formatNumber(c.value)}</span>
-                    <span class="label">${e(c.key)}</span>
-                  </div>
-                `)}
+              ${t.stock_reconstruction_complete ? d : l`<div class="warning">${e("reconstruction_incomplete")}</div>`}
+              ${c.length ? l`
+                <div class="diagnostics">
+                  ${c.map((p) => l`
+                    <div class="diagnostic">
+                      <span class="diagnostic-value">${this.formatNumber(p.value)}</span>
+                      <span class="label">${e(p.key)}</span>
+                    </div>
+                  `)}
+                </div>
+              ` : d}
+              ${t.positions_with_unknown_wine > 0 ? l`<div class="warning">${e("statistics_unknown_wine_positions").replace("{count}", this.formatNumber(t.positions_with_unknown_wine))}</div>` : d}
+            </section>
+          ` : d}
+          ${n ? l`
+            <section class="section">
+              <h3 class="section-title">${e("statistics_title")}</h3>
+              <p class="muted">${e("statistics_distribution_scope")}</p>
+              <div class="groups">
+                ${this.renderDistribution("color", "statistics_color")}
+                ${this.renderDistribution("region", "statistics_region")}
+                ${this.renderDistribution("appellation", "statistics_appellation")}
+                ${this.renderDistribution("vintage", "statistics_vintage")}
+                ${this.renderDistribution("bottle_format", "statistics_format")}
               </div>
             </section>
           ` : d}
-          ${t.positions_with_unknown_wine > 0 ? l`<div class="warning">${e("statistics_unknown_wine_positions").replace("{count}", this.formatNumber(t.positions_with_unknown_wine))}</div>` : d}
-          <section class="section">
-            <h3 class="section-title">${e("statistics_title")}</h3>
-            <p class="muted">${e("statistics_distribution_scope")}</p>
-            <div class="groups">
-              ${this.renderDistribution("color", "statistics_color")}
-              ${this.renderDistribution("region", "statistics_region")}
-              ${this.renderDistribution("appellation", "statistics_appellation")}
-              ${this.renderDistribution("vintage", "statistics_vintage")}
-              ${this.renderDistribution("bottle_format", "statistics_format")}
-            </div>
-          </section>
           <div class="muted section">${e("last_sync")}: ${this.formatSync(t.last_sync)}</div>
         ` : d}
       </ha-card>
@@ -1477,8 +1517,9 @@ b.styles = K`
     .group { min-width: 0; border: 1px solid var(--divider-color); border-radius: 10px; padding: 12px; }
     .group-title { margin: 0 0 12px; font-size: 1rem; font-weight: 500; }
     .chart-content { display: grid; grid-template-columns: minmax(112px, .85fr) minmax(0, 1.15fr); gap: 12px; align-items: center; }
-    .donut { position: relative; display: grid; place-items: center; width: 100%; max-width: 150px; aspect-ratio: 1; justify-self: center; }
-    .donut-chart { display: block; width: 100%; height: 100%; overflow: visible; }
+    .chart-content.chart-content-no-legend { grid-template-columns: minmax(0, 1fr); }
+    .donut { position: relative; display: grid; place-items: center; width: 100%; max-width: 150px; aspect-ratio: 1; border-radius: 50%; justify-self: center; }
+    .donut-chart { position: absolute; inset: 0; display: block; width: 100%; height: 100%; overflow: visible; }
     .donut-segment { fill: none; stroke-width: 16; pointer-events: stroke; cursor: help; }
     .donut-segment:focus { outline: none; }
     .donut-center { position: absolute; inset: 17%; display: flex; flex-direction: column; align-items: center; justify-content: center; border-radius: 50%; background: var(--card-background-color, var(--ha-card-background, #fff)); pointer-events: none; }

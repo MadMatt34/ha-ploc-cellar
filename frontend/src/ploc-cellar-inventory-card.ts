@@ -294,7 +294,7 @@ export class PlocCellarInventoryCard extends LitElement {
   }
 
   getGridOptions() {
-    return { columns: 12, min_columns: 6, rows: 6, min_rows: 4 };
+    return { columns: 12, min_columns: 6, rows: "auto" as const };
   }
 }
 
