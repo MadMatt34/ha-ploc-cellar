@@ -84,7 +84,7 @@ export class PlocCellarCard extends LitElement {
     .chart-content.chart-content-no-legend { grid-template-columns: minmax(0, 1fr); }
     .donut { position: relative; display: grid; place-items: center; width: 100%; max-width: 150px; aspect-ratio: 1; border-radius: 50%; justify-self: center; }
     .donut-chart { position: absolute; inset: 0; display: block; width: 100%; height: 100%; overflow: visible; }
-    .donut-segment { fill: none; stroke: transparent; stroke-width: 16; pointer-events: stroke; cursor: help; }
+    .donut-segment { fill: none; stroke: rgba(0, 0, 0, 0.01); stroke-width: 16; pointer-events: stroke; cursor: help; }
     .donut-segment:focus { outline: none; }
     .donut-center { position: absolute; inset: 17%; display: flex; flex-direction: column; align-items: center; justify-content: center; border-radius: 50%; background: var(--card-background-color, var(--ha-card-background, #fff)); pointer-events: none; }
     .donut-total { color: var(--primary-text-color); font-size: 1rem; font-weight: 600; font-variant-numeric: tabular-nums; }
@@ -265,8 +265,7 @@ export class PlocCellarCard extends LitElement {
               aria-label=${t(titleKey) + ": " + chartLabel}
               style=${`background: conic-gradient(${gradient})`}
 >
-              <svg class="donut-chart" viewBox="0 0 100 100"
-                aria-hidden="true">
+              <svg class="donut-chart" viewBox="0 0 100 100">
                 ${segments.map((item) => {
                   const circumference = 2 * Math.PI * 42;
                   const segmentLength = ((item.end - item.start) / 100) * circumference;
