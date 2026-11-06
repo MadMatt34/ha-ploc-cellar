@@ -19,12 +19,6 @@ class GetInventoryServiceData(TypedDict):
     color: NotRequired[str]
 
 
-class SyncServiceData(TypedDict):
-    """Validated data for the synchronization action."""
-
-    config_entry_id: str
-
-
 class ConfigFlowUserInput(TypedDict):
     """Validated PLOC account credentials for initial setup."""
 
