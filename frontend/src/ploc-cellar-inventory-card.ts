@@ -184,8 +184,8 @@ export class PlocCellarInventoryCard extends LitElement {
           else if (key === "appellation") this.appellation = nextValue;
           else this.vintage = nextValue;
         }}>
-        <option value="">${label}</option>
-        ${values.map((item) => html`<option value=${item}>${item}</option>`)}
+        <option value="" ?selected=${!value}>${label}</option>
+        ${values.map((item) => html`<option value=${item} ?selected=${item === value}>${item}</option>`)}
       </select>
     `;
   }
@@ -276,9 +276,9 @@ export class PlocCellarInventoryCard extends LitElement {
             ${this.selectFilter("vintage", t("filter_vintage"), this.vintage, this.valuesFor("vintage"))}
             <select aria-label=${t("sort_by")} .value=${this.sort}
               @change=${(event: Event) => { this.sort = (event.target as HTMLSelectElement).value as SortMode; }}>
-              <option value="name">${t("sort_name")}</option>
-              <option value="bottles">${t("sort_bottles")}</option>
-              <option value="vintage">${t("sort_vintage")}</option>
+              <option value="name" ?selected=${this.sort === "name"}>${t("sort_name")}</option>
+              <option value="bottles" ?selected=${this.sort === "bottles"}>${t("sort_bottles")}</option>
+              <option value="vintage" ?selected=${this.sort === "vintage"}>${t("sort_vintage")}</option>
             </select>
           </div>
           <div class="summary">
