@@ -57,7 +57,7 @@
   "editor_title": "Card title",
   "editor_title_helper": "Optional. Leave empty to use the default title.",
   "statistics_title": "Cellar statistics",
-  "statistics_bottles": "Bottles represented",
+  "statistics_bottles": "Bottles in stock",
   "statistics_references": "wine references",
   "statistics_color": "By color",
   "statistics_region": "By region",
