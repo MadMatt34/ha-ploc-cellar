@@ -17,6 +17,7 @@ export class PlocCellarCard extends LitElement {
   @state() private inventory?: InventoryResponse;
   @state() private loading = false;
   @state() private error?: string;
+  private requestGeneration = 0;
   @state() private search = "";
 
   static styles = css`
@@ -58,6 +59,8 @@ export class PlocCellarCard extends LitElement {
   }
 
   setConfig(config: PlocCellarCardConfig): void {
+    this.requestGeneration += 1;
+    this.loading = false;
     this.config = config;
     this.inventory = undefined;
     this.error = undefined;
@@ -72,6 +75,8 @@ export class PlocCellarCard extends LitElement {
 
   private async refresh(): Promise<void> {
     if (!this.hass || !this.config?.config_entry_id || this.loading) return;
+    const configEntryId = this.config.config_entry_id;
+    const generation = ++this.requestGeneration;
     this.loading = true;
     this.error = undefined;
     try {
@@ -79,14 +84,18 @@ export class PlocCellarCard extends LitElement {
         type: "call_service",
         domain: "ploc_cellar",
         service: "get_inventory",
-        service_data: { config_entry_id: this.config.config_entry_id },
+        service_data: { config_entry_id: configEntryId },
         return_response: true,
       });
-      this.inventory = result.response;
+      if (generation === this.requestGeneration) {
+        this.inventory = result.response;
+      }
     } catch (error) {
-      this.error = error instanceof Error ? error.message : String(error);
+      if (generation === this.requestGeneration) {
+        this.error = error instanceof Error ? error.message : String(error);
+      }
     } finally {
-      this.loading = false;
+      if (generation === this.requestGeneration) this.loading = false;
     }
   }
 
