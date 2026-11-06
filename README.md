@@ -146,3 +146,22 @@ The integration sends only the parameters required for synchronization and an em
 CI runs Ruff, Hassfest, strict Pyright type analysis against the latest stable Home Assistant release available from PyPI, the unit test suite with pytest, and HACS integration validation.
 
 These static checks do not replace end-to-end testing against a real Home Assistant instance and the PLOUD cellar.
+
+
+### Lovelace dashboard cards
+
+The integration includes two optional custom Lovelace cards:
+
+- **Ploc Cellar**: cellar overview, stock indicators and searchable wine inventory.
+- **Ploc Cellar Rack**: rack selector and a position map based on the actual PLOUD row/column coordinates.
+
+The JavaScript module is served by Home Assistant at
+`/ploc_cellar_static/ploc-cellar-card.js`. Add it once under
+**Settings → Dashboards → Resources** as a JavaScript module. Then add either
+card from the dashboard card picker and select the Ploc Cellar configuration
+entry in the card editor. Each card stores its own `config_entry_id`, so
+dashboards remain compatible with multiple cellar connections.
+
+The frontend source is in `frontend/`. GitHub Actions type-checks and builds
+the module, then commits the generated asset under
+`custom_components/ploc_cellar/www/`. End users do not need Node.js.
