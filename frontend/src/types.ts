@@ -5,7 +5,7 @@ export interface HomeAssistant {
 
 export interface PlocCellarCardConfig {
   type: string;
-  config_entry_id: string;
+  config_entry_id?: string;
   title?: string;
 }
 
