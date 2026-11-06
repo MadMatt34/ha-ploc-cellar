@@ -1399,7 +1399,9 @@ let y = class extends x {
       const u = 2 * Math.PI * 42, p = (c.end - c.start) / 100 * u, m = `${p} ${u - p}`, $ = -(c.start / 100) * u, P = `${c.name}: ${this.formatNumber(c.bottles)} ${s("statistics_bottles")} (${new Intl.NumberFormat(this.hass?.language ?? void 0, { style: "percent", maximumFractionDigits: 1 }).format(c.bottles / o)}), ${this.formatNumber(c.wines)} ${s("statistics_references")}`;
       return l`
                     <circle class="donut-segment" cx="50" cy="50" r="42"
-                      stroke="transparent"
+                      stroke="rgba(0, 0, 0, 0.01)"
+                      title=${P}
+                      aria-label=${P}
                       stroke-dasharray=${m}
                       stroke-dashoffset=${$}>
                       <title>${P}</title>

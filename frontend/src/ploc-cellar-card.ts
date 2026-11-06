@@ -274,7 +274,9 @@ export class PlocCellarCard extends LitElement {
                   const tooltip = `${item.name}: ${this.formatNumber(item.bottles)} ${t("statistics_bottles")} (${new Intl.NumberFormat(this.hass?.language ?? undefined, { style: "percent", maximumFractionDigits: 1 }).format(item.bottles / total)}), ${this.formatNumber(item.wines)} ${t("statistics_references")}`;
                   return html`
                     <circle class="donut-segment" cx="50" cy="50" r="42"
-                      stroke="transparent"
+                      stroke="rgba(0, 0, 0, 0.01)"
+                      title=${tooltip}
+                      aria-label=${tooltip}
                       stroke-dasharray=${dashArray}
                       stroke-dashoffset=${dashOffset}>
                       <title>${tooltip}</title>
