@@ -150,9 +150,9 @@ These static checks do not replace end-to-end testing against a real Home Assist
 
 ### Lovelace dashboard cards
 
-The integration includes two optional custom Lovelace cards:
+The integration includes three optional custom Lovelace cards:
 
-- **Ploc Cellar**: cellar overview, stock indicators and searchable wine inventory.
+- **Ploc Cellar**: cellar overview and stock indicators.
 - **Ploc Cellar Rack**: rack selector and a position map based on the actual PLOUD row/column coordinates.
 - **Ploc Cellar Inventory**: searchable wine list with color, region, appellation and vintage filters, sorting, quantities and expandable wine details.
 
