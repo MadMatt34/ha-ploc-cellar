@@ -57,7 +57,7 @@
   "editor_title": "Titre de la carte",
   "editor_title_helper": "Facultatif. Laissez vide pour utiliser le titre par défaut.",
   "statistics_title": "Statistiques de la cave",
-  "statistics_bottles": "Bouteilles représentées",
+  "statistics_bottles": "Bouteilles en stock",
   "statistics_references": "références de vin",
   "statistics_color": "Par couleur",
   "statistics_region": "Par région",
