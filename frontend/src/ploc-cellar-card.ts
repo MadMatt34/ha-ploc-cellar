@@ -9,6 +9,7 @@ import type {
   InventoryResponse,
   PlocCellarCardConfig,
   Wine,
+  WineDiagnostic,
 } from "./types";
 import { translate, translatePicker, type TranslationKey } from "./translations";
 
@@ -44,6 +45,7 @@ export class PlocCellarCard extends LitElement {
   @state() private inventory?: InventoryResponse;
   @state() private loading = false;
   @state() private error?: string;
+  @state() private activeDiagnostic?: "unlocated" | "negative" | "surplus";
   private requestGeneration = 0;
 
   static styles = css`
@@ -63,8 +65,18 @@ export class PlocCellarCard extends LitElement {
     .occupancy-bar { height: 9px; border-radius: 999px; overflow: hidden; background: var(--divider-color); }
     .occupancy-fill { height: 100%; border-radius: inherit; background: var(--primary-color); }
     .diagnostics { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 8px; }
-    .diagnostic { border: 1px solid var(--divider-color); border-radius: 8px; padding: 10px; min-width: 0; }
+    .diagnostic { display: block; width: 100%; text-align: left; color: inherit; border: 1px solid var(--divider-color); border-radius: 8px; padding: 10px; min-width: 0; cursor: pointer; }
+    .diagnostic:hover { background: var(--secondary-background-color); }
+    .diagnostic:focus-visible { outline: 2px solid var(--primary-color); outline-offset: 2px; }
     .diagnostic-value { display: block; font-weight: 600; font-variant-numeric: tabular-nums; }
+    .diagnostic-hint { display: block; margin-top: 4px; color: var(--secondary-text-color); font-size: .75rem; }
+    .diagnostic-detail-list { display: grid; gap: 12px; max-height: min(60vh, 520px); overflow: auto; }
+    .diagnostic-detail-item { border-bottom: 1px solid var(--divider-color); padding: 0 0 10px; }
+    .diagnostic-detail-name { margin: 0 0 6px; font-weight: 600; }
+    .diagnostic-detail-meta { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 6px 14px; }
+    .diagnostic-detail-meta div { display: flex; justify-content: space-between; gap: 12px; }
+    .diagnostic-detail-meta dt { color: var(--secondary-text-color); }
+    .diagnostic-detail-meta dd { margin: 0; font-weight: 500; font-variant-numeric: tabular-nums; }
     .groups { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr)); gap: 12px; margin-top: 14px; }
     .group { min-width: 0; border: 1px solid var(--divider-color); border-radius: 10px; padding: 12px; }
     .group-title { margin: 0 0 12px; font-size: 1rem; font-weight: 500; }
@@ -72,7 +84,7 @@ export class PlocCellarCard extends LitElement {
     .chart-content.chart-content-no-legend { grid-template-columns: minmax(0, 1fr); }
     .donut { position: relative; display: grid; place-items: center; width: 100%; max-width: 150px; aspect-ratio: 1; border-radius: 50%; justify-self: center; }
     .donut-chart { position: absolute; inset: 0; display: block; width: 100%; height: 100%; overflow: visible; }
-    .donut-segment { fill: none; stroke-width: 16; pointer-events: stroke; cursor: help; }
+    .donut-segment { fill: none; stroke: transparent; stroke-width: 16; pointer-events: stroke; cursor: help; }
     .donut-segment:focus { outline: none; }
     .donut-center { position: absolute; inset: 17%; display: flex; flex-direction: column; align-items: center; justify-content: center; border-radius: 50%; background: var(--card-background-color, var(--ha-card-background, #fff)); pointer-events: none; }
     .donut-total { color: var(--primary-text-color); font-size: 1rem; font-weight: 600; font-variant-numeric: tabular-nums; }
@@ -235,6 +247,9 @@ export class PlocCellarCard extends LitElement {
           color: item.color ?? CHART_COLORS[index % CHART_COLORS.length],
         };
       });
+    const gradient = segments
+      .map((item) => `${item.color} ${item.start}% ${item.end}%`)
+      .join(", ");
     const chartLabel = items
       .map((item) => `${item.name}: ${this.formatNumber(item.bottles)}`)
       .join(", ");
@@ -248,6 +263,7 @@ export class PlocCellarCard extends LitElement {
             : "chart-content"}>
             <div class="donut" role="img"
               aria-label=${t(titleKey) + ": " + chartLabel}
+              style=${`background: conic-gradient(${gradient})`}
 >
               <svg class="donut-chart" viewBox="0 0 100 100"
                 aria-hidden="true">
@@ -259,7 +275,7 @@ export class PlocCellarCard extends LitElement {
                   const tooltip = `${item.name}: ${this.formatNumber(item.bottles)} ${t("statistics_bottles")} (${new Intl.NumberFormat(this.hass?.language ?? undefined, { style: "percent", maximumFractionDigits: 1 }).format(item.bottles / total)}), ${this.formatNumber(item.wines)} ${t("statistics_references")}`;
                   return html`
                     <circle class="donut-segment" cx="50" cy="50" r="42"
-                      style=${`stroke: ${item.color}`}
+                      stroke="transparent"
                       stroke-dasharray=${dashArray}
                       stroke-dashoffset=${dashOffset}>
                       <title>${tooltip}</title>
@@ -293,6 +309,55 @@ export class PlocCellarCard extends LitElement {
           </div>
         ` : html`<p class="muted">${t("statistics_empty")}</p>`}
       </section>
+    `;
+  }
+
+  private getDiagnosticWines(kind: "unlocated" | "negative" | "surplus"): WineDiagnostic[] {
+    const field = kind === "unlocated"
+      ? "unlocated_bottles"
+      : kind === "negative"
+        ? "negative_movement_bottles"
+        : "physical_surplus_bottles";
+    return (this.inventory?.wine_diagnostics ?? [])
+      .filter((wine) => (wine[field] ?? 0) > 0)
+      .sort((a, b) => (b[field] ?? 0) - (a[field] ?? 0) || a.name.localeCompare(b.name, this.hass?.language));
+  }
+
+  private renderDiagnosticDialog() {
+    const kind = this.activeDiagnostic;
+    if (!kind) return nothing;
+    const titleKey: TranslationKey = kind === "unlocated"
+      ? "diagnostic_unlocated"
+      : kind === "negative" ? "diagnostic_negative" : "diagnostic_surplus";
+    const detailKey: TranslationKey = kind === "unlocated"
+      ? "diagnostic_detail_unlocated"
+      : kind === "negative" ? "diagnostic_detail_negative" : "diagnostic_detail_surplus";
+    const wines = this.getDiagnosticWines(kind);
+    const t = (key: TranslationKey): string => translate(this.hass?.language ?? "en", key);
+    const amount = (wine: WineDiagnostic): number => kind === "unlocated"
+      ? wine.unlocated_bottles ?? 0
+      : kind === "negative" ? wine.negative_movement_bottles ?? 0 : wine.physical_surplus_bottles ?? 0;
+    return html`
+      <ha-dialog .open=${true} .heading=${t(titleKey)} @closed=${() => { this.activeDiagnostic = undefined; }}>
+        <div class="diagnostic-detail-list">
+          <p class="muted">${t(detailKey)}</p>
+          ${wines.length ? wines.map((wine) => html`
+            <section class="diagnostic-detail-item">
+              <h4 class="diagnostic-detail-name">${wine.name}${wine.vintage ? ` · ${wine.vintage}` : ""}</h4>
+              <dl class="diagnostic-detail-meta">
+                <div><dt>${t("diagnostic_detail_quantity")}</dt><dd>${this.formatNumber(amount(wine))}</dd></div>
+                <div><dt>${t("diagnostic_detail_in_cellar")}</dt><dd>${this.formatNumber(wine.bottles_in_cellar)}</dd></div>
+                <div><dt>${t("diagnostic_detail_stock")}</dt><dd>${this.formatNumber(wine.effective_stock)}</dd></div>
+                ${kind === "negative" ? html`
+                  <div><dt>${t("diagnostic_detail_purchased")}</dt><dd>${this.formatNumber(wine.purchased ?? 0)}</dd></div>
+                  <div><dt>${t("diagnostic_detail_consumed")}</dt><dd>${this.formatNumber(wine.consumed ?? 0)}</dd></div>
+                  <div><dt>${t("diagnostic_detail_balance")}</dt><dd>${this.formatNumber(wine.movement_balance ?? 0)}</dd></div>
+                ` : nothing}
+              </dl>
+            </section>
+          `) : html`<p class="muted">${t("diagnostic_detail_empty")}</p>`}
+        </div>
+      </ha-dialog>
     `;
   }
 
@@ -368,12 +433,18 @@ export class PlocCellarCard extends LitElement {
                 : nothing}
               ${diagnostics.length ? html`
                 <div class="diagnostics">
-                  ${diagnostics.map((item) => html`
-                    <div class="diagnostic">
-                      <span class="diagnostic-value">${this.formatNumber(item.value)}</span>
-                      <span class="label">${t(item.key)}</span>
-                    </div>
-                  `)}
+                  ${diagnostics.map((item) => {
+                    const kind = item.key === "diagnostic_unlocated" ? "unlocated"
+                      : item.key === "diagnostic_negative" ? "negative" : "surplus";
+                    return html`
+                      <button class="diagnostic" type="button" aria-haspopup="dialog"
+                        @click=${() => { this.activeDiagnostic = kind; }}>
+                        <span class="diagnostic-value">${this.formatNumber(item.value)}</span>
+                        <span class="label">${t(item.key)}</span>
+                        <span class="diagnostic-hint">${t("diagnostic_detail_open")}</span>
+                      </button>
+                    `;
+                  })}
                 </div>
               ` : nothing}
               ${data.positions_with_unknown_wine > 0
@@ -395,6 +466,7 @@ export class PlocCellarCard extends LitElement {
             </section>
           ` : nothing}
           <div class="muted section">${t("last_sync")}: ${this.formatSync(data.last_sync)}</div>
+          ${this.renderDiagnosticDialog()}
         ` : nothing}
       </ha-card>
     `;

@@ -79,5 +79,16 @@
   "editor_show_occupancy": "Afficher l’occupation des casiers",
   "editor_show_diagnostics": "Afficher les diagnostics",
   "editor_show_statistics": "Afficher les statistiques",
-  "editor_show_statistics_legends": "Afficher les légendes des graphiques"
+  "editor_show_statistics_legends": "Afficher les légendes des graphiques",
+  "diagnostic_detail_open": "Voir le détail",
+  "diagnostic_detail_unlocated": "Références de vins dont une partie du stock n’est affectée à aucun emplacement physique de casier.",
+  "diagnostic_detail_negative": "Références de vins pour lesquelles les sorties enregistrées dépassent les entrées.",
+  "diagnostic_detail_surplus": "Références de vins ayant davantage de bouteilles physiquement rangées que le stock reconstitué à partir des mouvements.",
+  "diagnostic_detail_quantity": "Bouteilles concernées",
+  "diagnostic_detail_in_cellar": "En cave",
+  "diagnostic_detail_stock": "Stock reconstitué",
+  "diagnostic_detail_purchased": "Entrées",
+  "diagnostic_detail_consumed": "Sorties",
+  "diagnostic_detail_balance": "Solde des mouvements",
+  "diagnostic_detail_empty": "Aucun détail par référence de vin n’est disponible pour ce diagnostic."
 }
