@@ -30,8 +30,16 @@ export class PlocCellarCard extends LitElement {
     button[disabled] { opacity: .5; cursor: default; }
     .summary { display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: 8px; margin: 16px 0; }
     .metric { background: var(--secondary-background-color); border-radius: 10px; padding: 12px; min-width: 0; }
-    .value { display: block; font-size: 1.45rem; font-weight: 600; }
+    .value { display: block; font-size: 1.4rem; font-weight: 600; font-variant-numeric: tabular-nums; }
     .label, .muted { color: var(--secondary-text-color); font-size: .85rem; }
+    .section { margin-top: 16px; }
+    .section-title { margin: 0 0 8px; font-size: .95rem; font-weight: 500; }
+    .occupancy-heading { display: flex; justify-content: space-between; gap: 8px; margin-bottom: 6px; font-size: .85rem; }
+    .occupancy-bar { height: 9px; border-radius: 999px; overflow: hidden; background: var(--divider-color); }
+    .occupancy-fill { height: 100%; border-radius: inherit; background: var(--primary-color); }
+    .diagnostics { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 8px; }
+    .diagnostic { border: 1px solid var(--divider-color); border-radius: 8px; padding: 10px; min-width: 0; }
+    .diagnostic-value { display: block; font-weight: 600; font-variant-numeric: tabular-nums; }
     .warning { color: var(--warning-color); padding: 8px 0; }
     .error { color: var(--error-color); padding: 8px 0; }
     @media (max-width: 420px) { ha-card { padding: 12px; } }
@@ -51,7 +59,7 @@ export class PlocCellarCard extends LitElement {
     this.config = config;
     this.inventory = undefined;
     this.error = undefined;
-    if (this.config.config_entry_id) void this.refresh();
+    if (config.config_entry_id) void this.refresh();
   }
 
   protected updated(): void {
@@ -76,9 +84,7 @@ export class PlocCellarCard extends LitElement {
         service_data: { config_entry_id: configEntryId },
         return_response: true,
       });
-      if (generation === this.requestGeneration) {
-        this.inventory = result.response;
-      }
+      if (generation === this.requestGeneration) this.inventory = result.response;
     } catch (error) {
       if (generation === this.requestGeneration) {
         this.error = error instanceof Error ? error.message : String(error);
@@ -86,6 +92,10 @@ export class PlocCellarCard extends LitElement {
     } finally {
       if (generation === this.requestGeneration) this.loading = false;
     }
+  }
+
+  private formatNumber(value: number): string {
+    return new Intl.NumberFormat(this.hass?.language ?? undefined).format(value);
   }
 
   private formatSync(value: string | null): string {
@@ -99,11 +109,31 @@ export class PlocCellarCard extends LitElement {
         }).format(date);
   }
 
+  private metric(value: number | string, label: string) {
+    return html`
+      <div class="metric">
+        <span class="value">${typeof value === "number" ? this.formatNumber(value) : value}</span>
+        <span class="label">${label}</span>
+      </div>
+    `;
+  }
+
   protected render() {
     const t = (key: TranslationKey): string =>
       translate(this.hass?.language ?? "en", key);
     const data = this.inventory;
     const title = this.config?.title ?? t("card_title");
+    const occupancy = data && data.total_positions > 0
+      ? Math.round((data.occupied_positions / data.total_positions) * 100)
+      : 0;
+    const diagnostics = data?.stock_reconstruction_complete
+      ? [
+          { key: "diagnostic_unlocated" as const, value: data.unlocated_bottles ?? 0 },
+          { key: "diagnostic_negative" as const, value: data.negative_movement_bottles ?? 0 },
+          { key: "diagnostic_surplus" as const, value: data.physical_surplus_bottles ?? 0 },
+        ].filter((item) => item.value > 0)
+      : [];
+
     return html`
       <ha-card>
         <header>
@@ -113,33 +143,61 @@ export class PlocCellarCard extends LitElement {
           </button>
         </header>
         ${this.error ? html`<div class="error">${this.error}</div>` : nothing}
-        ${!this.config?.config_entry_id ? html`<div class="muted">${t("select_config")}</div>` : nothing}
+        ${!this.config?.config_entry_id
+          ? html`<div class="muted">${t("select_config")}</div>`
+          : nothing}
         ${data ? html`
           ${data.stale ? html`<div class="warning">${t("stale")}</div>` : nothing}
           <div class="summary">
-            <div class="metric"><span class="value">${data.total_bottles}</span><span class="label">${t("bottles_in_cellar")}</span></div>
-            <div class="metric"><span class="value">${data.total_stock_bottles ?? "—"}</span><span class="label">${t("reconstructed_stock")}</span></div>
-            <div class="metric"><span class="value">${data.rack_count}</span><span class="label">${t("racks")}</span></div>
-            <div class="metric"><span class="value">${data.empty_positions}</span><span class="label">${t("empty_positions")}</span></div>
+            ${this.metric(data.total_bottles, t("bottles_in_cellar"))}
+            ${this.metric(
+              data.total_stock_bottles ?? t("unknown_value"),
+              t("reconstructed_stock"),
+            )}
+            ${this.metric(data.stocked_wines, t("stocked_references"))}
+            ${this.metric(data.rack_count, t("racks"))}
           </div>
-          ${!data.stock_reconstruction_complete ? html`<div class="warning">${t("reconstruction_incomplete")}</div>` : nothing}
-          <div class="muted">${t("last_sync")} : ${this.formatSync(data.last_sync)}</div>
+          <section class="section" aria-label=${t("rack_occupancy")}>
+            <div class="occupancy-heading">
+              <span>${t("rack_occupancy")}</span>
+              <span>${this.formatNumber(data.occupied_positions)} / ${this.formatNumber(data.total_positions)}</span>
+            </div>
+            <div class="occupancy-bar" role="progressbar"
+              aria-label=${t("rack_occupancy")}
+              aria-valuemin="0" aria-valuemax=${data.total_positions}
+              aria-valuenow=${data.occupied_positions}>
+              <div class="occupancy-fill" style=${`width: ${occupancy}%`}></div>
+            </div>
+            <div class="muted">${t("empty_positions")}: ${this.formatNumber(Math.max(0, data.total_positions - data.occupied_positions))}</div>
+          </section>
+          ${!data.stock_reconstruction_complete
+            ? html`<div class="warning">${t("reconstruction_incomplete")}</div>`
+            : nothing}
+          ${diagnostics.length ? html`
+            <section class="section">
+              <h3 class="section-title">${t("inventory_diagnostics")}</h3>
+              <div class="diagnostics">
+                ${diagnostics.map((item) => html`
+                  <div class="diagnostic">
+                    <span class="diagnostic-value">${this.formatNumber(item.value)}</span>
+                    <span class="label">${t(item.key)}</span>
+                  </div>
+                `)}
+              </div>
+            </section>
+          ` : nothing}
+          <div class="muted section">${t("last_sync")}: ${this.formatSync(data.last_sync)}</div>
         ` : nothing}
       </ha-card>
     `;
   }
 
   getCardSize(): number {
-    return 5;
+    return 6;
   }
 
   getGridOptions() {
-    return {
-      columns: 12,
-      min_columns: 6,
-      rows: 5,
-      min_rows: 4,
-    };
+    return { columns: 12, min_columns: 6, rows: 6, min_rows: 4 };
   }
 }
 
