@@ -475,7 +475,11 @@ def test_reference_delta_refreshes_characteristics_of_cached_wines() -> None:
 
     apply_sync(
         cellar,
-        {"colors": [{"id": "color-1", "nm": "Rouge profond", "r": 90, "g": 10, "b": 20}]},
+        {
+            "colors": [
+                {"id": "color-1", "nm": "Rouge profond", "r": 90, "g": 10, "b": 20}
+            ]
+        },
         3,
     )
 
