@@ -399,3 +399,86 @@ def test_deleted_wine_keeps_historical_orders_as_orphans() -> None:
     assert cellar.orders_without_wine == 1
     assert cellar.stock_for(cellar.wines["known-wine"]).movement_balance == 3
     assert cellar.total_stock_bottles == 3
+
+
+
+def test_wine_compact_reference_fields_are_resolved_from_lookup_collections() -> None:
+    """Compact Wine IDs resolve to names and format details from PLOUD lookups."""
+    cellar = Cellar()
+    objects: PLOUDCollections = {
+        "appellations": [{"id": "app-1", "nm": "Languedoc"}],
+        "bottleFormats": [{"id": "format-1", "nm": "Bouteille", "vo": 0.75}],
+        "classifications": [{"id": "class-1", "nm": "Cru classé"}],
+        "colors": [{"id": "color-1", "nm": "Rouge", "r": 201, "g": 25, "b": 58}],
+        "countries": [{"id": "country-1", "nm": "France"}],
+        "regions": [{"id": "region-1", "nm": "Languedoc-Roussillon"}],
+        "Wines": [
+            {
+                "id": "wine-1",
+                "nm": "B De Blanville",
+                "bo": 1,
+                "vi": 2022,
+                "ap": "app-1",
+                "vf": "format-1",
+                "cl": "class-1",
+                "co": "color-1",
+                "cn": "country-1",
+                "rn": "region-1",
+                "gr": "Syrah",
+                "cu": "Cuvée spéciale",
+            }
+        ],
+    }
+
+    apply_sync(cellar, objects, 2)
+
+    wine = cellar.wines["wine-1"]
+    assert wine.appellation == "Languedoc"
+    assert wine.color == "Rouge"
+    assert wine.color_rgb == (201, 25, 58)
+    assert wine.classification == "Cru classé"
+    assert wine.region == "Languedoc-Roussillon"
+    assert wine.country == "France"
+    assert wine.bottle_format == "Bouteille"
+    assert wine.bottle_volume_l == 0.75
+    assert wine.grapes == "Syrah"
+    assert wine.cuvee == "Cuvée spéciale"
+    assert wine.ploud_reference_fields["ap"] == "app-1"
+    assert set(cellar.references) == {
+        "appellations",
+        "bottleFormats",
+        "classifications",
+        "colors",
+        "countries",
+        "regions",
+    }
+
+
+def test_reference_delta_refreshes_characteristics_of_cached_wines() -> None:
+    """A changed lookup entry updates wines even without a Wine delta."""
+    cellar = Cellar()
+    apply_sync(
+        cellar,
+        {
+            "colors": [{"id": "color-1", "nm": "Rouge", "r": 201, "g": 25, "b": 58}],
+            "Wines": [
+                {
+                    "id": "wine-1",
+                    "nm": "Vin de test",
+                    "bo": 1,
+                    "co": "color-1",
+                }
+            ],
+        },
+        2,
+    )
+
+    apply_sync(
+        cellar,
+        {"colors": [{"id": "color-1", "nm": "Rouge profond", "r": 90, "g": 10, "b": 20}]},
+        3,
+    )
+
+    wine = cellar.wines["wine-1"]
+    assert wine.color == "Rouge profond"
+    assert wine.color_rgb == (90, 10, 20)
