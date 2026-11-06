@@ -7,7 +7,6 @@ import type {
   HomeAssistant,
   InventoryResponse,
   PlocCellarCardConfig,
-  Wine,
 } from "./types";
 import { translate, type TranslationKey } from "./translations";
 
@@ -19,7 +18,6 @@ export class PlocCellarCard extends LitElement {
   @state() private loading = false;
   @state() private error?: string;
   private requestGeneration = 0;
-  @state() private search = "";
 
   static styles = css`
     :host { display: block; }
@@ -32,11 +30,6 @@ export class PlocCellarCard extends LitElement {
     .metric { background: var(--secondary-background-color); border-radius: 10px; padding: 12px; min-width: 0; }
     .value { display: block; font-size: 1.45rem; font-weight: 600; }
     .label, .muted { color: var(--secondary-text-color); font-size: .85rem; }
-    input { box-sizing: border-box; width: 100%; padding: 10px 12px; margin: 4px 0 12px; color: var(--primary-text-color); background: var(--card-background-color); border: 1px solid var(--divider-color); border-radius: 8px; }
-    .wine { display: flex; justify-content: space-between; gap: 12px; padding: 12px 0; border-top: 1px solid var(--divider-color); }
-    .wine-name { font-weight: 500; }
-    .details { color: var(--secondary-text-color); font-size: .85rem; margin-top: 3px; }
-    .count { white-space: nowrap; font-weight: 600; }
     .warning { color: var(--warning-color); padding: 8px 0; }
     .error { color: var(--error-color); padding: 8px 0; }
     @media (max-width: 420px) { ha-card { padding: 12px; } }
@@ -102,19 +95,6 @@ export class PlocCellarCard extends LitElement {
     }
   }
 
-  private get filteredWines(): Wine[] {
-    const query = this.search.trim().toLocaleLowerCase();
-    const wines = this.inventory?.wines ?? [];
-    if (!query) return wines;
-    return wines.filter((wine) =>
-      [wine.name, wine.domain, wine.appellation, wine.region, wine.country, wine.grapes]
-        .filter(Boolean)
-        .join(" ")
-        .toLocaleLowerCase()
-        .includes(query),
-    );
-  }
-
   private formatSync(value: string | null): string {
     if (!value) return translate(this.hass?.language ?? "en", "never");
     const date = new Date(value);
@@ -151,17 +131,6 @@ export class PlocCellarCard extends LitElement {
           </div>
           ${!data.stock_reconstruction_complete ? html`<div class="warning">${t("reconstruction_incomplete")}</div>` : nothing}
           <div class="muted">${t("last_sync")} : ${this.formatSync(data.last_sync)}</div>
-          <input aria-label=${t("search_wine")} .value=${this.search} @input=${(event: Event) => { this.search = (event.target as HTMLInputElement).value; }} placeholder=${t("search_placeholder")} />
-          ${this.filteredWines.map((wine) => html`
-            <div class="wine">
-              <div>
-                <div class="wine-name">${wine.name}</div>
-                <div class="details">${[wine.domain, wine.vintage, wine.appellation, wine.region].filter(Boolean).join(" · ")}</div>
-              </div>
-              <div class="count">${wine.bottles ?? wine.bottles_in_cellar}</div>
-            </div>
-          `)}
-          ${this.filteredWines.length === 0 ? html`<div class="muted">${t("no_matching_wines")}</div>` : nothing}
         ` : nothing}
       </ha-card>
     `;
@@ -195,5 +164,5 @@ window.customCards ??= [];
 window.customCards.push({
   type: "ploc-cellar-card",
   name: "Ploc Cellar",
-  description: "Inventory overview for the Ploc Cellar integration.",
+  description: "Cellar overview and stock indicators.",
 });
