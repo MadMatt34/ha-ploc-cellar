@@ -231,3 +231,28 @@ def test_sync_wraps_network_errors() -> None:
 
     with pytest.raises(PloudError, match="sync request failed"):
         _run_sync(session)
+
+
+def test_sync_preserves_server_records_and_never_moves_cursor_backwards(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A clock adjustment cannot make a subsequent sync cursor regress."""
+    from ploc_cellar import ploud as ploud_module
+
+    monkeypatch.setattr(ploud_module.time, "time", lambda: 0)
+    session = _FakeSession(
+        _FakeResponse(
+            payload={
+                "objects": {
+                    "Wines": [{"id": "wine-1", "name": "Vin", "bottles": 1}]
+                }
+            }
+        )
+    )
+
+    collections, cursor = _run_sync(session)
+
+    assert collections == {
+        "Wines": [{"id": "wine-1", "name": "Vin", "bottles": 1}]
+    }
+    assert cursor == 123

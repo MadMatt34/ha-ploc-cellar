@@ -1,10 +1,22 @@
 """Tests for Ploc Cellar sensor definitions and values."""
 from __future__ import annotations
 
+import asyncio
 from datetime import UTC, datetime
+from types import SimpleNamespace
+from typing import cast
 
+import pytest
+from ploc_cellar.coordinator import PlocCellarCoordinator
 from ploc_cellar.models import Cellar, Order, Rack, RackItem, Wine
-from ploc_cellar.sensor import SENSOR_DESCRIPTIONS, _parse_last_sync
+from ploc_cellar.sensor import (
+    SENSOR_DESCRIPTIONS,
+    PlocCellarLastSyncSensor,
+    PlocCellarMetricSensor,
+    _migrate_inventory_entity_id,
+    _parse_last_sync,
+    async_setup_entry,
+)
 
 
 def _wine(wine_id: str, bottles_in_cellar: int) -> Wine:
@@ -108,3 +120,149 @@ def test_parse_last_sync_requires_timezone_aware_timestamp() -> None:
     assert _parse_last_sync(expected.isoformat()) == expected
     assert _parse_last_sync("2026-11-05T10:30:00") is None
     assert _parse_last_sync(None) is None
+
+
+
+def test_metric_sensor_exposes_value_and_remains_available() -> None:
+    """Metric entities keep cached values available and use static identifiers."""
+    cellar = Cellar(stock_reconstruction_complete=True)
+    coordinator = cast(
+        PlocCellarCoordinator, SimpleNamespace(data=cellar)
+    )
+    sensor = PlocCellarMetricSensor(coordinator, SENSOR_DESCRIPTIONS[0])
+
+    assert sensor.native_value == 0
+    assert sensor.available is True
+    assert sensor.unique_id == SENSOR_DESCRIPTIONS[0].unique_id
+    assert sensor.entity_id == "sensor.ploc_cellar_bottles_in_stock"
+
+
+def test_last_sync_sensor_exposes_timestamp_and_stale_attribute() -> None:
+    """The timestamp entity preserves the last success and reports stale data."""
+    cellar = Cellar(
+        last_sync="2026-11-05T10:30:00+00:00",
+        stale=True,
+    )
+    coordinator = cast(
+        PlocCellarCoordinator, SimpleNamespace(data=cellar)
+    )
+    sensor = PlocCellarLastSyncSensor(coordinator)
+
+    assert sensor.native_value == datetime(2026, 11, 5, 10, 30, tzinfo=UTC)
+    assert sensor.extra_state_attributes == {"stale": True}
+    assert sensor.available is True
+    assert sensor.entity_id == (
+        "sensor.ploc_cellar_diagnostic_last_successful_sync"
+    )
+
+
+def test_last_sync_sensor_handles_missing_timestamp() -> None:
+    """No successful synchronization is represented by an unknown timestamp."""
+    coordinator = cast(
+        PlocCellarCoordinator, SimpleNamespace(data=Cellar(last_sync=None))
+    )
+    sensor = PlocCellarLastSyncSensor(coordinator)
+
+    assert sensor.native_value is None
+
+
+def test_inventory_entity_migration_only_renames_the_expected_legacy_entity(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The old entity is renamed only when its unique ID and target are safe."""
+    class _Registry:
+        def __init__(self) -> None:
+            self.updated: tuple[str, str] | None = None
+
+        def async_get_entity_id(
+            self, platform: object, domain: str, unique_id: str
+        ) -> str | None:
+            assert domain == "ploc_cellar"
+            return "sensor.ploc_cellar_inventory"
+
+        def async_get(self, entity_id: str) -> object | None:
+            assert entity_id == "sensor.ploc_cellar_bottles_in_stock"
+            return None
+
+        def async_update_entity(
+            self, entity_id: str, *, new_entity_id: str
+        ) -> None:
+            self.updated = (entity_id, new_entity_id)
+
+    registry = _Registry()
+    monkeypatch.setattr(
+        "ploc_cellar.sensor.er.async_get", lambda hass: registry
+    )
+
+    _migrate_inventory_entity_id(object())
+
+    assert registry.updated == (
+        "sensor.ploc_cellar_inventory",
+        "sensor.ploc_cellar_bottles_in_stock",
+    )
+
+
+def test_inventory_entity_migration_does_not_overwrite_existing_target(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A pre-existing target entity prevents automatic registry migration."""
+    class _Registry:
+        updated = False
+
+        def async_get_entity_id(
+            self, platform: object, domain: str, unique_id: str
+        ) -> str | None:
+            return "sensor.ploc_cellar_inventory"
+
+        def async_get(self, entity_id: str) -> object:
+            return object()
+
+        def async_update_entity(
+            self, entity_id: str, *, new_entity_id: str
+        ) -> None:
+            self.updated = True
+
+    registry = _Registry()
+    monkeypatch.setattr(
+        "ploc_cellar.sensor.er.async_get", lambda hass: registry
+    )
+
+    _migrate_inventory_entity_id(object())
+
+    assert registry.updated is False
+
+
+
+def test_sensor_platform_sets_up_all_fourteen_entities(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Platform setup adds thirteen metrics and the last-success timestamp."""
+    class _Registry:
+        def async_get_entity_id(
+            self, platform: object, domain: str, unique_id: str
+        ) -> None:
+            return None
+
+    monkeypatch.setattr(
+        "ploc_cellar.sensor.er.async_get",
+        lambda hass: _Registry(),
+    )
+    coordinator = cast(
+        PlocCellarCoordinator, SimpleNamespace(data=Cellar())
+    )
+    entry = SimpleNamespace(runtime_data=coordinator)
+    added: list[object] = []
+
+    asyncio.run(
+        async_setup_entry(
+            object(),
+            entry,
+            lambda entities: added.extend(entities),
+        )
+    )
+
+    assert len(added) == 14
+    assert added[0].entity_id == "sensor.ploc_cellar_bottles_in_stock"
+    assert added[-1].entity_id == (
+        "sensor.ploc_cellar_diagnostic_last_successful_sync"
+    )
