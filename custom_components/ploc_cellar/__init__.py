@@ -214,7 +214,18 @@ def _build_inventory_response(
     racks: list[JsonValueType] = [
         {"id": rack.id, "name": rack.name} for rack in cellar.racks.values()
     ]
+    rack_items: list[JsonValueType] = [
+        {
+            "id": item.id,
+            "rack_id": item.rack_id,
+            "wine_id": item.wine_id or None,
+            "row": item.row,
+            "column": item.column,
+        }
+        for item in cellar.rack_items.values()
+    ]
     return {
+        "stale": cellar.stale,
         "total_bottles": cellar.total_bottles,
         "stocked_wines": cellar.stocked_wines,
         "wine_references": cellar.wine_references,
@@ -236,6 +247,7 @@ def _build_inventory_response(
         "positions_with_unknown_wine": cellar.positions_with_unknown_wine,
         "orders_without_wine": cellar.orders_without_wine,
         "racks": racks,
+        "rack_items": rack_items,
         "wines": inventory,
         "last_sync": cellar.last_sync,
     }
