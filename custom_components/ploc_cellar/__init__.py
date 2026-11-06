@@ -32,13 +32,11 @@ from .const import (
     MIN_SCAN_INTERVAL_MINUTES,
     PLOUD_DEFAULT_SERVER,
     SERVICE_GET_INVENTORY,
-    SERVICE_SYNC,
-    SERVICE_SYNC_FULL,
 )
 from .coordinator import PlocCellarCoordinator
 from .language import get_ploud_language
 from .models import Cellar
-from .types import GetInventoryServiceData, PlocCellarConfigEntry, SyncServiceData
+from .types import GetInventoryServiceData, PlocCellarConfigEntry
 
 PLATFORMS: list[Platform] = [Platform.BUTTON, Platform.SENSOR]
 CONFIG_SCHEMA: Callable[[dict[str, Any]], dict[str, Any]] = cast(
@@ -56,15 +54,6 @@ GET_INVENTORY_SCHEMA: Any = cast(
         }
     ),
 )
-SYNC_SCHEMA: Any = cast(
-    Any,
-    vol.Schema(
-        {
-            vol.Required(ATTR_CONFIG_ENTRY_ID): cv.string,
-        }
-    ),
-)
-
 
 def _get_coordinator(
     hass: HomeAssistant,
@@ -253,7 +242,7 @@ def _build_inventory_response(
 
 
 async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
-    """Register integration actions independently of config entry setup."""
+    """Register the inventory response action independently of config setup."""
 
     async def get_inventory(call: ServiceCall) -> JsonObjectType:
         """Return the current stocked inventory on demand."""
@@ -267,42 +256,6 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
             color=service_data.get(CONF_COLOR, ""),
         )
 
-    async def sync_service(call: ServiceCall) -> None:
-        """Trigger an immediate PLOUD synchronization."""
-        service_data = cast(SyncServiceData, call.data)
-        coordinator = _get_coordinator(
-            hass, service_data["config_entry_id"]
-        )
-        await coordinator.async_force_sync()
-
-    hass.services.async_register(  # pyright: ignore[reportUnknownMemberType]
-        DOMAIN,
-        SERVICE_GET_INVENTORY,
-        get_inventory,
-        schema=GET_INVENTORY_SCHEMA,
-        supports_response=SupportsResponse.ONLY,
-    )
-    hass.services.async_register(  # pyright: ignore[reportUnknownMemberType]
-        DOMAIN,
-        SERVICE_SYNC,
-        sync_service,
-        schema=SYNC_SCHEMA,
-    )
-
-    async def sync_full_service(call: ServiceCall) -> None:
-        """Trigger a complete PLOUD synchronization."""
-        service_data = cast(SyncServiceData, call.data)
-        coordinator = _get_coordinator(
-            hass, service_data["config_entry_id"]
-        )
-        await coordinator.async_force_full_sync()
-
-    hass.services.async_register(  # pyright: ignore[reportUnknownMemberType]
-        DOMAIN,
-        SERVICE_SYNC_FULL,
-        sync_full_service,
-        schema=SYNC_SCHEMA,
-    )
     return True
 
 
