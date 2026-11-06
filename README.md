@@ -150,17 +150,18 @@ These static checks do not replace end-to-end testing against a real Home Assist
 
 ### Lovelace dashboard cards
 
-The integration includes four optional custom Lovelace cards:
+The integration includes three optional custom Lovelace cards:
 
-- **Ploc Cellar**: cellar overview with physical and reconstructed stock, rack occupancy and stock diagnostics.
+- **Ploc Cellar**: unified cellar overview and statistics, including physical and reconstructed stock, rack occupancy, stock diagnostics, and donut charts for distributions by color, region, appellation, vintage and bottle format. Chart breakdowns cover known Wine references only; occupied positions with unresolved Wine references remain included in the global physical/reconstructed totals and are reported separately.
 - **Ploc Cellar Rack**: rack selector and a position map based on the actual PLOUD row/column coordinates.
 - **Ploc Cellar Inventory**: searchable wine list with color, region, appellation and vintage filters, sorting, quantities and expandable wine details.
-- **Ploc Cellar Statistics**: stock distribution by color, region, appellation, vintage and bottle format. The total includes occupied positions with unresolved Wine references; the breakdowns are limited to known Wine references.
+
+The former **Ploc Cellar Statistics** card type remains registered as a compatibility alias: existing dashboards using `custom:ploc-cellar-statistics-card` continue to work and display the unified overview. New dashboards should use **Ploc Cellar**.
 
 The JavaScript module is served by Home Assistant at
 `/ploc_cellar_static/ploc-cellar-card.js`. Add it once under
 **Settings → Dashboards → Resources** as a JavaScript module. Then add any
-of the four cards from the dashboard card picker and select the Ploc Cellar
+of the three cards from the dashboard card picker and select the Ploc Cellar
 configuration entry in the shared card editor. Each card stores its own `config_entry_id`, so
 dashboards remain compatible with multiple cellar connections.
 
