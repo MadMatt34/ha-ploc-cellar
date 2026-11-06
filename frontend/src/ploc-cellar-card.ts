@@ -154,7 +154,7 @@ export class PlocCellarCard extends LitElement {
               data.total_stock_bottles ?? t("unknown_value"),
               t("reconstructed_stock"),
             )}
-            ${this.metric(data.stocked_wines, t("stocked_references"))}
+            ${this.metric(data.wine_references ?? data.stocked_wines, t("stocked_references"))}
             ${this.metric(data.rack_count, t("racks"))}
           </div>
           <section class="section" aria-label=${t("rack_occupancy")}>

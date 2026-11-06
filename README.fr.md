@@ -155,14 +155,14 @@ L'intégration fournit quatre cartes Lovelace personnalisées facultatives :
 - **Ploc Cellar** : vue d'ensemble avec stock physique et reconstitué, taux d'occupation des casiers et diagnostics du stock.
 - **Ploc Cellar Rack** : sélection d'un casier et représentation des emplacements à partir des coordonnées réelles de rangée et de colonne PLOUD.
 - **Ploc Cellar Inventory** : liste des vins avec recherche, filtres par couleur, région, appellation et millésime, tri, quantités et détails dépliables.
-- **Ploc Cellar Statistics** : répartition du stock par couleur, région, appellation, millésime et format de bouteille.
+- **Ploc Cellar Statistics** : répartition du stock par couleur, région, appellation, millésime et format de bouteille. Le total inclut les emplacements occupés dont la référence Wine est inconnue ; les répartitions portent uniquement sur les références Wine connues.
 
 Le module JavaScript est servi par Home Assistant à l'adresse
 `/ploc_cellar_static/ploc-cellar-card.js`. Ajoutez-le une seule fois dans
 **Paramètres → Tableaux de bord → Ressources**, avec le type « Module
-JavaScript ». Ajoutez ensuite l'une ou l'autre carte depuis le sélecteur de
+JavaScript ». Ajoutez ensuite les cartes souhaitées depuis le sélecteur de
 cartes du tableau de bord et choisissez l'entrée de configuration Ploc Cellar
-dans l'éditeur de carte. Chaque carte conserve son propre `config_entry_id`,
+dans l'éditeur de carte partagé. Chaque carte conserve son propre `config_entry_id`,
 ce qui permet de prendre en charge plusieurs connexions à une cave.
 
 Le code source frontend se trouve dans `frontend/`. GitHub Actions vérifie le

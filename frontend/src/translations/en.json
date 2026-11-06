@@ -75,5 +75,7 @@
   "inventory_diagnostics": "Stock diagnostics",
   "diagnostic_unlocated": "Unlocated bottles",
   "diagnostic_negative": "Negative movement balance",
-  "diagnostic_surplus": "Physical surplus"
+  "diagnostic_surplus": "Physical surplus",
+  "statistics_distribution_scope": "Breakdowns include known wine references only.",
+  "statistics_unknown_wine_positions": "{count} occupied position(s) have an unknown wine reference. They are included in total stock but not in the breakdowns."
 }

@@ -181,7 +181,11 @@ export class PlocCellarStatisticsCard extends LitElement {
       translate(this.hass?.language ?? "en", key);
     const data = this.inventory;
     const wines = data?.wines ?? [];
-    const totalBottles = wines.reduce((total, wine) => total + this.getBottleCount(wine), 0);
+    const knownWineBottles = wines.reduce((total, wine) => total + this.getBottleCount(wine), 0);
+    const totalBottles = data?.stock_reconstruction_complete
+      ? data.total_stock_bottles ?? knownWineBottles
+      : data?.total_bottles ?? knownWineBottles;
+    const referenceCount = data?.wine_references ?? wines.length;
 
     return html`
       <ha-card>
@@ -206,10 +210,12 @@ export class PlocCellarStatisticsCard extends LitElement {
               <span class="metric-label">${t("statistics_bottles")}</span>
             </div>
             <div class="metric">
-              <span class="value">${wines.length}</span>
+              <span class="value">${referenceCount}</span>
               <span class="metric-label">${t("statistics_references")}</span>
             </div>
           </div>
+          ${data.positions_with_unknown_wine > 0 ? html`<div class="warning">${t("statistics_unknown_wine_positions").replace("{count}", String(data.positions_with_unknown_wine))}</div>` : nothing}
+          <p class="muted">${t("statistics_distribution_scope")}</p>
           <div class="groups">
             ${this.renderDistribution("color", "statistics_color")}
             ${this.renderDistribution("region", "statistics_region")}
