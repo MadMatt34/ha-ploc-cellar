@@ -20,6 +20,19 @@ interface DistributionItem {
   color?: string;
 }
 
+interface DonutSegment extends DistributionItem {
+  start: number;
+  end: number;
+  color: string;
+  tooltip: string;
+}
+
+interface DonutTooltip {
+  text: string;
+  left: number;
+  top: number;
+}
+
 type DistributionField =
   | "color"
   | "region"
@@ -46,6 +59,7 @@ export class PlocCellarCard extends LitElement {
   @state() private loading = false;
   @state() private error?: string;
   @state() private activeDiagnostic?: "unlocated" | "negative" | "surplus";
+  @state() private donutTooltip?: DonutTooltip;
   private requestGeneration = 0;
 
   static styles = css`
@@ -84,8 +98,22 @@ export class PlocCellarCard extends LitElement {
     .chart-content.chart-content-no-legend { grid-template-columns: minmax(0, 1fr); }
     .donut { position: relative; display: grid; place-items: center; width: 100%; max-width: 150px; aspect-ratio: 1; border-radius: 50%; justify-self: center; }
     .donut-chart { position: absolute; inset: 0; display: block; width: 100%; height: 100%; overflow: visible; }
-    .donut-segment { fill: none; stroke: rgba(0, 0, 0, 0.01); stroke-width: 16; pointer-events: stroke; cursor: help; }
-    .donut-segment:focus { outline: none; }
+    .donut-segment { fill: none; stroke: transparent; stroke-width: 16; pointer-events: none; }
+    .donut-tooltip {
+      position: fixed;
+      z-index: 10000;
+      max-width: 240px;
+      padding: 8px 10px;
+      border: 1px solid var(--divider-color);
+      border-radius: 6px;
+      background: var(--primary-background-color, var(--card-background-color, #fff));
+      color: var(--primary-text-color);
+      box-shadow: 0 2px 8px rgb(0 0 0 / 25%);
+      font-size: .8rem;
+      line-height: 1.35;
+      pointer-events: none;
+      overflow-wrap: anywhere;
+    }
     .donut-center { position: absolute; inset: 17%; display: flex; flex-direction: column; align-items: center; justify-content: center; border-radius: 50%; background: var(--card-background-color, var(--ha-card-background, #fff)); pointer-events: none; }
     .donut-total { color: var(--primary-text-color); font-size: 1rem; font-weight: 600; font-variant-numeric: tabular-nums; }
     .donut-caption { color: var(--secondary-text-color); font-size: .48rem; }
@@ -164,6 +192,51 @@ export class PlocCellarCard extends LitElement {
     return new Intl.NumberFormat(this.hass?.language ?? undefined).format(value);
   }
 
+  private handleDonutPointerMove(
+    event: PointerEvent,
+    segments: DonutSegment[],
+  ): void {
+    const target = event.currentTarget;
+    if (!(target instanceof HTMLElement)) return;
+
+    const bounds = target.getBoundingClientRect();
+    const centerX = bounds.left + bounds.width / 2;
+    const centerY = bounds.top + bounds.height / 2;
+    const deltaX = event.clientX - centerX;
+    const deltaY = event.clientY - centerY;
+    const distance = Math.hypot(deltaX, deltaY);
+    const radius = Math.min(bounds.width, bounds.height) / 2;
+
+    // Match the visible donut ring (SVG radius 42 with a 16-unit stroke).
+    if (distance < radius * 0.32 || distance > radius * 0.52) {
+      this.donutTooltip = undefined;
+      return;
+    }
+
+    // CSS conic-gradient starts at 12 o'clock and advances clockwise.
+    const angle = (Math.atan2(deltaX, -deltaY) * 180 / Math.PI + 360) % 360;
+    const percentage = angle / 360 * 100;
+    const segment = segments.find(
+      (item) => percentage >= item.start && percentage < item.end,
+    );
+    if (!segment) {
+      this.donutTooltip = undefined;
+      return;
+    }
+
+    if (this.donutTooltip?.text === segment.tooltip) return;
+
+    this.donutTooltip = {
+      text: segment.tooltip,
+      left: Math.max(8, Math.min(event.clientX + 14, window.innerWidth - 260)),
+      top: Math.max(8, Math.min(event.clientY + 14, window.innerHeight - 90)),
+    };
+  }
+
+  private hideDonutTooltip(): void {
+    this.donutTooltip = undefined;
+  }
+
   private formatSync(value: string | null): string {
     if (!value) return translate(this.hass?.language ?? "en", "never");
     const date = new Date(value);
@@ -235,16 +308,18 @@ export class PlocCellarCard extends LitElement {
     const items = this.distribution(field);
     const total = items.reduce((sum, item) => sum + item.bottles, 0);
     let offset = 0;
-    const segments = items
+    const segments: DonutSegment[] = items
       .filter((item) => item.bottles > 0)
       .map((item, index) => {
         const start = offset;
         offset += (item.bottles / total) * 100;
+        const tooltip = `${item.name}: ${this.formatNumber(item.bottles)} ${t("statistics_bottles")} (${new Intl.NumberFormat(this.hass?.language ?? undefined, { style: "percent", maximumFractionDigits: 1 }).format(item.bottles / total)}), ${this.formatNumber(item.wines)} ${t("statistics_references")}`;
         return {
           ...item,
           start,
           end: offset,
           color: item.color ?? CHART_COLORS[index % CHART_COLORS.length],
+          tooltip,
         };
       });
     const gradient = segments
@@ -263,23 +338,19 @@ export class PlocCellarCard extends LitElement {
             : "chart-content"}>
             <div class="donut" role="img"
               aria-label=${t(titleKey) + ": " + chartLabel}
-              style=${`background: conic-gradient(${gradient})`}
->
-              <svg class="donut-chart" viewBox="0 0 100 100">
+              @pointermove=${(event: PointerEvent) => this.handleDonutPointerMove(event, segments)}
+              @pointerleave=${this.hideDonutTooltip}
+              style=${`background: conic-gradient(${gradient})`}>
+              <svg class="donut-chart" viewBox="0 0 100 100" aria-hidden="true">
                 ${segments.map((item) => {
                   const circumference = 2 * Math.PI * 42;
                   const segmentLength = ((item.end - item.start) / 100) * circumference;
                   const dashArray = `${segmentLength} ${circumference - segmentLength}`;
                   const dashOffset = -(item.start / 100) * circumference;
-                  const tooltip = `${item.name}: ${this.formatNumber(item.bottles)} ${t("statistics_bottles")} (${new Intl.NumberFormat(this.hass?.language ?? undefined, { style: "percent", maximumFractionDigits: 1 }).format(item.bottles / total)}), ${this.formatNumber(item.wines)} ${t("statistics_references")}`;
                   return html`
                     <circle class="donut-segment" cx="50" cy="50" r="42"
-                      stroke="rgba(0, 0, 0, 0.01)"
-                      title=${tooltip}
-                      aria-label=${tooltip}
                       stroke-dasharray=${dashArray}
                       stroke-dashoffset=${dashOffset}>
-                      <title>${tooltip}</title>
                     </circle>
                   `;
                 })}
@@ -468,6 +539,12 @@ export class PlocCellarCard extends LitElement {
           ` : nothing}
           <div class="muted section">${t("last_sync")}: ${this.formatSync(data.last_sync)}</div>
           ${this.renderDiagnosticDialog()}
+        ` : nothing}
+        ${this.donutTooltip ? html`
+          <div class="donut-tooltip" role="tooltip"
+            style=${`left: ${this.donutTooltip.left}px; top: ${this.donutTooltip.top}px`}>
+            ${this.donutTooltip.text}
+          </div>
         ` : nothing}
       </ha-card>
     `;
