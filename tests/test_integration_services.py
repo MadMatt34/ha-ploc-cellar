@@ -79,6 +79,8 @@ def test_async_setup_registers_only_the_inventory_service() -> None:
 
     assert asyncio.run(async_setup(hass, {})) is True
     assert set(hass.services.handlers) == {SERVICE_GET_INVENTORY}
+    assert len(hass.http.paths) == 1
+    assert hass.http.paths[0].url_path == "/ploc_cellar_static"
 
 
 def test_inventory_service_returns_json_safe_empty_inventory() -> None:
