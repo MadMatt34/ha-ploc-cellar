@@ -358,14 +358,11 @@ export class PlocCellarCard extends LitElement {
   }
 
   getCardSize(): number {
-    const height = this.shadowRoot
-      ?.querySelector("ha-card")
-      ?.getBoundingClientRect().height;
-    return Math.max(1, Math.ceil((height ?? 0) / 50));
+    return 12;
   }
 
   getGridOptions() {
-    return { columns: 12, min_columns: 6, rows: 1, min_rows: 1 };
+    return { columns: 12, min_columns: 6, rows: "auto" as const };
   }
 }
 
