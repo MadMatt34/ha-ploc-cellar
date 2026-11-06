@@ -18,6 +18,16 @@ type JsonValue = JsonValueType
 type JsonObject = JsonObjectType
 
 
+def _empty_json_object() -> JsonObject:
+    """Return a fresh, explicitly typed JSON object."""
+    return {}
+
+
+def _empty_reference_index() -> dict[str, dict[str, JsonObject]]:
+    """Return a fresh, explicitly typed PLOUD reference index."""
+    return {}
+
+
 def normalize_identifier(value: str) -> str:
     """Trim an identifier and canonicalize UUIDs without changing opaque IDs."""
     normalized = value.strip()
@@ -58,7 +68,7 @@ class Wine:
     domain: str | None
     owner_id: str | None
     # Original compact PLOUD properties retained for later reference resolution.
-    ploud_reference_fields: JsonObject = field(default_factory=dict)
+    ploud_reference_fields: JsonObject = field(default_factory=_empty_json_object)
 
 
 @dataclass(frozen=True, slots=True)
@@ -123,7 +133,9 @@ class Cellar:
     )
     orders: dict[str, Order] = field(default_factory=lambda: dict[str, Order]())
     # Indexed PLOUD lookup collections, retained across incremental syncs.
-    references: dict[str, dict[str, JsonObject]] = field(default_factory=dict)
+    references: dict[str, dict[str, JsonObject]] = field(
+        default_factory=_empty_reference_index
+    )
 
     @property
     def total_bottles(self) -> int:
