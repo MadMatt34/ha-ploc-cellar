@@ -9,7 +9,7 @@ response action. It never communicates with PLOUD directly.
 Run:
 
 ```sh
-npm ci
+npm install
 npm run check
 npm run build
 ```
