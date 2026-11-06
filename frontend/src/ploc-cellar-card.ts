@@ -58,13 +58,14 @@ export class PlocCellarCard extends LitElement {
     this.loading = true;
     this.error = undefined;
     try {
-      this.inventory = await this.hass.callWS<InventoryResponse>({
+      const result = await this.hass.callWS<{ response: InventoryResponse }>({
         type: "call_service",
         domain: "ploc_cellar",
         service: "get_inventory",
         service_data: { config_entry_id: this.config.config_entry_id },
         return_response: true,
       });
+      this.inventory = result.response;
     } catch (error) {
       this.error = error instanceof Error ? error.message : String(error);
     } finally {
