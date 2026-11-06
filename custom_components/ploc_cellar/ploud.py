@@ -276,10 +276,17 @@ def _reference_rgb(
     entry = _reference_entry(references, "colors", value)
     if entry is None:
         return None
-    components = (_int(entry.get("r")), _int(entry.get("g")), _int(entry.get("b")))
-    if any(component is None or not 0 <= component <= 255 for component in components):
+    red = _int(entry.get("r"))
+    green = _int(entry.get("g"))
+    blue = _int(entry.get("b"))
+    if (
+        red is None
+        or green is None
+        or blue is None
+        or not all(0 <= component <= 255 for component in (red, green, blue))
+    ):
         return None
-    return cast(tuple[int, int, int], components)
+    return red, green, blue
 
 
 def _reference_float(value: object) -> float | None:
@@ -477,6 +484,20 @@ def _parse_wine(
     if owner_id is not None and owner_id in owner_names:
         domain = owner_names[owner_id]
 
+    bottle_format_entry = _reference_entry(
+        references, "bottleFormats", fields.get("vf")
+    )
+    bottle_format_name = (
+        _optional_text(bottle_format_entry.get("nm"))
+        if bottle_format_entry is not None
+        else None
+    )
+    bottle_volume_l = (
+        _reference_float(bottle_format_entry.get("vo"))
+        if bottle_format_entry is not None
+        else None
+    )
+
     wine = Wine(
         id=wine_id,
         name=name,
@@ -535,15 +556,23 @@ def _parse_wine(
             "service_temperature_max", "to",
         ),
         bottle_format=(
-            _optional_text(_reference_entry(references, "bottleFormats", fields.get("vf")).get("nm"))
-            if _reference_entry(references, "bottleFormats", fields.get("vf")) is not None
-            else None
-        ) or _merged_optional_text(raw, fields, previous.bottle_format if previous is not None else None, "bottle_format"),
+            bottle_format_name
+            or _merged_optional_text(
+                raw,
+                fields,
+                previous.bottle_format if previous is not None else None,
+                "bottle_format",
+            )
+        ),
         bottle_volume_l=(
-            _reference_float(_reference_entry(references, "bottleFormats", fields.get("vf")).get("vo"))
-            if _reference_entry(references, "bottleFormats", fields.get("vf")) is not None
-            else None
-        ) or _merged_positive_float(raw, fields, previous.bottle_volume_l if previous is not None else None, "bottle_volume_l"),
+            bottle_volume_l
+            or _merged_positive_float(
+                raw,
+                fields,
+                previous.bottle_volume_l if previous is not None else None,
+                "bottle_volume_l",
+            )
+        ),
         ploud_pid=_merged_optional_text(
             raw, fields, previous.ploud_pid if previous is not None else None,
             "ploud_pid", "pid",
