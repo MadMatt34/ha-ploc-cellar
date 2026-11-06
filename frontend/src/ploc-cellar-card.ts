@@ -236,13 +236,13 @@ export class PlocCellarCard extends LitElement {
         ${total > 0 ? html`
           <div class="chart-content">
             <svg class="donut" viewBox="0 0 120 120" role="img"
-              aria-label=`${t(titleKey)}: ${chartLabel}`>
+              aria-label=${t(titleKey) + ": " + chartLabel}>
               <circle cx="60" cy="60" r="42" fill="none"
                 stroke="var(--divider-color)" stroke-width="18"></circle>
               ${segments.map((segment) => html`
                 <circle cx="60" cy="60" r="42" fill="none"
                   stroke=${segment.color} stroke-width="18"
-                  stroke-dasharray=`${segment.length} ${circumference - segment.length}`
+                  stroke-dasharray=${segment.length + " " + (circumference - segment.length)}
                   stroke-dashoffset=${-segment.offset}
                   transform="rotate(-90 60 60)"></circle>
               `)}
