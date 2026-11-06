@@ -75,13 +75,15 @@ export class PlocCellarRackCard extends LitElement {
   }
 
   private async refresh(): Promise<void> {
-    if (!this.hass || !this.config?.config_entry_id || this.loading) return;
-    const configEntryId = this.config.config_entry_id;
+    const hass = this.hass;
+    const config = this.config;
+    if (!hass || !config?.config_entry_id || this.loading) return;
+    const configEntryId = config.config_entry_id;
     const generation = ++this.requestGeneration;
     this.loading = true;
     this.error = undefined;
     try {
-      const result = await this.hass.callWS<{ response: InventoryResponse }>({
+      const result = await hass.callWS<{ response: InventoryResponse }>({
         type: "call_service",
         domain: "ploc_cellar",
         service: "get_inventory",
