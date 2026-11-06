@@ -17,6 +17,7 @@ export class PlocCellarRackCard extends LitElement {
   @state() private selectedRackId?: string;
   @state() private loading = false;
   @state() private error?: string;
+  private requestGeneration = 0;
 
   static styles = css`
     :host { display: block; }
@@ -59,6 +60,8 @@ export class PlocCellarRackCard extends LitElement {
   }
 
   setConfig(config: PlocCellarCardConfig): void {
+    this.requestGeneration += 1;
+    this.loading = false;
     this.config = config;
     this.inventory = undefined;
     this.error = undefined;
@@ -73,6 +76,8 @@ export class PlocCellarRackCard extends LitElement {
 
   private async refresh(): Promise<void> {
     if (!this.hass || !this.config?.config_entry_id || this.loading) return;
+    const configEntryId = this.config.config_entry_id;
+    const generation = ++this.requestGeneration;
     this.loading = true;
     this.error = undefined;
     try {
@@ -80,17 +85,21 @@ export class PlocCellarRackCard extends LitElement {
         type: "call_service",
         domain: "ploc_cellar",
         service: "get_inventory",
-        service_data: { config_entry_id: this.config.config_entry_id },
+        service_data: { config_entry_id: configEntryId },
         return_response: true,
       });
-      this.inventory = result.response;
-      if (!this.selectedRackId || !this.inventory.racks.some((rack) => rack.id === this.selectedRackId)) {
-        this.selectedRackId = this.inventory.racks[0]?.id;
+      if (generation === this.requestGeneration) {
+        this.inventory = result.response;
+        if (!this.selectedRackId || !this.inventory.racks.some((rack) => rack.id === this.selectedRackId)) {
+          this.selectedRackId = this.inventory.racks[0]?.id;
+        }
       }
     } catch (error) {
-      this.error = error instanceof Error ? error.message : String(error);
+      if (generation === this.requestGeneration) {
+        this.error = error instanceof Error ? error.message : String(error);
+      }
     } finally {
-      this.loading = false;
+      if (generation === this.requestGeneration) this.loading = false;
     }
   }
 
