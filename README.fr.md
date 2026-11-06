@@ -171,4 +171,4 @@ typage et construit le module, puis ajoute le fichier généré dans
 `custom_components/ploc_cellar/www/`. Node.js n'est pas nécessaire pour les
 utilisateurs finaux.
 
-Dans une vue **Sections**, ouvrez l'éditeur de la carte, onglet **Disposition** (*Layout*), désactivez **Utiliser la taille recommandée** (*Use recommended size*), puis activez **Ajuster la hauteur au contenu** (*Fit height to content*). Cette option est enregistrée dans la configuration du tableau de bord et doit être activée pour chaque carte existante. Elle n'est pas proposée pour une carte imbriquée dans une pile ou une carte grille. La carte fournit une taille recommandée minimale ; l'option ajuste ensuite sa hauteur à l'ensemble des graphiques et des diagnostics affichés.
+Dans une vue **Sections**, la carte demande automatiquement à Home Assistant d'adapter sa hauteur à son contenu (`rows: auto`). Aucune modification manuelle de la disposition n'est nécessaire. L'option native **Fit height to content** correspond au même comportement dans l'éditeur de tableau de bord.
