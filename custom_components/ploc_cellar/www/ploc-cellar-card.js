@@ -1225,14 +1225,14 @@ var Gi = Object.defineProperty, Wi = Object.getOwnPropertyDescriptor, E = (e, t,
   return i && n && Gi(t, s, n), n;
 };
 const gt = [
-  "#c65a5a",
-  "#44739e",
-  "#4b9b70",
-  "#c7a13b",
-  "#8a68a8",
-  "#888888",
-  "#319b9b",
-  "#777777"
+  "#D55E00",
+  "#0072B2",
+  "#009E73",
+  "#E69F00",
+  "#CC79A7",
+  "#56B4E9",
+  "#F0E442",
+  "#6A3D9A"
 ];
 let y = class extends x {
   constructor() {
