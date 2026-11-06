@@ -30,6 +30,7 @@ export class PlocCellarRackCard extends LitElement {
     .rack-grid { display: grid; gap: 6px; min-width: min-content; }
     .slot { min-width: 76px; min-height: 64px; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; padding: 6px; border-radius: 8px; border: 1px solid var(--divider-color); background: var(--secondary-background-color); box-sizing: border-box; }
     .slot.occupied { border-color: var(--primary-color); background: var(--card-background-color); }
+    .slot.missing { border-style: dashed; color: var(--secondary-text-color); background: transparent; }
     .slot strong { font-size: .9rem; }
     .slot small { color: var(--secondary-text-color); font-size: .75rem; }
     .legend, .muted { color: var(--secondary-text-color); font-size: .85rem; }
@@ -126,6 +127,24 @@ export class PlocCellarRackCard extends LitElement {
     return Math.max(...this.columnValues) - this.firstColumn + 1;
   }
 
+  private get missingCoordinates(): Array<{ row: number; column: number }> {
+    if (!this.positionedItems.length) return [];
+    const known = new Set(
+      this.positionedItems.map((item) => `${item.row}:${item.column}`),
+    );
+    const missing: Array<{ row: number; column: number }> = [];
+    for (let row = this.firstRow; row <= Math.max(...this.rowValues); row += 1) {
+      for (
+        let column = this.firstColumn;
+        column <= Math.max(...this.columnValues);
+        column += 1
+      ) {
+        if (!known.has(`${row}:${column}`)) missing.push({ row, column });
+      }
+    }
+    return missing;
+  }
+
   private get wineById(): Map<string, Wine> {
     return new Map((this.inventory?.wines ?? []).map((wine) => [wine.id, wine]));
   }
@@ -181,6 +200,13 @@ export class PlocCellarRackCard extends LitElement {
                     </div>
                   `;
                 })}
+                ${this.missingCoordinates.map((position) => html`
+                  <div class="slot missing"
+                    style=${`grid-row: ${position.row - this.firstRow + 1}; grid-column: ${position.column - this.firstColumn + 1};`}>
+                    <strong>—</strong>
+                    <small>${fr ? "Non renseigné" : "Not mapped"}</small>
+                  </div>
+                `)}
               </div>
             </div>
           ` : html`<div class="warning">${fr ? "Aucune coordonnée de rangée/colonne disponible pour ce casier." : "No row/column coordinates are available for this rack."}</div>`}
