@@ -57,7 +57,9 @@ export interface InventoryResponse {
   rack_count: number;
   total_positions: number;
   occupied_positions: number;
-  empty_positions: number;
+  unlocated_bottles: number | null;
+  negative_movement_bottles: number | null;
+  physical_surplus_bottles: number | null;
   racks: Rack[];
   rack_items: RackItem[];
   wines: Wine[];
