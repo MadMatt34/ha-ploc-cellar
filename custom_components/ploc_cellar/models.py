@@ -503,6 +503,10 @@ class Cellar:
             # Resolve legacy or interrupted RackItem references from a complete
             # PLOUD snapshot instead of continuing with an incomplete delta.
             cellar.cursor = 1
+        if cellar.wines and not cellar.references:
+            # Older caches did not retain lookup collections or compact Wine IDs.
+            # A full snapshot is required to enrich their existing Wine records.
+            cellar.cursor = 1
         return cellar
 
 
@@ -532,6 +536,10 @@ def _validate_current_storage(
             raise ValueError(
                 "Incomplete stock reconstruction must use a full-sync cursor"
             )
+
+    raw_references = data.get("references")
+    if raw_references is not None and not isinstance(raw_references, dict):
+        raise ValueError("Invalid PLOUD references in current cellar storage")
 
     collections: dict[str, dict[str, JsonObject]] = {}
     for collection_name in ("wines", "racks", "rack_items", "orders"):
@@ -636,6 +644,11 @@ def _validate_current_storage(
         ):
             raise ValueError(
                 f"Invalid Wine vintage in current cellar storage: {identifier}"
+            )
+        reference_fields = wine.get("ploud_reference_fields")
+        if reference_fields is not None and not isinstance(reference_fields, dict):
+            raise ValueError(
+                f"Invalid PLOUD reference fields in stored wine {identifier}"
             )
         for field_name in text_fields:
             value = wine.get(field_name)
