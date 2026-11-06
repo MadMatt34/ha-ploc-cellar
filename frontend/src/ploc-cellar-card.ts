@@ -69,16 +69,19 @@ export class PlocCellarCard extends LitElement {
     .group { min-width: 0; border: 1px solid var(--divider-color); border-radius: 10px; padding: 12px; }
     .group-title { margin: 0 0 12px; font-size: 1rem; font-weight: 500; }
     .chart-content { display: grid; grid-template-columns: minmax(112px, .85fr) minmax(0, 1.15fr); gap: 12px; align-items: center; }
-    .donut { display: grid; place-items: center; width: 100%; max-width: 150px; aspect-ratio: 1; border-radius: 50%; justify-self: center; }
-    .donut-center { display: flex; flex-direction: column; align-items: center; justify-content: center; width: 66%; aspect-ratio: 1; border-radius: 50%; background: var(--card-background-color, var(--ha-card-background, #fff)); }
+    .donut { position: relative; display: grid; place-items: center; width: 100%; max-width: 150px; aspect-ratio: 1; justify-self: center; }
+    .donut-chart { display: block; width: 100%; height: 100%; overflow: visible; }
+    .donut-segment { fill: none; stroke-width: 16; pointer-events: stroke; cursor: help; }
+    .donut-segment:focus { outline: none; }
+    .donut-center { position: absolute; inset: 17%; display: flex; flex-direction: column; align-items: center; justify-content: center; border-radius: 50%; background: var(--card-background-color, var(--ha-card-background, #fff)); pointer-events: none; }
     .donut-total { color: var(--primary-text-color); font-size: 1rem; font-weight: 600; font-variant-numeric: tabular-nums; }
     .donut-caption { color: var(--secondary-text-color); font-size: .48rem; }
-    .legend { display: grid; gap: 8px; min-width: 0; }
-    .legend-item { display: grid; grid-template-columns: 10px minmax(0, 1fr) auto; align-items: center; gap: 7px; font-size: .82rem; }
+    .legend { display: grid; gap: 4px; min-width: 0; }
+    .legend-item { display: grid; grid-template-columns: 10px minmax(0, 1fr) auto; align-items: center; column-gap: 7px; row-gap: 2px; font-size: .82rem; }
     .legend-swatch { width: 9px; height: 9px; border-radius: 50%; }
     .legend-name { min-width: 0; overflow-wrap: anywhere; }
     .legend-value { white-space: nowrap; font-variant-numeric: tabular-nums; font-weight: 600; }
-    .legend-meta { grid-column: 2 / 4; margin-top: -6px; color: var(--secondary-text-color); font-size: .72rem; }
+    .legend-meta { grid-column: 2 / 4; margin-top: -2px; color: var(--secondary-text-color); font-size: .72rem; }
     .warning { color: var(--warning-color); padding: 8px 0; }
     .error { color: var(--error-color); padding: 8px 0; }
     @media (max-width: 420px) {
@@ -237,9 +240,25 @@ export class PlocCellarCard extends LitElement {
         <h3 class="group-title">${t(titleKey)}</h3>
         ${total > 0 ? html`
           <div class="chart-content">
-            <div class="donut" role="img"
-              aria-label=${t(titleKey) + ": " + chartLabel}
-              style=${`background: conic-gradient(${gradient})`}>
+            <div class="donut">
+              <svg class="donut-chart" viewBox="0 0 100 100"
+                role="img" aria-label=${t(titleKey) + ": " + chartLabel}>
+                ${segments.map((item) => {
+                  const circumference = 2 * Math.PI * 42;
+                  const segmentLength = ((item.end - item.start) / 100) * circumference;
+                  const dashArray = `${segmentLength} ${circumference - segmentLength}`;
+                  const dashOffset = -(item.start / 100) * circumference;
+                  const tooltip = `${item.name}: ${this.formatNumber(item.bottles)} ${t("statistics_bottles")} (${new Intl.NumberFormat(this.hass?.language ?? undefined, { style: "percent", maximumFractionDigits: 1 }).format(item.bottles / total)}), ${this.formatNumber(item.wines)} ${t("statistics_references")}`;
+                  return html`
+                    <circle class="donut-segment" cx="50" cy="50" r="42"
+                      stroke=${item.color}
+                      stroke-dasharray=${dashArray}
+                      stroke-dashoffset=${dashOffset}>
+                      <title>${tooltip}</title>
+                    </circle>
+                  `;
+                })}
+              </svg>
               <div class="donut-center">
                 <span class="donut-total">${this.formatNumber(total)}</span>
                 <span class="donut-caption">${t("statistics_bottles")}</span>
