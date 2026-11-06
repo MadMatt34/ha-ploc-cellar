@@ -95,8 +95,8 @@ L’intégration ne force aucun identifiant d’entité. Home Assistant les gén
 
 Les deux boutons sont disponibles sur l’appareil **Cave Ploc** :
 
-- `button.ploc_cellar_sync` : applique les modifications depuis la dernière synchronisation à partir du curseur enregistré.
-- `button.ploc_cellar_sync_full` : demande un instantané PLOUD complet et reconstruit l’inventaire local. L’inventaire validé existant reste disponible tant que le nouvel instantané n’a pas été validé et enregistré.
+- **Synchronisation différentielle** : applique les modifications depuis la dernière synchronisation à partir du curseur enregistré.
+- **Synchronisation complète** : demande un instantané PLOUD complet et reconstruit l’inventaire local. L’inventaire validé existant reste disponible tant que le nouvel instantané n’a pas été validé et enregistré.
 
 Ils appellent les mêmes méthodes du coordinateur que les actions `ploc_cellar.sync` et `ploc_cellar.sync_full`. Ils peuvent également être utilisés dans une automatisation avec l’action standard `button.press`.
 
