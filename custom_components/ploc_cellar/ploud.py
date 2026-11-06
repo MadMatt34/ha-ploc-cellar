@@ -631,6 +631,7 @@ def _parse_wine(
     )
     return _resolve_wine_references(wine, references)
 
+
 def _collection(objects: PLOUDCollections, name: str) -> list[JsonObject]:
     """Return a named collection without trusting response item shapes."""
     for key, values in objects.items():
@@ -646,10 +647,12 @@ def _merge_reference_collections(
     full_snapshot: bool,
 ) -> None:
     """Merge reference deltas into persistent ID-indexed lookup collections."""
+    references_changed = False
     for collection in PLOUD_REFERENCE_COLLECTIONS:
         if not any(name.casefold() == collection.casefold() for name in objects):
             continue
-        entries = {} if full_snapshot else dict(cellar.references.get(collection, {}))
+        previous_entries = cellar.references.get(collection, {})
+        entries = {} if full_snapshot else dict(previous_entries)
         seen_ids: set[str] = set()
         for raw in _collection(objects, collection):
             identifier = _deleted_id(raw)
@@ -663,11 +666,15 @@ def _merge_reference_collections(
                 )
             seen_ids.add(identifier)
             entries[identifier] = raw
+        if entries != previous_entries:
+            references_changed = True
         cellar.references[collection] = entries
 
-    if cellar.references:
+    if references_changed:
         for wine_id, wine in tuple(cellar.wines.items()):
-            cellar.wines[wine_id] = _resolve_wine_references(wine, cellar.references)
+            cellar.wines[wine_id] = _resolve_wine_references(
+                wine, cellar.references
+            )
 
 
 def _deleted_id(raw: JsonObject) -> str | None:
