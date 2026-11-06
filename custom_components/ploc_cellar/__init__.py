@@ -256,6 +256,13 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
             color=service_data.get(CONF_COLOR, ""),
         )
 
+    hass.services.async_register(  # pyright: ignore[reportUnknownMemberType]
+        DOMAIN,
+        SERVICE_GET_INVENTORY,
+        get_inventory,
+        schema=GET_INVENTORY_SCHEMA,
+        supports_response=SupportsResponse.ONLY,
+    )
     return True
 
 
