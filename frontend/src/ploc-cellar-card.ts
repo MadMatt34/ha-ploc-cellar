@@ -339,7 +339,7 @@ export class PlocCellarCard extends LitElement {
             <div class="donut" role="img"
               aria-label=${t(titleKey) + ": " + chartLabel}
               @pointermove=${(event: PointerEvent) => this.handleDonutPointerMove(event, segments)}
-              @pointerleave=${this.hideDonutTooltip}
+              @pointerleave=${() => { this.donutTooltip = undefined; }}
               style=${`background: conic-gradient(${gradient})`}>
               <svg class="donut-chart" viewBox="0 0 100 100" aria-hidden="true">
                 ${segments.map((item) => {
