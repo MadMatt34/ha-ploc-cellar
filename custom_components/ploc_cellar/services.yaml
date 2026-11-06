@@ -11,18 +11,3 @@ get_inventory:
     color:
       selector:
         text: {}
-sync:
-  fields:
-    config_entry_id:
-      required: true
-      selector:
-        config_entry:
-          integration: ploc_cellar
-
-sync_full:
-  fields:
-    config_entry_id:
-      required: true
-      selector:
-        config_entry:
-          integration: ploc_cellar
