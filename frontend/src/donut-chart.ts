@@ -1,7 +1,7 @@
 import { LitElement, css, html } from "lit";
 import { customElement, property } from "lit/decorators.js";
 import { init, use } from "echarts/core";
-import type { ECharts, EChartsOption } from "echarts/core";
+import type { ECharts, EChartsCoreOption } from "echarts/core";
 import { PieChart } from "echarts/charts";
 import { CanvasRenderer } from "echarts/renderers";
 import { TooltipComponent } from "echarts/components";
@@ -54,13 +54,13 @@ export class PlocCellarDonutChart extends LitElement {
     if (!this.chart) return;
 
     const numberFormat = new Intl.NumberFormat(this.language);
-    const option: EChartsOption = {
+    const option: EChartsCoreOption = {
       animation: false,
       tooltip: {
         trigger: "item",
         renderMode: "html",
         confine: true,
-        valueFormatter: (value) => numberFormat.format(Number(value)),
+        valueFormatter: (value: string | number) => numberFormat.format(Number(value)),
       },
       series: [{
         type: "pie",
