@@ -171,4 +171,4 @@ typage et construit le module, puis ajoute le fichier généré dans
 `custom_components/ploc_cellar/www/`. Node.js n'est pas nécessaire pour les
 utilisateurs finaux.
 
-Dans une vue **Sections**, la carte demande automatiquement à Home Assistant d'adapter sa hauteur à son contenu (`rows: auto`). Aucune modification manuelle de la disposition n'est nécessaire. L'option native **Fit height to content** correspond au même comportement dans l'éditeur de tableau de bord.
+Dans une vue **Sections**, la carte conserve une largeur par défaut de 12 colonnes sans imposer de hauteur (`rows`). Vous pouvez activer **Fit height to content** dans l'onglet **Disposition** uniquement pour cette carte si vous souhaitez que sa hauteur suive son contenu.

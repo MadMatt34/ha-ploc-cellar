@@ -1342,7 +1342,7 @@ let b = class extends x {
       const p = 2 * Math.PI * 42, u = (a.end - a.start) / 100 * p, h = `${u} ${p - u}`, v = -(a.start / 100) * p, $ = `${a.name}: ${this.formatNumber(a.bottles)} ${s("statistics_bottles")} (${new Intl.NumberFormat(this.hass?.language ?? void 0, { style: "percent", maximumFractionDigits: 1 }).format(a.bottles / n)}), ${this.formatNumber(a.wines)} ${s("statistics_references")}`;
       return l`
                     <circle class="donut-segment" cx="50" cy="50" r="42"
-                      stroke=${a.color}
+                      style=${`stroke: ${a.color}`}
                       stroke-dasharray=${h}
                       stroke-dashoffset=${v}>
                       <title>${$}</title>
@@ -1451,7 +1451,7 @@ let b = class extends x {
     return 12;
   }
   getGridOptions() {
-    return { columns: 12, min_columns: 6, rows: "auto" };
+    return { columns: 12, min_columns: 6 };
   }
 };
 b.styles = K`
