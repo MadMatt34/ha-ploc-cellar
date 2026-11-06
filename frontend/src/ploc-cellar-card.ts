@@ -37,14 +37,28 @@ export class PlocCellarCard extends LitElement {
     @media (max-width: 420px) { ha-card { padding: 12px; } }
   `;
 
+  static getConfigForm() {
+    return {
+      schema: [
+        {
+          name: "config_entry_id",
+          required: true,
+          selector: { config_entry: { integration: "ploc_cellar" } },
+        },
+        { name: "title", selector: { text: {} } },
+      ],
+    };
+  }
+
+  static getStubConfig(): Partial<PlocCellarCardConfig> {
+    return { title: "Ploc Cellar" };
+  }
+
   setConfig(config: PlocCellarCardConfig): void {
-    if (!config.config_entry_id) {
-      throw new Error("Please set config_entry_id for the Ploc Cellar connection.");
-    }
     this.config = config;
     this.inventory = undefined;
     this.error = undefined;
-    void this.refresh();
+    if (this.config.config_entry_id) void this.refresh();
   }
 
   protected updated(): void {
@@ -54,7 +68,7 @@ export class PlocCellarCard extends LitElement {
   }
 
   private async refresh(): Promise<void> {
-    if (!this.hass || !this.config || this.loading) return;
+    if (!this.hass || !this.config?.config_entry_id || this.loading) return;
     this.loading = true;
     this.error = undefined;
     try {
@@ -110,6 +124,7 @@ export class PlocCellarCard extends LitElement {
           </button>
         </header>
         ${this.error ? html`<div class="error">${this.error}</div>` : nothing}
+        ${!this.config?.config_entry_id ? html`<div class="muted">${fr ? "Sélectionnez une configuration Ploc Cellar dans l'éditeur de carte." : "Select a Ploc Cellar configuration in the card editor."}</div>` : nothing}
         ${data ? html`
           ${data.stale ? html`<div class="warning">${fr ? "Données potentiellement obsolètes : la dernière synchronisation a échoué." : "Data may be stale: the latest synchronization failed."}</div>` : nothing}
           <div class="summary">
