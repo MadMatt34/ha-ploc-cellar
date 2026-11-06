@@ -90,5 +90,17 @@
   "diagnostic_detail_purchased": "Incoming",
   "diagnostic_detail_consumed": "Outgoing",
   "diagnostic_detail_balance": "Movement balance",
-  "diagnostic_detail_empty": "No wine-level details are available for this diagnostic."
+  "diagnostic_detail_empty": "No wine-level details are available for this diagnostic.",
+  "tooltip_vintage": "Vintage",
+  "tooltip_domain": "Producer",
+  "tooltip_appellation": "Appellation",
+  "tooltip_classification": "Classification",
+  "tooltip_color": "Wine color",
+  "tooltip_region": "Region",
+  "tooltip_country": "Country",
+  "tooltip_grapes": "Grapes",
+  "tooltip_cuvee": "Cuvée",
+  "tooltip_format": "Bottle format",
+  "tooltip_volume": "Volume",
+  "tooltip_temperature": "Serving temperature"
 }
