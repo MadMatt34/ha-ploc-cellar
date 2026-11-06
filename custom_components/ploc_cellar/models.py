@@ -515,9 +515,9 @@ class Cellar:
             # Resolve legacy or interrupted RackItem references from a complete
             # PLOUD snapshot instead of continuing with an incomplete delta.
             cellar.cursor = 1
-        if not cellar.references:
+        if cellar.wines and not cellar.references:
             # Older caches did not retain lookup collections or compact Wine IDs.
-            # A full snapshot is required to bootstrap the reference indexes.
+            # A full snapshot is required to enrich their existing Wine records.
             cellar.cursor = 1
         return cellar
 
