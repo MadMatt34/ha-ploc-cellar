@@ -1,4 +1,4 @@
-const H = globalThis, W = H.ShadowRoot && (H.ShadyCSS === void 0 || H.ShadyCSS.nativeShadow) && "adoptedStyleSheets" in Document.prototype && "replace" in CSSStyleSheet.prototype, F = /* @__PURE__ */ Symbol(), tt = /* @__PURE__ */ new WeakMap();
+const q = globalThis, W = q.ShadowRoot && (q.ShadyCSS === void 0 || q.ShadyCSS.nativeShadow) && "adoptedStyleSheets" in Document.prototype && "replace" in CSSStyleSheet.prototype, F = /* @__PURE__ */ Symbol(), tt = /* @__PURE__ */ new WeakMap();
 let ht = class {
   constructor(t, s, i) {
     if (this._$cssResult$ = !0, i !== F) throw Error("CSSResult is not constructable. Use `unsafeCSS` or `css` instead.");
@@ -17,7 +17,7 @@ let ht = class {
     return this.cssText;
   }
 };
-const _t = (e) => new ht(typeof e == "string" ? e : e + "", void 0, F), J = (e, ...t) => {
+const ft = (e) => new ht(typeof e == "string" ? e : e + "", void 0, F), J = (e, ...t) => {
   const s = e.length === 1 ? e[0] : t.reduce((i, r, o) => i + ((n) => {
     if (n._$cssResult$ === !0) return n.cssText;
     if (typeof n == "number") return n;
@@ -27,15 +27,15 @@ const _t = (e) => new ht(typeof e == "string" ? e : e + "", void 0, F), J = (e, 
 }, mt = (e, t) => {
   if (W) e.adoptedStyleSheets = t.map((s) => s instanceof CSSStyleSheet ? s : s.styleSheet);
   else for (const s of t) {
-    const i = document.createElement("style"), r = H.litNonce;
+    const i = document.createElement("style"), r = q.litNonce;
     r !== void 0 && i.setAttribute("nonce", r), i.textContent = s.cssText, e.appendChild(i);
   }
 }, et = W ? (e) => e : (e) => e instanceof CSSStyleSheet ? ((t) => {
   let s = "";
   for (const i of t.cssRules) s += i.cssText;
-  return _t(s);
+  return ft(s);
 })(e) : e;
-const { is: $t, defineProperty: vt, getOwnPropertyDescriptor: yt, getOwnPropertyNames: bt, getOwnPropertySymbols: wt, getPrototypeOf: xt } = Object, D = globalThis, st = D.trustedTypes, At = st ? st.emptyScript : "", Ct = D.reactiveElementPolyfillSupport, M = (e, t) => e, L = { toAttribute(e, t) {
+const { is: $t, defineProperty: vt, getOwnPropertyDescriptor: yt, getOwnPropertyNames: bt, getOwnPropertySymbols: wt, getPrototypeOf: xt } = Object, D = globalThis, st = D.trustedTypes, At = st ? st.emptyScript : "", Ct = D.reactiveElementPolyfillSupport, M = (e, t) => e, j = { toAttribute(e, t) {
   switch (t) {
     case Boolean:
       e = e ? At : null;
@@ -63,9 +63,9 @@ const { is: $t, defineProperty: vt, getOwnPropertyDescriptor: yt, getOwnProperty
       }
   }
   return s;
-} }, Z = (e, t) => !$t(e, t), it = { attribute: !0, type: String, converter: L, reflect: !1, useDefault: !1, hasChanged: Z };
+} }, Z = (e, t) => !$t(e, t), it = { attribute: !0, type: String, converter: j, reflect: !1, useDefault: !1, hasChanged: Z };
 Symbol.metadata ??= /* @__PURE__ */ Symbol("metadata"), D.litPropertyMetadata ??= /* @__PURE__ */ new WeakMap();
-let E = class extends HTMLElement {
+let S = class extends HTMLElement {
   static addInitializer(t) {
     this._$Ei(), (this.l ??= []).push(t);
   }
@@ -162,14 +162,14 @@ let E = class extends HTMLElement {
   _$ET(t, s) {
     const i = this.constructor.elementProperties.get(t), r = this.constructor._$Eu(t, i);
     if (r !== void 0 && i.reflect === !0) {
-      const o = (i.converter?.toAttribute !== void 0 ? i.converter : L).toAttribute(s, i.type);
+      const o = (i.converter?.toAttribute !== void 0 ? i.converter : j).toAttribute(s, i.type);
       this._$Em = t, o == null ? this.removeAttribute(r) : this.setAttribute(r, o), this._$Em = null;
     }
   }
   _$AK(t, s) {
     const i = this.constructor, r = i._$Eh.get(t);
     if (r !== void 0 && this._$Em !== r) {
-      const o = i.getPropertyOptions(r), n = typeof o.converter == "function" ? { fromAttribute: o.converter } : o.converter?.fromAttribute !== void 0 ? o.converter : L;
+      const o = i.getPropertyOptions(r), n = typeof o.converter == "function" ? { fromAttribute: o.converter } : o.converter?.fromAttribute !== void 0 ? o.converter : j;
       this._$Em = r;
       const d = n.fromAttribute(s, o.type);
       this[r] = d ?? this._$Ej?.get(r) ?? d, this._$Em = null;
@@ -246,11 +246,11 @@ let E = class extends HTMLElement {
   firstUpdated(t) {
   }
 };
-E.elementStyles = [], E.shadowRootOptions = { mode: "open" }, E[M("elementProperties")] = /* @__PURE__ */ new Map(), E[M("finalized")] = /* @__PURE__ */ new Map(), Ct?.({ ReactiveElement: E }), (D.reactiveElementVersions ??= []).push("2.1.2");
-const K = globalThis, rt = (e) => e, j = K.trustedTypes, ot = j ? j.createPolicy("lit-html", { createHTML: (e) => e }) : void 0, pt = "$lit$", b = `lit$${Math.random().toFixed(9).slice(2)}$`, ut = "?" + b, kt = `<${ut}>`, C = document, I = () => C.createComment(""), N = (e) => e === null || typeof e != "object" && typeof e != "function", Q = Array.isArray, St = (e) => Q(e) || typeof e?.[Symbol.iterator] == "function", G = `[ 	
-\f\r]`, U = /<(?:(!--|\/[^a-zA-Z])|(\/?[a-zA-Z][^>\s]*)|(\/?$))/g, nt = /-->/g, at = />/g, w = RegExp(`>|${G}(?:([^\\s"'>=/]+)(${G}*=${G}*(?:[^ 	
-\f\r"'\`<>=]|("|')|))|$)`, "g"), lt = /'/g, ct = /"/g, gt = /^(?:script|style|textarea|title)$/i, Et = (e) => (t, ...s) => ({ _$litType$: e, strings: t, values: s }), c = Et(1), P = /* @__PURE__ */ Symbol.for("lit-noChange"), l = /* @__PURE__ */ Symbol.for("lit-nothing"), dt = /* @__PURE__ */ new WeakMap(), x = C.createTreeWalker(C, 129);
-function ft(e, t) {
+S.elementStyles = [], S.shadowRootOptions = { mode: "open" }, S[M("elementProperties")] = /* @__PURE__ */ new Map(), S[M("finalized")] = /* @__PURE__ */ new Map(), Ct?.({ ReactiveElement: S }), (D.reactiveElementVersions ??= []).push("2.1.2");
+const K = globalThis, rt = (e) => e, L = K.trustedTypes, ot = L ? L.createPolicy("lit-html", { createHTML: (e) => e }) : void 0, pt = "$lit$", y = `lit$${Math.random().toFixed(9).slice(2)}$`, ut = "?" + y, kt = `<${ut}>`, C = document, N = () => C.createComment(""), I = (e) => e === null || typeof e != "object" && typeof e != "function", Q = Array.isArray, St = (e) => Q(e) || typeof e?.[Symbol.iterator] == "function", B = `[ 	
+\f\r]`, U = /<(?:(!--|\/[^a-zA-Z])|(\/?[a-zA-Z][^>\s]*)|(\/?$))/g, nt = /-->/g, at = />/g, w = RegExp(`>|${B}(?:([^\\s"'>=/]+)(${B}*=${B}*(?:[^ 	
+\f\r"'\`<>=]|("|')|))|$)`, "g"), lt = /'/g, ct = /"/g, gt = /^(?:script|style|textarea|title)$/i, Et = (e) => (t, ...s) => ({ _$litType$: e, strings: t, values: s }), c = Et(1), E = /* @__PURE__ */ Symbol.for("lit-noChange"), l = /* @__PURE__ */ Symbol.for("lit-nothing"), dt = /* @__PURE__ */ new WeakMap(), x = C.createTreeWalker(C, 129);
+function _t(e, t) {
   if (!Q(e) || !e.hasOwnProperty("raw")) throw Error("invalid template strings array");
   return ot !== void 0 ? ot.createHTML(t) : t;
 }
@@ -261,10 +261,10 @@ const Pt = (e, t) => {
     const a = e[d];
     let p, g, h = -1, m = 0;
     for (; m < a.length && (n.lastIndex = m, g = n.exec(a), g !== null); ) m = n.lastIndex, n === U ? g[1] === "!--" ? n = nt : g[1] !== void 0 ? n = at : g[2] !== void 0 ? (gt.test(g[2]) && (r = RegExp("</" + g[2], "g")), n = w) : g[3] !== void 0 && (n = w) : n === w ? g[0] === ">" ? (n = r ?? U, h = -1) : g[1] === void 0 ? h = -2 : (h = n.lastIndex - g[2].length, p = g[1], n = g[3] === void 0 ? w : g[3] === '"' ? ct : lt) : n === ct || n === lt ? n = w : n === nt || n === at ? n = U : (n = w, r = void 0);
-    const y = n === w && e[d + 1].startsWith("/>") ? " " : "";
-    o += n === U ? a + kt : h >= 0 ? (i.push(p), a.slice(0, h) + pt + a.slice(h) + b + y) : a + b + (h === -2 ? d : y);
+    const v = n === w && e[d + 1].startsWith("/>") ? " " : "";
+    o += n === U ? a + kt : h >= 0 ? (i.push(p), a.slice(0, h) + pt + a.slice(h) + y + v) : a + y + (h === -2 ? d : v);
   }
-  return [ft(e, o + (e[s] || "<?>") + (t === 2 ? "</svg>" : t === 3 ? "</math>" : "")), i];
+  return [_t(e, o + (e[s] || "<?>") + (t === 2 ? "</svg>" : t === 3 ? "</math>" : "")), i];
 };
 class T {
   constructor({ strings: t, _$litType$: s }, i) {
@@ -279,21 +279,21 @@ class T {
     for (; (r = x.nextNode()) !== null && a.length < d; ) {
       if (r.nodeType === 1) {
         if (r.hasAttributes()) for (const h of r.getAttributeNames()) if (h.endsWith(pt)) {
-          const m = g[n++], y = r.getAttribute(h).split(b), q = /([.?@])?(.*)/.exec(m);
-          a.push({ type: 1, index: o, name: q[2], strings: y, ctor: q[1] === "." ? Ot : q[1] === "?" ? Ut : q[1] === "@" ? Mt : V }), r.removeAttribute(h);
-        } else h.startsWith(b) && (a.push({ type: 6, index: o }), r.removeAttribute(h));
+          const m = g[n++], v = r.getAttribute(h).split(y), H = /([.?@])?(.*)/.exec(m);
+          a.push({ type: 1, index: o, name: H[2], strings: v, ctor: H[1] === "." ? Ot : H[1] === "?" ? Ut : H[1] === "@" ? Mt : V }), r.removeAttribute(h);
+        } else h.startsWith(y) && (a.push({ type: 6, index: o }), r.removeAttribute(h));
         if (gt.test(r.tagName)) {
-          const h = r.textContent.split(b), m = h.length - 1;
+          const h = r.textContent.split(y), m = h.length - 1;
           if (m > 0) {
-            r.textContent = j ? j.emptyScript : "";
-            for (let y = 0; y < m; y++) r.append(h[y], I()), x.nextNode(), a.push({ type: 2, index: ++o });
-            r.append(h[m], I());
+            r.textContent = L ? L.emptyScript : "";
+            for (let v = 0; v < m; v++) r.append(h[v], N()), x.nextNode(), a.push({ type: 2, index: ++o });
+            r.append(h[m], N());
           }
         }
       } else if (r.nodeType === 8) if (r.data === ut) a.push({ type: 2, index: o });
       else {
         let h = -1;
-        for (; (h = r.data.indexOf(b, h + 1)) !== -1; ) a.push({ type: 7, index: o }), h += b.length - 1;
+        for (; (h = r.data.indexOf(y, h + 1)) !== -1; ) a.push({ type: 7, index: o }), h += y.length - 1;
       }
       o++;
     }
@@ -303,11 +303,11 @@ class T {
     return i.innerHTML = t, i;
   }
 }
-function R(e, t, s = e, i) {
-  if (t === P) return t;
+function P(e, t, s = e, i) {
+  if (t === E) return t;
   let r = i !== void 0 ? s._$Co?.[i] : s._$Cl;
-  const o = N(t) ? void 0 : t._$litDirective$;
-  return r?.constructor !== o && (r?._$AO?.(!1), o === void 0 ? r = void 0 : (r = new o(e), r._$AT(e, s, i)), i !== void 0 ? (s._$Co ??= [])[i] = r : s._$Cl = r), r !== void 0 && (t = R(e, r._$AS(e, t.values), r, i)), t;
+  const o = I(t) ? void 0 : t._$litDirective$;
+  return r?.constructor !== o && (r?._$AO?.(!1), o === void 0 ? r = void 0 : (r = new o(e), r._$AT(e, s, i)), i !== void 0 ? (s._$Co ??= [])[i] = r : s._$Cl = r), r !== void 0 && (t = P(e, r._$AS(e, t.values), r, i)), t;
 }
 class Rt {
   constructor(t, s) {
@@ -326,7 +326,7 @@ class Rt {
     for (; a !== void 0; ) {
       if (n === a.index) {
         let p;
-        a.type === 2 ? p = new z(o, o.nextSibling, this, t) : a.type === 1 ? p = new a.ctor(o, a.name, a.strings, this, t) : a.type === 6 && (p = new It(o, this, t)), this._$AV.push(p), a = i[++d];
+        a.type === 2 ? p = new z(o, o.nextSibling, this, t) : a.type === 1 ? p = new a.ctor(o, a.name, a.strings, this, t) : a.type === 6 && (p = new Nt(o, this, t)), this._$AV.push(p), a = i[++d];
       }
       n !== a?.index && (o = x.nextNode(), n++);
     }
@@ -356,7 +356,7 @@ class z {
     return this._$AB;
   }
   _$AI(t, s = this) {
-    t = R(this, t, s), N(t) ? t === l || t == null || t === "" ? (this._$AH !== l && this._$AR(), this._$AH = l) : t !== this._$AH && t !== P && this._(t) : t._$litType$ !== void 0 ? this.$(t) : t.nodeType !== void 0 ? this.T(t) : St(t) ? this.k(t) : this._(t);
+    t = P(this, t, s), I(t) ? t === l || t == null || t === "" ? (this._$AH !== l && this._$AR(), this._$AH = l) : t !== this._$AH && t !== E && this._(t) : t._$litType$ !== void 0 ? this.$(t) : t.nodeType !== void 0 ? this.T(t) : St(t) ? this.k(t) : this._(t);
   }
   O(t) {
     return this._$AA.parentNode.insertBefore(t, this._$AB);
@@ -365,10 +365,10 @@ class z {
     this._$AH !== t && (this._$AR(), this._$AH = this.O(t));
   }
   _(t) {
-    this._$AH !== l && N(this._$AH) ? this._$AA.nextSibling.data = t : this.T(C.createTextNode(t)), this._$AH = t;
+    this._$AH !== l && I(this._$AH) ? this._$AA.nextSibling.data = t : this.T(C.createTextNode(t)), this._$AH = t;
   }
   $(t) {
-    const { values: s, _$litType$: i } = t, r = typeof i == "number" ? this._$AC(t) : (i.el === void 0 && (i.el = T.createElement(ft(i.h, i.h[0]), this.options)), i);
+    const { values: s, _$litType$: i } = t, r = typeof i == "number" ? this._$AC(t) : (i.el === void 0 && (i.el = T.createElement(_t(i.h, i.h[0]), this.options)), i);
     if (this._$AH?._$AD === r) this._$AH.p(s);
     else {
       const o = new Rt(r, this), n = o.u(this.options);
@@ -383,7 +383,7 @@ class z {
     Q(this._$AH) || (this._$AH = [], this._$AR());
     const s = this._$AH;
     let i, r = 0;
-    for (const o of t) r === s.length ? s.push(i = new z(this.O(I()), this.O(I()), this, this.options)) : i = s[r], i._$AI(o), r++;
+    for (const o of t) r === s.length ? s.push(i = new z(this.O(N()), this.O(N()), this, this.options)) : i = s[r], i._$AI(o), r++;
     r < s.length && (this._$AR(i && i._$AB.nextSibling, r), s.length = r);
   }
   _$AR(t = this._$AA.nextSibling, s) {
@@ -409,11 +409,11 @@ class V {
   _$AI(t, s = this, i, r) {
     const o = this.strings;
     let n = !1;
-    if (o === void 0) t = R(this, t, s, 0), n = !N(t) || t !== this._$AH && t !== P, n && (this._$AH = t);
+    if (o === void 0) t = P(this, t, s, 0), n = !I(t) || t !== this._$AH && t !== E, n && (this._$AH = t);
     else {
       const d = t;
       let a, p;
-      for (t = o[0], a = 0; a < o.length - 1; a++) p = R(this, d[i + a], s, a), p === P && (p = this._$AH[a]), n ||= !N(p) || p !== this._$AH[a], p === l ? t = l : t !== l && (t += (p ?? "") + o[a + 1]), this._$AH[a] = p;
+      for (t = o[0], a = 0; a < o.length - 1; a++) p = P(this, d[i + a], s, a), p === E && (p = this._$AH[a]), n ||= !I(p) || p !== this._$AH[a], p === l ? t = l : t !== l && (t += (p ?? "") + o[a + 1]), this._$AH[a] = p;
     }
     n && !r && this.j(t);
   }
@@ -442,7 +442,7 @@ class Mt extends V {
     super(t, s, i, r, o), this.type = 5;
   }
   _$AI(t, s = this) {
-    if ((t = R(this, t, s, 0) ?? l) === P) return;
+    if ((t = P(this, t, s, 0) ?? l) === E) return;
     const i = this._$AH, r = t === l && i !== l || t.capture !== i.capture || t.once !== i.once || t.passive !== i.passive, o = t !== l && (i === l || r);
     r && this.element.removeEventListener(this.name, this, i), o && this.element.addEventListener(this.name, this, t), this._$AH = t;
   }
@@ -450,7 +450,7 @@ class Mt extends V {
     typeof this._$AH == "function" ? this._$AH.call(this.options?.host ?? this.element, t) : this._$AH.handleEvent(t);
   }
 }
-class It {
+class Nt {
   constructor(t, s, i) {
     this.element = t, this.type = 6, this._$AN = void 0, this._$AM = s, this.options = i;
   }
@@ -458,22 +458,22 @@ class It {
     return this._$AM._$AU;
   }
   _$AI(t) {
-    R(this, t);
+    P(this, t);
   }
 }
-const Nt = K.litHtmlPolyfillSupport;
-Nt?.(T, z), (K.litHtmlVersions ??= []).push("3.3.3");
+const It = K.litHtmlPolyfillSupport;
+It?.(T, z), (K.litHtmlVersions ??= []).push("3.3.3");
 const Tt = (e, t, s) => {
   const i = s?.renderBefore ?? t;
   let r = i._$litPart$;
   if (r === void 0) {
     const o = s?.renderBefore ?? null;
-    i._$litPart$ = r = new z(t.insertBefore(I(), o), o, void 0, s ?? {});
+    i._$litPart$ = r = new z(t.insertBefore(N(), o), o, void 0, s ?? {});
   }
   return r._$AI(e), r;
 };
 const X = globalThis;
-class A extends E {
+class A extends S {
   constructor() {
     super(...arguments), this.renderOptions = { host: this }, this._$Do = void 0;
   }
@@ -492,7 +492,7 @@ class A extends E {
     super.disconnectedCallback(), this._$Do?.setConnected(!1);
   }
   render() {
-    return P;
+    return E;
   }
 }
 A._$litElement$ = !0, A.finalized = !0, X.litElementHydrateSupport?.({ LitElement: A });
@@ -504,7 +504,7 @@ const Y = (e) => (t, s) => {
     customElements.define(e, t);
   }) : customElements.define(e, t);
 };
-const qt = { attribute: !0, type: String, converter: L, reflect: !1, hasChanged: Z }, Ht = (e = qt, t, s) => {
+const Ht = { attribute: !0, type: String, converter: j, reflect: !1, hasChanged: Z }, qt = (e = Ht, t, s) => {
   const { kind: i, metadata: r } = s;
   let o = globalThis.litPropertyMetadata.get(r);
   if (o === void 0 && globalThis.litPropertyMetadata.set(r, o = /* @__PURE__ */ new Map()), i === "setter" && ((e = Object.create(e)).wrapped = !0), o.set(s.name, e), i === "accessor") {
@@ -525,22 +525,22 @@ const qt = { attribute: !0, type: String, converter: L, reflect: !1, hasChanged:
   }
   throw Error("Unsupported decorator location: " + i);
 };
-function B(e) {
-  return (t, s) => typeof s == "object" ? Ht(e, t, s) : ((i, r, o) => {
+function G(e) {
+  return (t, s) => typeof s == "object" ? qt(e, t, s) : ((i, r, o) => {
     const n = r.hasOwnProperty(o);
     return r.constructor.createProperty(o, i), n ? Object.getOwnPropertyDescriptor(r, o) : void 0;
   })(e, t, s);
 }
 function u(e) {
-  return B({ ...e, state: !0, attribute: !1 });
+  return G({ ...e, state: !0, attribute: !1 });
 }
-const Lt = "Ploc Cellar", jt = "Cellar storage", Dt = "Refresh", Vt = "Loading…", Bt = "Never", Gt = "Bottles in cellar", Wt = "Reconstructed stock", Ft = "Racks", Jt = "Empty positions", Zt = "Data may be stale: the latest synchronization failed.", Kt = "Stock reconstruction is incomplete: only physical quantities are available.", Qt = "Last successful synchronization", Xt = "Search wines", Yt = "Search wines…", te = "No matching wines.", ee = "Select a Ploc Cellar configuration in the card editor.", se = "Rack selection", ie = "occupied", re = "free", oe = "Unknown wine", ne = "Empty position", ae = "Row", le = "Column", ce = "No row/column coordinates are available for this rack.", de = "Positions without coordinates", he = "Not mapped", pe = "No racks available.", ue = "position(s) reference a missing rack.", ge = "Wine inventory", fe = "All colors", _e = "All regions", me = "All appellations", $e = "All vintages", ve = "Sort by", ye = "Name", be = "Quantity descending", we = "Vintage descending", xe = "{count} wine(s)", Ae = "{count} bottle(s)", Ce = "Clear filters", ke = "btl.", Se = "Unknown vintage", Ee = "Wine details", Pe = "Grapes", Re = "Cuvée", Oe = "Volume", Ue = "Locations", Me = {
-  card_title: Lt,
-  rack_title: jt,
+const jt = "Ploc Cellar", Lt = "Cellar storage", Dt = "Refresh", Vt = "Loading…", Gt = "Never", Bt = "Bottles in cellar", Wt = "Reconstructed stock", Ft = "Racks", Jt = "Empty positions", Zt = "Data may be stale: the latest synchronization failed.", Kt = "Stock reconstruction is incomplete: only physical quantities are available.", Qt = "Last successful synchronization", Xt = "Search wines", Yt = "Search wines…", te = "No matching wines.", ee = "Select a Ploc Cellar configuration in the card editor.", se = "Rack selection", ie = "occupied", re = "free", oe = "Unknown wine", ne = "Empty position", ae = "Row", le = "Column", ce = "No row/column coordinates are available for this rack.", de = "Positions without coordinates", he = "Not mapped", pe = "No racks available.", ue = "position(s) reference a missing rack.", ge = "Wine inventory", _e = "All colors", fe = "All regions", me = "All appellations", $e = "All vintages", ve = "Sort by", ye = "Name", be = "Quantity descending", we = "Vintage descending", xe = "{count} wine(s)", Ae = "{count} bottle(s)", Ce = "Clear filters", ke = "btl.", Se = "Unknown vintage", Ee = "Wine details", Pe = "Grapes", Re = "Cuvée", Oe = "Volume", Ue = "Locations", Me = {
+  card_title: jt,
+  rack_title: Lt,
   refresh: Dt,
   loading: Vt,
-  never: Bt,
-  bottles_in_cellar: Gt,
+  never: Gt,
+  bottles_in_cellar: Bt,
   reconstructed_stock: Wt,
   racks: Ft,
   empty_positions: Jt,
@@ -564,8 +564,8 @@ const Lt = "Ploc Cellar", jt = "Cellar storage", Dt = "Refresh", Vt = "Loading�
   no_racks: pe,
   missing_rack: ue,
   inventory_title: ge,
-  filter_color: fe,
-  filter_region: _e,
+  filter_color: _e,
+  filter_region: fe,
   filter_appellation: me,
   filter_vintage: $e,
   sort_by: ve,
@@ -582,19 +582,19 @@ const Lt = "Ploc Cellar", jt = "Cellar storage", Dt = "Refresh", Vt = "Loading�
   cuvee: Re,
   bottle_volume: Oe,
   locations: Ue
-}, Ie = "Cave Ploc", Ne = "Rangement de la cave", Te = "Actualiser", ze = "Chargement…", qe = "Jamais", He = "Bouteilles en cave", Le = "Stock reconstitué", je = "Casiers", De = "Places libres", Ve = "Données potentiellement obsolètes : la dernière synchronisation a échoué.", Be = "Reconstitution du stock en cours : seules les quantités physiques sont disponibles.", Ge = "Dernière synchronisation réussie", We = "Rechercher un vin", Fe = "Rechercher un vin…", Je = "Aucun vin correspondant.", Ze = "Sélectionnez une configuration Ploc Cellar dans l’éditeur de carte.", Ke = "Sélection du casier", Qe = "occupées", Xe = "libres", Ye = "Vin inconnu", ts = "Emplacement libre", es = "Rangée", ss = "Colonne", is = "Aucune coordonnée de rangée/colonne disponible pour ce casier.", rs = "Emplacements sans coordonnées", os = "Non renseigné", ns = "Aucun casier disponible.", as = "emplacement(s) référencent un casier absent.", ls = "Inventaire des vins", cs = "Toutes les couleurs", ds = "Toutes les régions", hs = "Toutes les appellations", ps = "Tous les millésimes", us = "Trier par", gs = "Nom", fs = "Quantité décroissante", _s = "Millésime décroissant", ms = "{count} référence(s)", $s = "{count} bouteille(s)", vs = "Effacer les filtres", ys = "bt.", bs = "Millésime inconnu", ws = "Détails du vin", xs = "Cépages", As = "Cuvée", Cs = "Volume", ks = "Emplacements", Ss = {
-  card_title: Ie,
-  rack_title: Ne,
+}, Ne = "Cave Ploc", Ie = "Rangement de la cave", Te = "Actualiser", ze = "Chargement…", He = "Jamais", qe = "Bouteilles en cave", je = "Stock reconstitué", Le = "Casiers", De = "Places libres", Ve = "Données potentiellement obsolètes : la dernière synchronisation a échoué.", Ge = "Reconstitution du stock en cours : seules les quantités physiques sont disponibles.", Be = "Dernière synchronisation réussie", We = "Rechercher un vin", Fe = "Rechercher un vin…", Je = "Aucun vin correspondant.", Ze = "Sélectionnez une configuration Ploc Cellar dans l’éditeur de carte.", Ke = "Sélection du casier", Qe = "occupées", Xe = "libres", Ye = "Vin inconnu", ts = "Emplacement libre", es = "Rangée", ss = "Colonne", is = "Aucune coordonnée de rangée/colonne disponible pour ce casier.", rs = "Emplacements sans coordonnées", os = "Non renseigné", ns = "Aucun casier disponible.", as = "emplacement(s) référencent un casier absent.", ls = "Inventaire des vins", cs = "Toutes les couleurs", ds = "Toutes les régions", hs = "Toutes les appellations", ps = "Tous les millésimes", us = "Trier par", gs = "Nom", _s = "Quantité décroissante", fs = "Millésime décroissant", ms = "{count} référence(s)", $s = "{count} bouteille(s)", vs = "Effacer les filtres", ys = "bt.", bs = "Millésime inconnu", ws = "Détails du vin", xs = "Cépages", As = "Cuvée", Cs = "Volume", ks = "Emplacements", Ss = {
+  card_title: Ne,
+  rack_title: Ie,
   refresh: Te,
   loading: ze,
-  never: qe,
-  bottles_in_cellar: He,
-  reconstructed_stock: Le,
-  racks: je,
+  never: He,
+  bottles_in_cellar: qe,
+  reconstructed_stock: je,
+  racks: Le,
   empty_positions: De,
   stale: Ve,
-  reconstruction_incomplete: Be,
-  last_sync: Ge,
+  reconstruction_incomplete: Ge,
+  last_sync: Be,
   search_wine: We,
   search_placeholder: Fe,
   no_matching_wines: Je,
@@ -618,8 +618,8 @@ const Lt = "Ploc Cellar", jt = "Cellar storage", Dt = "Refresh", Vt = "Loading�
   filter_vintage: ps,
   sort_by: us,
   sort_name: gs,
-  sort_bottles: fs,
-  sort_vintage: _s,
+  sort_bottles: _s,
+  sort_vintage: fs,
   inventory_results: ms,
   inventory_bottle_total: $s,
   clear_filters: vs,
@@ -631,7 +631,7 @@ const Lt = "Ploc Cellar", jt = "Cellar storage", Dt = "Refresh", Vt = "Loading�
   bottle_volume: Cs,
   locations: ks
 };
-function O(e, t) {
+function R(e, t) {
   return (e.toLocaleLowerCase().startsWith("fr") ? Ss : Me)[t];
 }
 var Es = Object.defineProperty, Ps = Object.getOwnPropertyDescriptor, k = (e, t, s, i) => {
@@ -726,10 +726,10 @@ let $ = class extends A {
   wineLabel(e) {
     if (!e.wine_id) return "";
     const t = this.wineById.get(e.wine_id);
-    return t ? t.name : O(this.hass?.language ?? "en", "unknown_wine");
+    return t ? t.name : R(this.hass?.language ?? "en", "unknown_wine");
   }
   render() {
-    const e = (a) => O(this.hass?.language ?? "en", a), t = this.inventory, s = t?.racks.find((a) => a.id === this.selectedRackId), i = this.rowValues, r = this.columnValues, o = this.positionedItems, n = this.selectedItems.filter((a) => a.row === null || a.column === null), d = (t?.rack_items ?? []).filter(
+    const e = (a) => R(this.hass?.language ?? "en", a), t = this.inventory, s = t?.racks.find((a) => a.id === this.selectedRackId), i = this.rowValues, r = this.columnValues, o = this.positionedItems, n = this.selectedItems.filter((a) => a.row === null || a.column === null), d = (t?.rack_items ?? []).filter(
       (a) => !t?.racks.some((p) => p.id === a.rack_id)
     );
     return c`
@@ -823,7 +823,7 @@ $.styles = J`
     .unplaced-item { padding: 5px 0; }
   `;
 k([
-  B({ attribute: !1 })
+  G({ attribute: !1 })
 ], $.prototype, "hass", 2);
 k([
   u()
@@ -849,12 +849,12 @@ window.customCards.push({
   name: "Ploc Cellar Rack",
   description: "Visualize physical rack positions and assigned wines."
 });
-var Rs = Object.defineProperty, Os = Object.getOwnPropertyDescriptor, _ = (e, t, s, i) => {
+var Rs = Object.defineProperty, Os = Object.getOwnPropertyDescriptor, f = (e, t, s, i) => {
   for (var r = i > 1 ? void 0 : i ? Os(t, s) : t, o = e.length - 1, n; o >= 0; o--)
     (n = e[o]) && (r = (i ? n(t, s, r) : n(r)) || r);
   return i && r && Rs(t, s, r), r;
 };
-let f = class extends A {
+let _ = class extends A {
   constructor() {
     super(...arguments), this.loading = !1, this.search = "", this.color = "", this.region = "", this.appellation = "", this.vintage = "", this.sort = "name", this.requestGeneration = 0;
   }
@@ -942,7 +942,7 @@ let f = class extends A {
     return t == null || t === "" ? l : c`<div><span class="detail-label">${e}</span>${t}</div>`;
   }
   renderWine(e) {
-    const t = (o) => O(this.hass?.language ?? "en", o), s = e.locations.map((o) => {
+    const t = (o) => R(this.hass?.language ?? "en", o), s = e.locations.map((o) => {
       const n = o.row !== null && o.column !== null ? ` · ${t("row")} ${o.row}, ${t("column")} ${o.column}` : "";
       return `${o.rack}${n}`;
     }), i = e.vintage === null ? t("unknown_vintage") : String(e.vintage), r = e.bottle_volume_l === null ? null : `${e.bottle_volume_l.toLocaleString(this.hass?.language ?? void 0)} L`;
@@ -978,7 +978,7 @@ let f = class extends A {
     `;
   }
   render() {
-    const e = (r) => O(this.hass?.language ?? "en", r), t = this.filteredWines, s = t.reduce((r, o) => r + o.bottles_in_cellar, 0), i = !!(this.search || this.color || this.region || this.appellation || this.vintage);
+    const e = (r) => R(this.hass?.language ?? "en", r), t = this.filteredWines, s = t.reduce((r, o) => r + o.bottles_in_cellar, 0), i = !!(this.search || this.color || this.region || this.appellation || this.vintage);
     return c`
       <ha-card>
         <header>
@@ -1033,7 +1033,7 @@ let f = class extends A {
     return { columns: 12, min_columns: 6, rows: 6, min_rows: 4 };
   }
 };
-f.styles = J`
+_.styles = J`
     :host { display: block; }
     ha-card { padding: 16px; color: var(--primary-text-color); }
     header { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
@@ -1071,56 +1071,56 @@ f.styles = J`
       .toolbar { grid-template-columns: 1fr 1fr; }
     }
   `;
-_([
-  B({ attribute: !1 })
-], f.prototype, "hass", 2);
-_([
+f([
+  G({ attribute: !1 })
+], _.prototype, "hass", 2);
+f([
   u()
-], f.prototype, "config", 2);
-_([
+], _.prototype, "config", 2);
+f([
   u()
-], f.prototype, "inventory", 2);
-_([
+], _.prototype, "inventory", 2);
+f([
   u()
-], f.prototype, "loading", 2);
-_([
+], _.prototype, "loading", 2);
+f([
   u()
-], f.prototype, "error", 2);
-_([
+], _.prototype, "error", 2);
+f([
   u()
-], f.prototype, "search", 2);
-_([
+], _.prototype, "search", 2);
+f([
   u()
-], f.prototype, "color", 2);
-_([
+], _.prototype, "color", 2);
+f([
   u()
-], f.prototype, "region", 2);
-_([
+], _.prototype, "region", 2);
+f([
   u()
-], f.prototype, "appellation", 2);
-_([
+], _.prototype, "appellation", 2);
+f([
   u()
-], f.prototype, "vintage", 2);
-_([
+], _.prototype, "vintage", 2);
+f([
   u()
-], f.prototype, "sort", 2);
-f = _([
+], _.prototype, "sort", 2);
+_ = f([
   Y("ploc-cellar-inventory-card")
-], f);
+], _);
 window.customCards ??= [];
 window.customCards.push({
   type: "ploc-cellar-inventory-card",
   name: "Ploc Cellar Inventory",
   description: "Search, filter and browse the wine inventory."
 });
-var Us = Object.defineProperty, Ms = Object.getOwnPropertyDescriptor, S = (e, t, s, i) => {
+var Us = Object.defineProperty, Ms = Object.getOwnPropertyDescriptor, O = (e, t, s, i) => {
   for (var r = i > 1 ? void 0 : i ? Ms(t, s) : t, o = e.length - 1, n; o >= 0; o--)
     (n = e[o]) && (r = (i ? n(t, s, r) : n(r)) || r);
   return i && r && Us(t, s, r), r;
 };
-let v = class extends A {
+let b = class extends A {
   constructor() {
-    super(...arguments), this.loading = !1, this.requestGeneration = 0, this.search = "";
+    super(...arguments), this.loading = !1, this.requestGeneration = 0;
   }
   static getConfigForm() {
     return {
@@ -1163,14 +1163,8 @@ let v = class extends A {
       i === this.requestGeneration && (this.loading = !1);
     }
   }
-  get filteredWines() {
-    const e = this.search.trim().toLocaleLowerCase(), t = this.inventory?.wines ?? [];
-    return e ? t.filter(
-      (s) => [s.name, s.domain, s.appellation, s.region, s.country, s.grapes].filter(Boolean).join(" ").toLocaleLowerCase().includes(e)
-    ) : t;
-  }
   formatSync(e) {
-    if (!e) return O(this.hass?.language ?? "en", "never");
+    if (!e) return R(this.hass?.language ?? "en", "never");
     const t = new Date(e);
     return Number.isNaN(t.getTime()) ? e : new Intl.DateTimeFormat(this.hass?.language ?? void 0, {
       dateStyle: "short",
@@ -1178,7 +1172,7 @@ let v = class extends A {
     }).format(t);
   }
   render() {
-    const e = (i) => O(this.hass?.language ?? "en", i), t = this.inventory, s = this.config?.title ?? e("card_title");
+    const e = (i) => R(this.hass?.language ?? "en", i), t = this.inventory, s = this.config?.title ?? e("card_title");
     return c`
       <ha-card>
         <header>
@@ -1199,19 +1193,6 @@ let v = class extends A {
           </div>
           ${t.stock_reconstruction_complete ? l : c`<div class="warning">${e("reconstruction_incomplete")}</div>`}
           <div class="muted">${e("last_sync")} : ${this.formatSync(t.last_sync)}</div>
-          <input aria-label=${e("search_wine")} .value=${this.search} @input=${(i) => {
-      this.search = i.target.value;
-    }} placeholder=${e("search_placeholder")} />
-          ${this.filteredWines.map((i) => c`
-            <div class="wine">
-              <div>
-                <div class="wine-name">${i.name}</div>
-                <div class="details">${[i.domain, i.vintage, i.appellation, i.region].filter(Boolean).join(" · ")}</div>
-              </div>
-              <div class="count">${i.bottles ?? i.bottles_in_cellar}</div>
-            </div>
-          `)}
-          ${this.filteredWines.length === 0 ? c`<div class="muted">${e("no_matching_wines")}</div>` : l}
         ` : l}
       </ha-card>
     `;
@@ -1228,7 +1209,7 @@ let v = class extends A {
     };
   }
 };
-v.styles = J`
+b.styles = J`
     :host { display: block; }
     ha-card { padding: 16px; color: var(--primary-text-color); }
     header { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
@@ -1239,42 +1220,34 @@ v.styles = J`
     .metric { background: var(--secondary-background-color); border-radius: 10px; padding: 12px; min-width: 0; }
     .value { display: block; font-size: 1.45rem; font-weight: 600; }
     .label, .muted { color: var(--secondary-text-color); font-size: .85rem; }
-    input { box-sizing: border-box; width: 100%; padding: 10px 12px; margin: 4px 0 12px; color: var(--primary-text-color); background: var(--card-background-color); border: 1px solid var(--divider-color); border-radius: 8px; }
-    .wine { display: flex; justify-content: space-between; gap: 12px; padding: 12px 0; border-top: 1px solid var(--divider-color); }
-    .wine-name { font-weight: 500; }
-    .details { color: var(--secondary-text-color); font-size: .85rem; margin-top: 3px; }
-    .count { white-space: nowrap; font-weight: 600; }
     .warning { color: var(--warning-color); padding: 8px 0; }
     .error { color: var(--error-color); padding: 8px 0; }
     @media (max-width: 420px) { ha-card { padding: 12px; } }
   `;
-S([
-  B({ attribute: !1 })
-], v.prototype, "hass", 2);
-S([
+O([
+  G({ attribute: !1 })
+], b.prototype, "hass", 2);
+O([
   u()
-], v.prototype, "config", 2);
-S([
+], b.prototype, "config", 2);
+O([
   u()
-], v.prototype, "inventory", 2);
-S([
+], b.prototype, "inventory", 2);
+O([
   u()
-], v.prototype, "loading", 2);
-S([
+], b.prototype, "loading", 2);
+O([
   u()
-], v.prototype, "error", 2);
-S([
-  u()
-], v.prototype, "search", 2);
-v = S([
+], b.prototype, "error", 2);
+b = O([
   Y("ploc-cellar-card")
-], v);
+], b);
 window.customCards ??= [];
 window.customCards.push({
   type: "ploc-cellar-card",
   name: "Ploc Cellar",
-  description: "Inventory overview for the Ploc Cellar integration."
+  description: "Cellar overview and stock indicators."
 });
 export {
-  v as PlocCellarCard
+  b as PlocCellarCard
 };
