@@ -124,6 +124,8 @@ La réponse contient :
 - `rack_count`, `total_positions`, `occupied_positions` et `empty_positions`, le nombre de casiers et le détail des emplacements ; `positions_without_rack` et `positions_with_unknown_wine` signalent les références de casier ou de vin temporairement inconnues ;
 - `matching_wines`, le nombre de vins correspondant aux filtres ;
 - `racks`, la liste des casiers ;
+- `rack_items`, la liste complète des emplacements physiques, y compris les emplacements libres et les références de casier ou de vin temporairement inconnues. Chaque élément contient `id`, `rack_id`, `wine_id` (`null` si l'emplacement est libre), `row` et `column` ;
+- `stale`, indique si l'inventaire affiché est antérieur à la dernière synchronisation réussie parce qu'une synchronisation ultérieure a échoué ;
 - `wines`, normalement uniquement les vins dont le stock effectif est positif. Si la reconstitution est incomplète, seuls les vins connus avec des bouteilles physiquement placées sont renvoyés ; leurs quantités et diagnostics dépendant du stock valent `null`, comme les totaux globaux qui dépendent des mouvements ;
 - `wine_diagnostics`, la liste non filtrée des vins ayant au moins un diagnostic de stock non localisé, de solde de mouvements négatif ou d’excédent physique, y compris ceux dont le stock effectif est nul. Chaque entrée fournit les entrées, sorties, le solde des mouvements, la quantité physique, le stock effectif et les trois quantités de diagnostic. Cette liste vaut `null` tant que la reconstitution du stock est incomplète ;
 - `stock_reconstruction_complete`, indique si un instantané complet des Orders est disponible ;
