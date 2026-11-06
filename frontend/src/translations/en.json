@@ -55,5 +55,18 @@
   "editor_configuration": "Ploc Cellar configuration",
   "editor_configuration_helper": "Select the PLOUD connection used by this card.",
   "editor_title": "Card title",
-  "editor_title_helper": "Optional. Leave empty to use the default title."
+  "editor_title_helper": "Optional. Leave empty to use the default title.",
+  "statistics_title": "Cellar statistics",
+  "statistics_bottles": "Bottles represented",
+  "statistics_references": "wine references",
+  "statistics_color": "By color",
+  "statistics_region": "By region",
+  "statistics_appellation": "By appellation",
+  "statistics_vintage": "By vintage",
+  "statistics_format": "By bottle format",
+  "statistics_other": "Other",
+  "statistics_unknown": "Not specified",
+  "statistics_empty": "No data available for this category.",
+  "picker_statistics_name": "Wine statistics",
+  "picker_statistics_description": "Explore stock distribution by color, region, appellation, vintage and bottle format."
 }
