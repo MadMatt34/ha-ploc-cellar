@@ -8,7 +8,11 @@ from uuid import UUID
 
 from homeassistant.util.json import JsonObjectType, JsonValueType
 
-from .const import CELLAR_DATA_VERSION, ORDERS_STORAGE_VERSION
+from .const import (
+    CELLAR_DATA_VERSION,
+    ORDERS_STORAGE_VERSION,
+    PLOUD_REFERENCE_COLLECTIONS,
+)
 
 type JsonValue = JsonValueType
 type JsonObject = JsonObjectType
@@ -53,6 +57,8 @@ class Wine:
     ploud_pid: str | None
     domain: str | None
     owner_id: str | None
+    # Original compact PLOUD properties retained for later reference resolution.
+    ploud_reference_fields: JsonObject = field(default_factory=dict)
 
 
 @dataclass(frozen=True, slots=True)
@@ -116,6 +122,8 @@ class Cellar:
         default_factory=lambda: dict[str, RackItem]()
     )
     orders: dict[str, Order] = field(default_factory=lambda: dict[str, Order]())
+    # Indexed PLOUD lookup collections, retained across incremental syncs.
+    references: dict[str, dict[str, JsonObject]] = field(default_factory=dict)
 
     @property
     def total_bottles(self) -> int:
@@ -353,6 +361,7 @@ class Cellar:
                 "ploud_pid": wine.ploud_pid,
                 "domain": wine.domain,
                 "owner_id": wine.owner_id,
+                "ploud_reference_fields": wine.ploud_reference_fields,
             }
             for wine_id, wine in self.wines.items()
         }
@@ -369,6 +378,13 @@ class Cellar:
                 "column": item.column,
             }
             for item_id, item in self.rack_items.items()
+        }
+        references: dict[str, JsonValue] = {
+            collection: {
+                identifier: entry
+                for identifier, entry in entries.items()
+            }
+            for collection, entries in self.references.items()
         }
         orders: dict[str, JsonValue] = {
             order_id: {
@@ -389,6 +405,7 @@ class Cellar:
             "racks": racks,
             "rack_items": rack_items,
             "orders": orders,
+            "references": references,
         }
 
     @classmethod
@@ -432,6 +449,17 @@ class Cellar:
             last_sync=_str(data.get("last_sync")),
             initialized=data.get("initialized") is True,
             stock_reconstruction_complete=stock_reconstruction_complete,
+            references={
+                collection: {
+                    identifier: _as_dict(entry)
+                    for identifier, entry in _as_dict(
+                        _as_dict(data.get("references")).get(collection)
+                    ).items()
+                    if isinstance(entry, dict)
+                }
+                for collection in PLOUD_REFERENCE_COLLECTIONS
+                if collection in _as_dict(data.get("references"))
+            },
         )
 
         for key, raw in _as_dict(data.get("wines")).items():
@@ -876,6 +904,7 @@ def _wine_from_dict(raw: JsonObject, key: str) -> Wine:
         ploud_pid=_optional_str(value("ploud_pid", "pid")),
         domain=_optional_str(value("domain", "domain")),
         owner_id=_optional_id(value("owner_id", "ow")),
+        ploud_reference_fields=legacy_fields,
     )
 
 
