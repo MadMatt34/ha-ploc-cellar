@@ -67,8 +67,6 @@
   "statistics_other": "Other",
   "statistics_unknown": "Not specified",
   "statistics_empty": "No data available for this category.",
-  "picker_statistics_name": "Wine statistics",
-  "picker_statistics_description": "Explore stock distribution by color, region, appellation, vintage and bottle format.",
   "unknown_value": "Unknown",
   "stocked_references": "Wine references in stock",
   "rack_occupancy": "Rack occupancy",
