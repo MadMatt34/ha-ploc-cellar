@@ -12,6 +12,7 @@ import type {
   WineDiagnostic,
 } from "./types";
 import { translate, translatePicker, type TranslationKey } from "./translations";
+import "./donut-chart";
 
 interface DistributionItem {
   name: string;
@@ -82,10 +83,8 @@ export class PlocCellarCard extends LitElement {
     .group-title { margin: 0 0 12px; font-size: 1rem; font-weight: 500; }
     .chart-content { display: grid; grid-template-columns: minmax(112px, .85fr) minmax(0, 1.15fr); gap: 12px; align-items: center; }
     .chart-content.chart-content-no-legend { grid-template-columns: minmax(0, 1fr); }
-    .donut { position: relative; display: grid; place-items: center; width: 100%; max-width: 150px; aspect-ratio: 1; border-radius: 50%; justify-self: center; }
-    .donut-chart { position: absolute; inset: 0; display: block; width: 100%; height: 100%; overflow: visible; }
-    .donut-segment { fill: none; stroke: rgba(0, 0, 0, 0.01); stroke-width: 16; pointer-events: stroke; cursor: help; }
-    .donut-segment:focus { outline: none; }
+    .donut { position: relative; display: block; width: 100%; max-width: 150px; aspect-ratio: 1; justify-self: center; }
+    .donut-chart { display: block; width: 100%; height: 100%; }
     .donut-center { position: absolute; inset: 17%; display: flex; flex-direction: column; align-items: center; justify-content: center; border-radius: 50%; background: var(--card-background-color, var(--ha-card-background, #fff)); pointer-events: none; }
     .donut-total { color: var(--primary-text-color); font-size: 1rem; font-weight: 600; font-variant-numeric: tabular-nums; }
     .donut-caption { color: var(--secondary-text-color); font-size: .48rem; }
@@ -234,22 +233,12 @@ export class PlocCellarCard extends LitElement {
       translate(this.hass?.language ?? "en", key);
     const items = this.distribution(field);
     const total = items.reduce((sum, item) => sum + item.bottles, 0);
-    let offset = 0;
     const segments = items
       .filter((item) => item.bottles > 0)
-      .map((item, index) => {
-        const start = offset;
-        offset += (item.bottles / total) * 100;
-        return {
-          ...item,
-          start,
-          end: offset,
-          color: item.color ?? CHART_COLORS[index % CHART_COLORS.length],
-        };
-      });
-    const gradient = segments
-      .map((item) => `${item.color} ${item.start}% ${item.end}%`)
-      .join(", ");
+      .map((item, index) => ({
+        ...item,
+        color: item.color ?? CHART_COLORS[index % CHART_COLORS.length],
+      }));
     const chartLabel = items
       .map((item) => `${item.name}: ${this.formatNumber(item.bottles)}`)
       .join(", ");
@@ -262,28 +251,12 @@ export class PlocCellarCard extends LitElement {
             ? "chart-content chart-content-no-legend"
             : "chart-content"}>
             <div class="donut" role="img"
-              aria-label=${t(titleKey) + ": " + chartLabel}
-              style=${`background: conic-gradient(${gradient})`}
->
-              <svg class="donut-chart" viewBox="0 0 100 100">
-                ${segments.map((item) => {
-                  const circumference = 2 * Math.PI * 42;
-                  const segmentLength = ((item.end - item.start) / 100) * circumference;
-                  const dashArray = `${segmentLength} ${circumference - segmentLength}`;
-                  const dashOffset = -(item.start / 100) * circumference;
-                  const tooltip = `${item.name}: ${this.formatNumber(item.bottles)} ${t("statistics_bottles")} (${new Intl.NumberFormat(this.hass?.language ?? undefined, { style: "percent", maximumFractionDigits: 1 }).format(item.bottles / total)}), ${this.formatNumber(item.wines)} ${t("statistics_references")}`;
-                  return html`
-                    <circle class="donut-segment" cx="50" cy="50" r="42"
-                      stroke="rgba(0, 0, 0, 0.01)"
-                      title=${tooltip}
-                      aria-label=${tooltip}
-                      stroke-dasharray=${dashArray}
-                      stroke-dashoffset=${dashOffset}>
-                      <title>${tooltip}</title>
-                    </circle>
-                  `;
-                })}
-              </svg>
+              aria-label=${t(titleKey) + ": " + chartLabel}>
+              <ploc-cellar-donut-chart
+                class="donut-chart"
+                .items=${segments}
+                .language=${this.hass?.language ?? "en"}>
+              </ploc-cellar-donut-chart>
               <div class="donut-center">
                 <span class="donut-total">${this.formatNumber(total)}</span>
                 <span class="donut-caption">${t("statistics_bottles")}</span>
