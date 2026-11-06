@@ -55,7 +55,7 @@ export class PlocCellarRackCard extends LitElement {
   }
 
   static getStubConfig(): Partial<PlocCellarCardConfig> {
-    return { title: "Ploc Cellar" };
+    return {};
   }
 
   setConfig(config: PlocCellarCardConfig): void {
