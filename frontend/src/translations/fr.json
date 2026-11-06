@@ -75,5 +75,7 @@
   "inventory_diagnostics": "Diagnostics du stock",
   "diagnostic_unlocated": "Bouteilles non localisées",
   "diagnostic_negative": "Solde de mouvements négatif",
-  "diagnostic_surplus": "Excédent physique"
+  "diagnostic_surplus": "Excédent physique",
+  "statistics_distribution_scope": "Les répartitions ne portent que sur les références de vins connues.",
+  "statistics_unknown_wine_positions": "{count} emplacement(s) occupé(s) font référence à un vin inconnu. Ils sont inclus dans le stock total, mais pas dans les répartitions."
 }
