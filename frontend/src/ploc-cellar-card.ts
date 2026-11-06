@@ -2,13 +2,14 @@ import { LitElement, css, html, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators.js";
 import "./ploc-cellar-rack-card";
 import "./ploc-cellar-inventory-card";
+import "./ploc-cellar-card-editor";
 
 import type {
   HomeAssistant,
   InventoryResponse,
   PlocCellarCardConfig,
 } from "./types";
-import { translate, type TranslationKey } from "./translations";
+import { translate, translatePicker, type TranslationKey } from "./translations";
 
 @customElement("ploc-cellar-card")
 export class PlocCellarCard extends LitElement {
@@ -35,17 +36,8 @@ export class PlocCellarCard extends LitElement {
     @media (max-width: 420px) { ha-card { padding: 12px; } }
   `;
 
-  static getConfigForm() {
-    return {
-      schema: [
-        {
-          name: "config_entry_id",
-          required: true,
-          selector: { config_entry: { integration: "ploc_cellar" } },
-        },
-        { name: "title", selector: { text: {} } },
-      ],
-    };
+  static getConfigElement(): HTMLElement {
+    return document.createElement("ploc-cellar-card-editor");
   }
 
   static getStubConfig(): Partial<PlocCellarCardConfig> {
@@ -163,6 +155,6 @@ declare global {
 window.customCards ??= [];
 window.customCards.push({
   type: "ploc-cellar-card",
-  name: "Ploc Cellar",
-  description: "Cellar overview and stock indicators.",
+  name: translatePicker("picker_overview_name"),
+  description: translatePicker("picker_overview_description"),
 });
