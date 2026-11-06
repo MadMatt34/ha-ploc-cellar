@@ -124,6 +124,8 @@ La réponse contient :
 - `rack_count`, `total_positions`, `occupied_positions` et `empty_positions`, le nombre de casiers et le détail des emplacements ; `positions_without_rack` et `positions_with_unknown_wine` signalent les références de casier ou de vin temporairement inconnues ;
 - `matching_wines`, le nombre de vins correspondant aux filtres ;
 - `racks`, la liste des casiers ;
+- `rack_items`, la liste complète des emplacements physiques, y compris les emplacements libres et les références de casier ou de vin temporairement inconnues. Chaque élément contient `id`, `rack_id`, `wine_id` (`null` si l'emplacement est libre), `row` et `column` ;
+- `stale`, indique si l'inventaire affiché est antérieur à la dernière synchronisation réussie parce qu'une synchronisation ultérieure a échoué ;
 - `wines`, normalement uniquement les vins dont le stock effectif est positif. Si la reconstitution est incomplète, seuls les vins connus avec des bouteilles physiquement placées sont renvoyés ; leurs quantités et diagnostics dépendant du stock valent `null`, comme les totaux globaux qui dépendent des mouvements ;
 - `wine_diagnostics`, la liste non filtrée des vins ayant au moins un diagnostic de stock non localisé, de solde de mouvements négatif ou d’excédent physique, y compris ceux dont le stock effectif est nul. Chaque entrée fournit les entrées, sorties, le solde des mouvements, la quantité physique, le stock effectif et les trois quantités de diagnostic. Cette liste vaut `null` tant que la reconstitution du stock est incomplète ;
 - `stock_reconstruction_complete`, indique si un instantané complet des Orders est disponible ;
@@ -144,3 +146,24 @@ L'intégration envoie uniquement les paramètres nécessaires à la synchronisat
 La CI vérifie le code avec Ruff et Hassfest, exécute Pyright en mode strict contre la dernière version stable de Home Assistant disponible sur PyPI ainsi que la suite unitaire pytest, et valide la structure HACS de l'intégration.
 
 Ces contrôles statiques ne remplacent pas les essais de bout en bout avec une instance Home Assistant réelle et la cave PLOUD.
+
+
+### Cartes Lovelace
+
+L'intégration fournit deux cartes Lovelace personnalisées facultatives :
+
+- **Ploc Cellar** : vue d'ensemble de la cave, indicateurs de stock et inventaire des vins avec recherche.
+- **Ploc Cellar Rack** : sélection d'un casier et représentation des emplacements à partir des coordonnées réelles de rangée et de colonne PLOUD.
+
+Le module JavaScript est servi par Home Assistant à l'adresse
+`/ploc_cellar_static/ploc-cellar-card.js`. Ajoutez-le une seule fois dans
+**Paramètres → Tableaux de bord → Ressources**, avec le type « Module
+JavaScript ». Ajoutez ensuite l'une ou l'autre carte depuis le sélecteur de
+cartes du tableau de bord et choisissez l'entrée de configuration Ploc Cellar
+dans l'éditeur de carte. Chaque carte conserve son propre `config_entry_id`,
+ce qui permet de prendre en charge plusieurs connexions à une cave.
+
+Le code source frontend se trouve dans `frontend/`. GitHub Actions vérifie le
+typage et construit le module, puis ajoute le fichier généré dans
+`custom_components/ploc_cellar/www/`. Node.js n'est pas nécessaire pour les
+utilisateurs finaux.

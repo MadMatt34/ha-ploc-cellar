@@ -3,9 +3,11 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from datetime import timedelta
+from pathlib import Path
 from typing import Any, cast
 
 import voluptuous as vol
+from homeassistant.components.http import StaticPathConfig
 from homeassistant.config_entries import ConfigEntryState
 from homeassistant.const import ATTR_CONFIG_ENTRY_ID, Platform
 from homeassistant.core import (
@@ -214,7 +216,18 @@ def _build_inventory_response(
     racks: list[JsonValueType] = [
         {"id": rack.id, "name": rack.name} for rack in cellar.racks.values()
     ]
+    rack_items: list[JsonValueType] = [
+        {
+            "id": item.id,
+            "rack_id": item.rack_id,
+            "wine_id": item.wine_id or None,
+            "row": item.row,
+            "column": item.column,
+        }
+        for item in cellar.rack_items.values()
+    ]
     return {
+        "stale": cellar.stale,
         "total_bottles": cellar.total_bottles,
         "stocked_wines": cellar.stocked_wines,
         "wine_references": cellar.wine_references,
@@ -236,13 +249,23 @@ def _build_inventory_response(
         "positions_with_unknown_wine": cellar.positions_with_unknown_wine,
         "orders_without_wine": cellar.orders_without_wine,
         "racks": racks,
+        "rack_items": rack_items,
         "wines": inventory,
         "last_sync": cellar.last_sync,
     }
 
 
 async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
-    """Register the inventory response action independently of config setup."""
+    """Register the inventory action and the optional Lovelace card asset."""
+    await hass.http.async_register_static_paths(
+        [
+            StaticPathConfig(
+                f"/{DOMAIN}_static",
+                str(Path(__file__).parent / "www"),
+                False,
+            )
+        ]
+    )
 
     async def get_inventory(call: ServiceCall) -> JsonObjectType:
         """Return the current stocked inventory on demand."""

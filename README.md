@@ -124,6 +124,8 @@ The response contains:
 - `rack_count`, `total_positions`, `occupied_positions` and `empty_positions`, the number of racks and the position breakdown; `positions_without_rack` and `positions_with_unknown_wine` report temporarily unresolved Rack or Wine references;
 - `matching_wines`, the number of wines matching the filters;
 - `racks`, the list of racks;
+- `rack_items`, the complete list of physical positions, including empty positions and unresolved rack/wine references. Each item contains `id`, `rack_id`, `wine_id` (`null` when unassigned), `row` and `column`;
+- `stale`, whether the displayed inventory is older than the last successful synchronization because a later synchronization failed;
 - `wines`, normally only wines with positive effective stock. If reconstruction is incomplete, only known wines with physical bottles in rack positions are returned; their stock-derived quantities and diagnostics are `null`, as are global stock-derived totals;
 - `wine_diagnostics`, the unfiltered list of all wines with at least one unlocated-stock, negative-movement or physical-surplus diagnostic, including wines with zero effective stock. Each entry includes purchased, consumed, movement balance, physical quantity, effective stock and all three diagnostic quantities. It is `null` while stock reconstruction is incomplete;
 - `stock_reconstruction_complete`, whether a complete Orders snapshot is available;
@@ -144,3 +146,22 @@ The integration sends only the parameters required for synchronization and an em
 CI runs Ruff, Hassfest, strict Pyright type analysis against the latest stable Home Assistant release available from PyPI, the unit test suite with pytest, and HACS integration validation.
 
 These static checks do not replace end-to-end testing against a real Home Assistant instance and the PLOUD cellar.
+
+
+### Lovelace dashboard cards
+
+The integration includes two optional custom Lovelace cards:
+
+- **Ploc Cellar**: cellar overview, stock indicators and searchable wine inventory.
+- **Ploc Cellar Rack**: rack selector and a position map based on the actual PLOUD row/column coordinates.
+
+The JavaScript module is served by Home Assistant at
+`/ploc_cellar_static/ploc-cellar-card.js`. Add it once under
+**Settings → Dashboards → Resources** as a JavaScript module. Then add either
+card from the dashboard card picker and select the Ploc Cellar configuration
+entry in the card editor. Each card stores its own `config_entry_id`, so
+dashboards remain compatible with multiple cellar connections.
+
+The frontend source is in `frontend/`. GitHub Actions type-checks and builds
+the module, then commits the generated asset under
+`custom_components/ploc_cellar/www/`. End users do not need Node.js.
