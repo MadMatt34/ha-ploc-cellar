@@ -236,8 +236,7 @@ export class PlocCellarRackCard extends LitElement {
     return {
       columns: 12,
       min_columns: 6,
-      rows: 5,
-      min_rows: 4,
+      rows: "auto" as const,
     };
   }
 }

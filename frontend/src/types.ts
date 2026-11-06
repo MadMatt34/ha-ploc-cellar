@@ -7,6 +7,10 @@ export interface PlocCellarCardConfig {
   type: string;
   config_entry_id?: string;
   title?: string;
+  show_occupancy?: boolean;
+  show_diagnostics?: boolean;
+  show_statistics?: boolean;
+  show_statistics_legends?: boolean;
 }
 
 export interface Rack {

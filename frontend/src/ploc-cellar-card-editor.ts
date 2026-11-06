@@ -16,15 +16,31 @@ export class PlocCellarCardEditor extends LitElement {
       selector: { config_entry: { integration: "ploc_cellar" } },
     },
     { name: "title", selector: { text: {} } },
+    { name: "show_occupancy", selector: { boolean: {} } },
+    { name: "show_diagnostics", selector: { boolean: {} } },
+    { name: "show_statistics", selector: { boolean: {} } },
+    { name: "show_statistics_legends", selector: { boolean: {} } },
   ];
 
   setConfig(config: PlocCellarCardConfig): void {
-    this.config = config;
+    this.config = {
+      ...config,
+      show_occupancy: config.show_occupancy !== false,
+      show_diagnostics: config.show_diagnostics !== false,
+      show_statistics: config.show_statistics !== false,
+      show_statistics_legends: config.show_statistics_legends !== false,
+    };
   }
 
   private computeLabel = (schema: { name: string }): string => {
-    const key: TranslationKey =
-      schema.name === "config_entry_id" ? "editor_configuration" : "editor_title";
+    const labels: Record<string, TranslationKey> = {
+      config_entry_id: "editor_configuration", title: "editor_title",
+      show_occupancy: "editor_show_occupancy",
+      show_diagnostics: "editor_show_diagnostics",
+      show_statistics: "editor_show_statistics",
+      show_statistics_legends: "editor_show_statistics_legends",
+    };
+    const key = labels[schema.name];
     return translate(this.hass?.language ?? "en", key);
   };
 
