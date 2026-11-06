@@ -247,7 +247,7 @@ let P = class extends HTMLElement {
   }
 };
 P.elementStyles = [], P.shadowRootOptions = { mode: "open" }, P[D("elementProperties")] = /* @__PURE__ */ new Map(), P[D("finalized")] = /* @__PURE__ */ new Map(), Nt?.({ ReactiveElement: P }), (F.reactiveElementVersions ??= []).push("2.1.2");
-const Q = globalThis, at = (e) => e, V = Q.trustedTypes, ct = V ? V.createPolicy("lit-html", { createHTML: (e) => e }) : void 0, ft = "$lit$", x = `lit$${Math.random().toFixed(9).slice(2)}$`, vt = "?" + x, Ot = `<${vt}>`, S = document, T = () => S.createComment(""), I = (e) => e === null || typeof e != "object" && typeof e != "function", tt = Array.isArray, Rt = (e) => tt(e) || typeof e?.[Symbol.iterator] == "function", X = `[ 	
+const Q = globalThis, at = (e) => e, V = Q.trustedTypes, ct = V ? V.createPolicy("lit-html", { createHTML: (e) => e }) : void 0, ft = "$lit$", x = `lit$${Math.random().toFixed(9).slice(2)}$`, vt = "?" + x, Ot = `<${vt}>`, S = document, T = () => S.createComment(""), U = (e) => e === null || typeof e != "object" && typeof e != "function", tt = Array.isArray, Rt = (e) => tt(e) || typeof e?.[Symbol.iterator] == "function", X = `[ 	
 \f\r]`, M = /<(?:(!--|\/[^a-zA-Z])|(\/?[a-zA-Z][^>\s]*)|(\/?$))/g, lt = /-->/g, dt = />/g, A = RegExp(`>|${X}(?:([^\\s"'>=/]+)(${X}*=${X}*(?:[^ 	
 \f\r"'\`<>=]|("|')|))|$)`, "g"), ht = /'/g, pt = /"/g, $t = /^(?:script|style|textarea|title)$/i, Mt = (e) => (t, ...s) => ({ _$litType$: e, strings: t, values: s }), l = Mt(1), N = /* @__PURE__ */ Symbol.for("lit-noChange"), h = /* @__PURE__ */ Symbol.for("lit-nothing"), ut = /* @__PURE__ */ new WeakMap(), C = S.createTreeWalker(S, 129);
 function yt(e, t) {
@@ -261,32 +261,32 @@ const Dt = (e, t) => {
     const a = e[d];
     let c, u, p = -1, _ = 0;
     for (; _ < a.length && (n.lastIndex = _, u = n.exec(a), u !== null); ) _ = n.lastIndex, n === M ? u[1] === "!--" ? n = lt : u[1] !== void 0 ? n = dt : u[2] !== void 0 ? ($t.test(u[2]) && (o = RegExp("</" + u[2], "g")), n = A) : u[3] !== void 0 && (n = A) : n === A ? u[0] === ">" ? (n = o ?? M, p = -1) : u[1] === void 0 ? p = -2 : (p = n.lastIndex - u[2].length, c = u[1], n = u[3] === void 0 ? A : u[3] === '"' ? pt : ht) : n === pt || n === ht ? n = A : n === lt || n === dt ? n = M : (n = A, o = void 0);
-    const f = n === A && e[d + 1].startsWith("/>") ? " " : "";
-    r += n === M ? a + Ot : p >= 0 ? (i.push(c), a.slice(0, p) + ft + a.slice(p) + x + f) : a + x + (p === -2 ? d : f);
+    const $ = n === A && e[d + 1].startsWith("/>") ? " " : "";
+    r += n === M ? a + Ot : p >= 0 ? (i.push(c), a.slice(0, p) + ft + a.slice(p) + x + $) : a + x + (p === -2 ? d : $);
   }
   return [yt(e, r + (e[s] || "<?>") + (t === 2 ? "</svg>" : t === 3 ? "</math>" : "")), i];
 };
-class U {
+class z {
   constructor({ strings: t, _$litType$: s }, i) {
     let o;
     this.parts = [];
     let r = 0, n = 0;
     const d = t.length - 1, a = this.parts, [c, u] = Dt(t, s);
-    if (this.el = U.createElement(c, i), C.currentNode = this.el.content, s === 2 || s === 3) {
+    if (this.el = z.createElement(c, i), C.currentNode = this.el.content, s === 2 || s === 3) {
       const p = this.el.content.firstChild;
       p.replaceWith(...p.childNodes);
     }
     for (; (o = C.nextNode()) !== null && a.length < d; ) {
       if (o.nodeType === 1) {
         if (o.hasAttributes()) for (const p of o.getAttributeNames()) if (p.endsWith(ft)) {
-          const _ = u[n++], f = o.getAttribute(p).split(x), H = /([.?@])?(.*)/.exec(_);
-          a.push({ type: 1, index: r, name: H[2], strings: f, ctor: H[1] === "." ? It : H[1] === "?" ? Ut : H[1] === "@" ? zt : G }), o.removeAttribute(p);
+          const _ = u[n++], $ = o.getAttribute(p).split(x), H = /([.?@])?(.*)/.exec(_);
+          a.push({ type: 1, index: r, name: H[2], strings: $, ctor: H[1] === "." ? Ut : H[1] === "?" ? zt : H[1] === "@" ? It : G }), o.removeAttribute(p);
         } else p.startsWith(x) && (a.push({ type: 6, index: r }), o.removeAttribute(p));
         if ($t.test(o.tagName)) {
           const p = o.textContent.split(x), _ = p.length - 1;
           if (_ > 0) {
             o.textContent = V ? V.emptyScript : "";
-            for (let f = 0; f < _; f++) o.append(p[f], T()), C.nextNode(), a.push({ type: 2, index: ++r });
+            for (let $ = 0; $ < _; $++) o.append(p[$], T()), C.nextNode(), a.push({ type: 2, index: ++r });
             o.append(p[_], T());
           }
         }
@@ -306,7 +306,7 @@ class U {
 function O(e, t, s = e, i) {
   if (t === N) return t;
   let o = i !== void 0 ? s._$Co?.[i] : s._$Cl;
-  const r = I(t) ? void 0 : t._$litDirective$;
+  const r = U(t) ? void 0 : t._$litDirective$;
   return o?.constructor !== r && (o?._$AO?.(!1), r === void 0 ? o = void 0 : (o = new r(e), o._$AT(e, s, i)), i !== void 0 ? (s._$Co ??= [])[i] = o : s._$Cl = o), o !== void 0 && (t = O(e, o._$AS(e, t.values), o, i)), t;
 }
 class Tt {
@@ -326,7 +326,7 @@ class Tt {
     for (; a !== void 0; ) {
       if (n === a.index) {
         let c;
-        a.type === 2 ? c = new z(r, r.nextSibling, this, t) : a.type === 1 ? c = new a.ctor(r, a.name, a.strings, this, t) : a.type === 6 && (c = new qt(r, this, t)), this._$AV.push(c), a = i[++d];
+        a.type === 2 ? c = new I(r, r.nextSibling, this, t) : a.type === 1 ? c = new a.ctor(r, a.name, a.strings, this, t) : a.type === 6 && (c = new qt(r, this, t)), this._$AV.push(c), a = i[++d];
       }
       n !== a?.index && (r = C.nextNode(), n++);
     }
@@ -337,7 +337,7 @@ class Tt {
     for (const i of this._$AV) i !== void 0 && (i.strings !== void 0 ? (i._$AI(t, i, s), s += i.strings.length - 2) : i._$AI(t[s])), s++;
   }
 }
-class z {
+class I {
   get _$AU() {
     return this._$AM?._$AU ?? this._$Cv;
   }
@@ -356,7 +356,7 @@ class z {
     return this._$AB;
   }
   _$AI(t, s = this) {
-    t = O(this, t, s), I(t) ? t === h || t == null || t === "" ? (this._$AH !== h && this._$AR(), this._$AH = h) : t !== this._$AH && t !== N && this._(t) : t._$litType$ !== void 0 ? this.$(t) : t.nodeType !== void 0 ? this.T(t) : Rt(t) ? this.k(t) : this._(t);
+    t = O(this, t, s), U(t) ? t === h || t == null || t === "" ? (this._$AH !== h && this._$AR(), this._$AH = h) : t !== this._$AH && t !== N && this._(t) : t._$litType$ !== void 0 ? this.$(t) : t.nodeType !== void 0 ? this.T(t) : Rt(t) ? this.k(t) : this._(t);
   }
   O(t) {
     return this._$AA.parentNode.insertBefore(t, this._$AB);
@@ -365,10 +365,10 @@ class z {
     this._$AH !== t && (this._$AR(), this._$AH = this.O(t));
   }
   _(t) {
-    this._$AH !== h && I(this._$AH) ? this._$AA.nextSibling.data = t : this.T(S.createTextNode(t)), this._$AH = t;
+    this._$AH !== h && U(this._$AH) ? this._$AA.nextSibling.data = t : this.T(S.createTextNode(t)), this._$AH = t;
   }
   $(t) {
-    const { values: s, _$litType$: i } = t, o = typeof i == "number" ? this._$AC(t) : (i.el === void 0 && (i.el = U.createElement(yt(i.h, i.h[0]), this.options)), i);
+    const { values: s, _$litType$: i } = t, o = typeof i == "number" ? this._$AC(t) : (i.el === void 0 && (i.el = z.createElement(yt(i.h, i.h[0]), this.options)), i);
     if (this._$AH?._$AD === o) this._$AH.p(s);
     else {
       const r = new Tt(o, this), n = r.u(this.options);
@@ -377,13 +377,13 @@ class z {
   }
   _$AC(t) {
     let s = ut.get(t.strings);
-    return s === void 0 && ut.set(t.strings, s = new U(t)), s;
+    return s === void 0 && ut.set(t.strings, s = new z(t)), s;
   }
   k(t) {
     tt(this._$AH) || (this._$AH = [], this._$AR());
     const s = this._$AH;
     let i, o = 0;
-    for (const r of t) o === s.length ? s.push(i = new z(this.O(T()), this.O(T()), this, this.options)) : i = s[o], i._$AI(r), o++;
+    for (const r of t) o === s.length ? s.push(i = new I(this.O(T()), this.O(T()), this, this.options)) : i = s[o], i._$AI(r), o++;
     o < s.length && (this._$AR(i && i._$AB.nextSibling, o), s.length = o);
   }
   _$AR(t = this._$AA.nextSibling, s) {
@@ -409,11 +409,11 @@ class G {
   _$AI(t, s = this, i, o) {
     const r = this.strings;
     let n = !1;
-    if (r === void 0) t = O(this, t, s, 0), n = !I(t) || t !== this._$AH && t !== N, n && (this._$AH = t);
+    if (r === void 0) t = O(this, t, s, 0), n = !U(t) || t !== this._$AH && t !== N, n && (this._$AH = t);
     else {
       const d = t;
       let a, c;
-      for (t = r[0], a = 0; a < r.length - 1; a++) c = O(this, d[i + a], s, a), c === N && (c = this._$AH[a]), n ||= !I(c) || c !== this._$AH[a], c === h ? t = h : t !== h && (t += (c ?? "") + r[a + 1]), this._$AH[a] = c;
+      for (t = r[0], a = 0; a < r.length - 1; a++) c = O(this, d[i + a], s, a), c === N && (c = this._$AH[a]), n ||= !U(c) || c !== this._$AH[a], c === h ? t = h : t !== h && (t += (c ?? "") + r[a + 1]), this._$AH[a] = c;
     }
     n && !o && this.j(t);
   }
@@ -421,7 +421,7 @@ class G {
     t === h ? this.element.removeAttribute(this.name) : this.element.setAttribute(this.name, t ?? "");
   }
 }
-class It extends G {
+class Ut extends G {
   constructor() {
     super(...arguments), this.type = 3;
   }
@@ -429,7 +429,7 @@ class It extends G {
     this.element[this.name] = t === h ? void 0 : t;
   }
 }
-class Ut extends G {
+class zt extends G {
   constructor() {
     super(...arguments), this.type = 4;
   }
@@ -437,7 +437,7 @@ class Ut extends G {
     this.element.toggleAttribute(this.name, !!t && t !== h);
   }
 }
-class zt extends G {
+class It extends G {
   constructor(t, s, i, o, r) {
     super(t, s, i, o, r), this.type = 5;
   }
@@ -462,13 +462,13 @@ class qt {
   }
 }
 const Lt = Q.litHtmlPolyfillSupport;
-Lt?.(U, z), (Q.litHtmlVersions ??= []).push("3.3.3");
+Lt?.(z, I), (Q.litHtmlVersions ??= []).push("3.3.3");
 const Ht = (e, t, s) => {
   const i = s?.renderBefore ?? t;
   let o = i._$litPart$;
   if (o === void 0) {
     const r = s?.renderBefore ?? null;
-    i._$litPart$ = o = new z(t.insertBefore(T(), r), r, void 0, s ?? {});
+    i._$litPart$ = o = new I(t.insertBefore(T(), r), r, void 0, s ?? {});
   }
   return o._$AI(e), o;
 };
@@ -534,7 +534,7 @@ function L(e) {
 function g(e) {
   return L({ ...e, state: !0, attribute: !1 });
 }
-const Wt = "Ploc Cellar", Ft = "Cellar storage", Gt = "Refresh", Xt = "Loading…", Yt = "Never", Jt = "Bottles in cellar", Kt = "Reconstructed stock", Zt = "Racks", Qt = "Empty positions", te = "Data may be stale: the latest synchronization failed.", ee = "Stock reconstruction is incomplete: only physical quantities are available.", se = "Last successful synchronization", ie = "Search wines", oe = "Search wines…", ne = "No matching wines.", re = "Select a Ploc Cellar configuration in the card editor.", ae = "Rack selection", ce = "occupied", le = "free", de = "Unknown wine", he = "Empty position", pe = "Row", ue = "Column", ge = "No row/column coordinates are available for this rack.", _e = "Positions without coordinates", me = "Not mapped", fe = "No racks available.", ve = "position(s) reference a missing rack.", $e = "Wine inventory", ye = "All colors", be = "All regions", we = "All appellations", xe = "All vintages", ke = "Sort by", Ae = "Name", Ce = "Quantity descending", Se = "Vintage descending", Ee = "{count} wine(s)", Pe = "{count} bottle(s)", Ne = "Clear filters", Oe = "btl.", Re = "Unknown vintage", Me = "Wine details", De = "Grapes", Te = "Cuvée", Ie = "Volume", Ue = "Locations", ze = "Ploc Cellar", qe = "Cellar overview and stock indicators.", Le = "Wine inventory", He = "Search, filter and browse the wine inventory.", je = "Cellar racks", Be = "Visualize rack positions and the wines stored in them.", Ve = "Ploc Cellar configuration", We = "Select the PLOUD connection used by this card.", Fe = "Card title", Ge = "Optional. Leave empty to use the default title.", Xe = "Cellar statistics", Ye = "Bottles in stock", Je = "wine references", Ke = "By color", Ze = "By region", Qe = "By appellation", ts = "By vintage", es = "By bottle format", ss = "Other", is = "Not specified", os = "No data available for this category.", ns = "Unknown", rs = "Wine references in stock", as = "Rack occupancy", cs = "Stock diagnostics", ls = "Unlocated bottles", ds = "Negative movement balance", hs = "Physical surplus", ps = "Breakdowns include known wine references only.", us = "{count} occupied position(s) have an unknown wine reference. They are included in total stock but not in the breakdowns.", gs = "Show rack occupancy", _s = "Show diagnostics", ms = "Show statistics", fs = "Show chart legends", vs = "View details", $s = "Wine references with stock that is not assigned to a physical rack position.", ys = "Wine references where recorded outgoing movements exceed incoming movements.", bs = "Wine references with more bottles physically stored than the reconstructed movement stock.", ws = "Bottles concerned", xs = "In cellar", ks = "Reconstructed stock", As = "Incoming", Cs = "Outgoing", Ss = "Movement balance", Es = "No wine-level details are available for this diagnostic.", Ps = {
+const Wt = "Ploc Cellar", Ft = "Cellar storage", Gt = "Refresh", Xt = "Loading…", Yt = "Never", Jt = "Bottles in cellar", Kt = "Reconstructed stock", Zt = "Racks", Qt = "Empty positions", te = "Data may be stale: the latest synchronization failed.", ee = "Stock reconstruction is incomplete: only physical quantities are available.", se = "Last successful synchronization", ie = "Search wines", oe = "Search wines…", ne = "No matching wines.", re = "Select a Ploc Cellar configuration in the card editor.", ae = "Rack selection", ce = "occupied", le = "free", de = "Unknown wine", he = "Empty position", pe = "Row", ue = "Column", ge = "No row/column coordinates are available for this rack.", _e = "Positions without coordinates", me = "Not mapped", fe = "No racks available.", ve = "position(s) reference a missing rack.", $e = "Wine inventory", ye = "All colors", be = "All regions", we = "All appellations", xe = "All vintages", ke = "Sort by", Ae = "Name", Ce = "Quantity descending", Se = "Vintage descending", Ee = "{count} wine(s)", Pe = "{count} bottle(s)", Ne = "Clear filters", Oe = "btl.", Re = "Unknown vintage", Me = "Wine details", De = "Grapes", Te = "Cuvée", Ue = "Volume", ze = "Locations", Ie = "Ploc Cellar", qe = "Cellar overview and stock indicators.", Le = "Wine inventory", He = "Search, filter and browse the wine inventory.", je = "Cellar racks", Be = "Visualize rack positions and the wines stored in them.", Ve = "Ploc Cellar configuration", We = "Select the PLOUD connection used by this card.", Fe = "Card title", Ge = "Optional. Leave empty to use the default title.", Xe = "Cellar statistics", Ye = "Bottles in stock", Je = "wine references", Ke = "By color", Ze = "By region", Qe = "By appellation", ts = "By vintage", es = "By bottle format", ss = "Other", is = "Not specified", os = "No data available for this category.", ns = "Unknown", rs = "Wine references in stock", as = "Rack occupancy", cs = "Stock diagnostics", ls = "Unlocated bottles", ds = "Negative movement balance", hs = "Physical surplus", ps = "Breakdowns include known wine references only.", us = "{count} occupied position(s) have an unknown wine reference. They are included in total stock but not in the breakdowns.", gs = "Show rack occupancy", _s = "Show diagnostics", ms = "Show statistics", fs = "Show chart legends", vs = "View details", $s = "Wine references with stock that is not assigned to a physical rack position.", ys = "Wine references where recorded outgoing movements exceed incoming movements.", bs = "Wine references with more bottles physically stored than the reconstructed movement stock.", ws = "Bottles concerned", xs = "In cellar", ks = "Reconstructed stock", As = "Incoming", Cs = "Outgoing", Ss = "Movement balance", Es = "No wine-level details are available for this diagnostic.", Ps = {
   card_title: Wt,
   rack_title: Ft,
   refresh: Gt,
@@ -580,9 +580,9 @@ const Wt = "Ploc Cellar", Ft = "Cellar storage", Gt = "Refresh", Xt = "Loading�
   wine_details: Me,
   grapes: De,
   cuvee: Te,
-  bottle_volume: Ie,
-  locations: Ue,
-  picker_overview_name: ze,
+  bottle_volume: Ue,
+  locations: ze,
+  picker_overview_name: Ie,
   picker_overview_description: qe,
   picker_inventory_name: Le,
   picker_inventory_description: He,
@@ -627,16 +627,16 @@ const Wt = "Ploc Cellar", Ft = "Cellar storage", Gt = "Refresh", Xt = "Loading�
   diagnostic_detail_consumed: Cs,
   diagnostic_detail_balance: Ss,
   diagnostic_detail_empty: Es
-}, Ns = "Cave Ploc", Os = "Rangement de la cave", Rs = "Actualiser", Ms = "Chargement…", Ds = "Jamais", Ts = "Bouteilles en cave", Is = "Stock reconstitué", Us = "Casiers", zs = "Places libres", qs = "Données potentiellement obsolètes : la dernière synchronisation a échoué.", Ls = "Reconstitution du stock en cours : seules les quantités physiques sont disponibles.", Hs = "Dernière synchronisation réussie", js = "Rechercher un vin", Bs = "Rechercher un vin…", Vs = "Aucun vin correspondant.", Ws = "Sélectionnez une configuration Ploc Cellar dans l’éditeur de carte.", Fs = "Sélection du casier", Gs = "occupées", Xs = "libres", Ys = "Vin inconnu", Js = "Emplacement libre", Ks = "Rangée", Zs = "Colonne", Qs = "Aucune coordonnée de rangée/colonne disponible pour ce casier.", ti = "Emplacements sans coordonnées", ei = "Non renseigné", si = "Aucun casier disponible.", ii = "emplacement(s) référencent un casier absent.", oi = "Inventaire des vins", ni = "Toutes les couleurs", ri = "Toutes les régions", ai = "Toutes les appellations", ci = "Tous les millésimes", li = "Trier par", di = "Nom", hi = "Quantité décroissante", pi = "Millésime décroissant", ui = "{count} référence(s)", gi = "{count} bouteille(s)", _i = "Effacer les filtres", mi = "bt.", fi = "Millésime inconnu", vi = "Détails du vin", $i = "Cépages", yi = "Cuvée", bi = "Volume", wi = "Emplacements", xi = "Cave Ploc", ki = "Vue d’ensemble de la cave et indicateurs de stock.", Ai = "Inventaire des vins", Ci = "Rechercher, filtrer et parcourir l’inventaire des vins.", Si = "Casiers de la cave", Ei = "Visualiser les emplacements des casiers et les vins qui y sont rangés.", Pi = "Configuration Ploc Cellar", Ni = "Sélectionnez la connexion PLOUD utilisée par cette carte.", Oi = "Titre de la carte", Ri = "Facultatif. Laissez vide pour utiliser le titre par défaut.", Mi = "Statistiques de la cave", Di = "Bouteilles en stock", Ti = "références de vin", Ii = "Par couleur", Ui = "Par région", zi = "Par appellation", qi = "Par millésime", Li = "Par format de bouteille", Hi = "Autres", ji = "Non renseigné", Bi = "Aucune donnée disponible pour cette catégorie.", Vi = "Inconnu", Wi = "Références de vins en stock", Fi = "Occupation des casiers", Gi = "Diagnostics du stock", Xi = "Bouteilles non localisées", Yi = "Solde de mouvements négatif", Ji = "Excédent physique", Ki = "Les répartitions ne portent que sur les références de vins connues.", Zi = "{count} emplacement(s) occupé(s) font référence à un vin inconnu. Ils sont inclus dans le stock total, mais pas dans les répartitions.", Qi = "Afficher l’occupation des casiers", to = "Afficher les diagnostics", eo = "Afficher les statistiques", so = "Afficher les légendes des graphiques", io = "Voir le détail", oo = "Références de vins dont une partie du stock n’est affectée à aucun emplacement physique de casier.", no = "Références de vins pour lesquelles les sorties enregistrées dépassent les entrées.", ro = "Références de vins ayant davantage de bouteilles physiquement rangées que le stock reconstitué à partir des mouvements.", ao = "Bouteilles concernées", co = "En cave", lo = "Stock reconstitué", ho = "Entrées", po = "Sorties", uo = "Solde des mouvements", go = "Aucun détail par référence de vin n’est disponible pour ce diagnostic.", _o = {
+}, Ns = "Cave Ploc", Os = "Rangement de la cave", Rs = "Actualiser", Ms = "Chargement…", Ds = "Jamais", Ts = "Bouteilles en cave", Us = "Stock reconstitué", zs = "Casiers", Is = "Places libres", qs = "Données potentiellement obsolètes : la dernière synchronisation a échoué.", Ls = "Reconstitution du stock en cours : seules les quantités physiques sont disponibles.", Hs = "Dernière synchronisation réussie", js = "Rechercher un vin", Bs = "Rechercher un vin…", Vs = "Aucun vin correspondant.", Ws = "Sélectionnez une configuration Ploc Cellar dans l’éditeur de carte.", Fs = "Sélection du casier", Gs = "occupées", Xs = "libres", Ys = "Vin inconnu", Js = "Emplacement libre", Ks = "Rangée", Zs = "Colonne", Qs = "Aucune coordonnée de rangée/colonne disponible pour ce casier.", ti = "Emplacements sans coordonnées", ei = "Non renseigné", si = "Aucun casier disponible.", ii = "emplacement(s) référencent un casier absent.", oi = "Inventaire des vins", ni = "Toutes les couleurs", ri = "Toutes les régions", ai = "Toutes les appellations", ci = "Tous les millésimes", li = "Trier par", di = "Nom", hi = "Quantité décroissante", pi = "Millésime décroissant", ui = "{count} référence(s)", gi = "{count} bouteille(s)", _i = "Effacer les filtres", mi = "bt.", fi = "Millésime inconnu", vi = "Détails du vin", $i = "Cépages", yi = "Cuvée", bi = "Volume", wi = "Emplacements", xi = "Cave Ploc", ki = "Vue d’ensemble de la cave et indicateurs de stock.", Ai = "Inventaire des vins", Ci = "Rechercher, filtrer et parcourir l’inventaire des vins.", Si = "Casiers de la cave", Ei = "Visualiser les emplacements des casiers et les vins qui y sont rangés.", Pi = "Configuration Ploc Cellar", Ni = "Sélectionnez la connexion PLOUD utilisée par cette carte.", Oi = "Titre de la carte", Ri = "Facultatif. Laissez vide pour utiliser le titre par défaut.", Mi = "Statistiques de la cave", Di = "Bouteilles en stock", Ti = "références de vin", Ui = "Par couleur", zi = "Par région", Ii = "Par appellation", qi = "Par millésime", Li = "Par format de bouteille", Hi = "Autres", ji = "Non renseigné", Bi = "Aucune donnée disponible pour cette catégorie.", Vi = "Inconnu", Wi = "Références de vins en stock", Fi = "Occupation des casiers", Gi = "Diagnostics du stock", Xi = "Bouteilles non localisées", Yi = "Solde de mouvements négatif", Ji = "Excédent physique", Ki = "Les répartitions ne portent que sur les références de vins connues.", Zi = "{count} emplacement(s) occupé(s) font référence à un vin inconnu. Ils sont inclus dans le stock total, mais pas dans les répartitions.", Qi = "Afficher l’occupation des casiers", to = "Afficher les diagnostics", eo = "Afficher les statistiques", so = "Afficher les légendes des graphiques", io = "Voir le détail", oo = "Références de vins dont une partie du stock n’est affectée à aucun emplacement physique de casier.", no = "Références de vins pour lesquelles les sorties enregistrées dépassent les entrées.", ro = "Références de vins ayant davantage de bouteilles physiquement rangées que le stock reconstitué à partir des mouvements.", ao = "Bouteilles concernées", co = "En cave", lo = "Stock reconstitué", ho = "Entrées", po = "Sorties", uo = "Solde des mouvements", go = "Aucun détail par référence de vin n’est disponible pour ce diagnostic.", _o = {
   card_title: Ns,
   rack_title: Os,
   refresh: Rs,
   loading: Ms,
   never: Ds,
   bottles_in_cellar: Ts,
-  reconstructed_stock: Is,
-  racks: Us,
-  empty_positions: zs,
+  reconstructed_stock: Us,
+  racks: zs,
+  empty_positions: Is,
   stale: qs,
   reconstruction_incomplete: Ls,
   last_sync: Hs,
@@ -688,9 +688,9 @@ const Wt = "Ploc Cellar", Ft = "Cellar storage", Gt = "Refresh", Xt = "Loading�
   statistics_title: Mi,
   statistics_bottles: Di,
   statistics_references: Ti,
-  statistics_color: Ii,
-  statistics_region: Ui,
-  statistics_appellation: zi,
+  statistics_color: Ui,
+  statistics_region: zi,
+  statistics_appellation: Ii,
   statistics_vintage: qi,
   statistics_format: Li,
   statistics_other: Hi,
@@ -721,12 +721,12 @@ const Wt = "Ploc Cellar", Ft = "Cellar storage", Gt = "Refresh", Xt = "Loading�
   diagnostic_detail_balance: uo,
   diagnostic_detail_empty: go
 };
-function v(e, t) {
+function f(e, t) {
   return (e.toLocaleLowerCase().startsWith("fr") ? _o : Ps)[t];
 }
 function R(e) {
   const t = typeof navigator > "u" ? "en" : navigator.language;
-  return v(t, e);
+  return f(t, e);
 }
 var mo = Object.defineProperty, fo = Object.getOwnPropertyDescriptor, E = (e, t, s, i) => {
   for (var o = i > 1 ? void 0 : i ? fo(t, s) : t, r = e.length - 1, n; r >= 0; r--)
@@ -811,10 +811,10 @@ let b = class extends k {
   wineLabel(e) {
     if (!e.wine_id) return "";
     const t = this.wineById.get(e.wine_id);
-    return t ? t.name : v(this.hass?.language ?? "en", "unknown_wine");
+    return t ? t.name : f(this.hass?.language ?? "en", "unknown_wine");
   }
   render() {
-    const e = (a) => v(this.hass?.language ?? "en", a), t = this.inventory, s = t?.racks.find((a) => a.id === this.selectedRackId), i = this.rowValues, o = this.columnValues, r = this.positionedItems, n = this.selectedItems.filter((a) => a.row === null || a.column === null), d = (t?.rack_items ?? []).filter(
+    const e = (a) => f(this.hass?.language ?? "en", a), t = this.inventory, s = t?.racks.find((a) => a.id === this.selectedRackId), i = this.rowValues, o = this.columnValues, r = this.positionedItems, n = this.selectedItems.filter((a) => a.row === null || a.column === null), d = (t?.rack_items ?? []).filter(
       (a) => !t?.racks.some((c) => c.id === a.rack_id)
     );
     return l`
@@ -933,7 +933,7 @@ window.customCards.push({
   name: R("picker_rack_name"),
   description: R("picker_rack_description")
 });
-var vo = Object.defineProperty, $o = Object.getOwnPropertyDescriptor, $ = (e, t, s, i) => {
+var vo = Object.defineProperty, $o = Object.getOwnPropertyDescriptor, v = (e, t, s, i) => {
   for (var o = i > 1 ? void 0 : i ? $o(t, s) : t, r = e.length - 1, n; r >= 0; r--)
     (n = e[r]) && (o = (i ? n(t, s, o) : n(o)) || o);
   return i && o && vo(t, s, o), o;
@@ -1017,7 +1017,7 @@ let m = class extends k {
     return t == null || t === "" ? h : l`<div><span class="detail-label">${e}</span>${t}</div>`;
   }
   renderWine(e) {
-    const t = (r) => v(this.hass?.language ?? "en", r), s = e.locations.map((r) => {
+    const t = (r) => f(this.hass?.language ?? "en", r), s = e.locations.map((r) => {
       const n = r.row !== null && r.column !== null ? ` · ${t("row")} ${r.row}, ${t("column")} ${r.column}` : "";
       return `${r.rack}${n}`;
     }), i = e.vintage === null ? t("unknown_vintage") : String(e.vintage), o = e.bottle_volume_l === null ? null : `${e.bottle_volume_l.toLocaleString(this.hass?.language ?? void 0)} L`;
@@ -1053,7 +1053,7 @@ let m = class extends k {
     `;
   }
   render() {
-    const e = (o) => v(this.hass?.language ?? "en", o), t = this.filteredWines, s = t.reduce((o, r) => o + r.bottles_in_cellar, 0), i = !!(this.search || this.color || this.region || this.appellation || this.vintage);
+    const e = (o) => f(this.hass?.language ?? "en", o), t = this.filteredWines, s = t.reduce((o, r) => o + r.bottles_in_cellar, 0), i = !!(this.search || this.color || this.region || this.appellation || this.vintage);
     return l`
       <ha-card>
         <header>
@@ -1146,40 +1146,40 @@ m.styles = K`
       .toolbar { grid-template-columns: 1fr 1fr; }
     }
   `;
-$([
+v([
   L({ attribute: !1 })
 ], m.prototype, "hass", 2);
-$([
+v([
   g()
 ], m.prototype, "config", 2);
-$([
+v([
   g()
 ], m.prototype, "inventory", 2);
-$([
+v([
   g()
 ], m.prototype, "loading", 2);
-$([
+v([
   g()
 ], m.prototype, "error", 2);
-$([
+v([
   g()
 ], m.prototype, "search", 2);
-$([
+v([
   g()
 ], m.prototype, "color", 2);
-$([
+v([
   g()
 ], m.prototype, "region", 2);
-$([
+v([
   g()
 ], m.prototype, "appellation", 2);
-$([
+v([
   g()
 ], m.prototype, "vintage", 2);
-$([
+v([
   g()
 ], m.prototype, "sort", 2);
-m = $([
+m = v([
   q("ploc-cellar-inventory-card")
 ], m);
 window.customCards ??= [];
@@ -1204,12 +1204,12 @@ let W = class extends k {
         show_statistics: "editor_show_statistics",
         show_statistics_legends: "editor_show_statistics_legends"
       }[e.name];
-      return v(this.hass?.language ?? "en", s);
+      return f(this.hass?.language ?? "en", s);
     }, this.computeHelper = (e) => {
       if (e.name === "config_entry_id")
-        return v(this.hass?.language ?? "en", "editor_configuration_helper");
+        return f(this.hass?.language ?? "en", "editor_configuration_helper");
       if (e.name === "title")
-        return v(this.hass?.language ?? "en", "editor_title_helper");
+        return f(this.hass?.language ?? "en", "editor_title_helper");
     };
   }
   get schema() {
@@ -1337,7 +1337,7 @@ let y = class extends k {
       return;
     }
     const p = (Math.atan2(n, -d) * 180 / Math.PI + 360) % 360 / 360 * 100, _ = t.find(
-      (f) => p >= f.start && p < f.end
+      ($) => p >= $.start && p < $.end
     );
     if (!_) {
       this.donutTooltip = void 0;
@@ -1350,7 +1350,7 @@ let y = class extends k {
     });
   }
   formatSync(e) {
-    if (!e) return v(this.hass?.language ?? "en", "never");
+    if (!e) return f(this.hass?.language ?? "en", "never");
     const t = new Date(e);
     return Number.isNaN(t.getTime()) ? e : new Intl.DateTimeFormat(this.hass?.language ?? void 0, {
       dateStyle: "short",
@@ -1369,7 +1369,7 @@ let y = class extends k {
     return this.inventory?.stock_reconstruction_complete ? e.bottles ?? e.bottles_in_cellar : e.bottles_in_cellar;
   }
   distribution(e) {
-    const t = (n) => v(this.hass?.language ?? "en", n), s = /* @__PURE__ */ new Map();
+    const t = (n) => f(this.hass?.language ?? "en", n), s = /* @__PURE__ */ new Map();
     for (const n of this.inventory?.wines ?? []) {
       const d = n[e], a = d === null || d === "" ? t("statistics_unknown") : String(d), c = s.get(a) ?? { name: a, bottles: 0, wines: 0 };
       if (c.bottles += this.getBottleCount(n), c.wines += 1, e === "color" && n.color_rgb && !c.color) {
@@ -1395,7 +1395,7 @@ let y = class extends k {
     return [...o, r];
   }
   renderDistribution(e, t) {
-    const s = (c) => v(this.hass?.language ?? "en", c), i = this.distribution(e), o = i.reduce((c, u) => c + u.bottles, 0);
+    const s = (c) => f(this.hass?.language ?? "en", c), i = this.distribution(e), o = i.reduce((c, u) => c + u.bottles, 0);
     let r = 0;
     const n = i.filter((c) => c.bottles > 0).map((c, u) => {
       const p = r;
@@ -1421,17 +1421,6 @@ let y = class extends k {
       this.donutTooltip = void 0;
     }}
               style=${`background: conic-gradient(${d})`}>
-              <svg class="donut-chart" viewBox="0 0 100 100" aria-hidden="true">
-                ${n.map((c) => {
-      const u = 2 * Math.PI * 42, p = (c.end - c.start) / 100 * u, _ = `${p} ${u - p}`, f = -(c.start / 100) * u;
-      return l`
-                    <circle class="donut-segment" cx="50" cy="50" r="42"
-                      stroke-dasharray=${_}
-                      stroke-dashoffset=${f}>
-                    </circle>
-                  `;
-    })}
-              </svg>
               <div class="donut-center">
                 <span class="donut-total">${this.formatNumber(o)}</span>
                 <span class="donut-caption">${s("statistics_bottles")}</span>
@@ -1467,7 +1456,7 @@ let y = class extends k {
   renderDiagnosticDialog() {
     const e = this.activeDiagnostic;
     if (!e) return h;
-    const t = e === "unlocated" ? "diagnostic_unlocated" : e === "negative" ? "diagnostic_negative" : "diagnostic_surplus", s = e === "unlocated" ? "diagnostic_detail_unlocated" : e === "negative" ? "diagnostic_detail_negative" : "diagnostic_detail_surplus", i = this.getDiagnosticWines(e), o = (n) => v(this.hass?.language ?? "en", n), r = (n) => e === "unlocated" ? n.unlocated_bottles ?? 0 : e === "negative" ? n.negative_movement_bottles ?? 0 : n.physical_surplus_bottles ?? 0;
+    const t = e === "unlocated" ? "diagnostic_unlocated" : e === "negative" ? "diagnostic_negative" : "diagnostic_surplus", s = e === "unlocated" ? "diagnostic_detail_unlocated" : e === "negative" ? "diagnostic_detail_negative" : "diagnostic_detail_surplus", i = this.getDiagnosticWines(e), o = (n) => f(this.hass?.language ?? "en", n), r = (n) => e === "unlocated" ? n.unlocated_bottles ?? 0 : e === "negative" ? n.negative_movement_bottles ?? 0 : n.physical_surplus_bottles ?? 0;
     return l`
       <ha-dialog .open=${!0} .heading=${o(t)} @closed=${() => {
       this.activeDiagnostic = void 0;
@@ -1494,7 +1483,7 @@ let y = class extends k {
     `;
   }
   render() {
-    const e = (p) => v(this.hass?.language ?? "en", p), t = this.inventory, s = this.config?.title ?? e("card_title"), i = this.config?.show_occupancy !== !1, o = this.config?.show_diagnostics !== !1, r = this.config?.show_statistics !== !1, n = t && t.total_positions > 0 ? Math.round(t.occupied_positions / t.total_positions * 100) : 0, d = t?.stock_reconstruction_complete ? [
+    const e = (p) => f(this.hass?.language ?? "en", p), t = this.inventory, s = this.config?.title ?? e("card_title"), i = this.config?.show_occupancy !== !1, o = this.config?.show_diagnostics !== !1, r = this.config?.show_statistics !== !1, n = t && t.total_positions > 0 ? Math.round(t.occupied_positions / t.total_positions * 100) : 0, d = t?.stock_reconstruction_complete ? [
       { key: "diagnostic_unlocated", value: t.unlocated_bottles ?? 0 },
       { key: "diagnostic_negative", value: t.negative_movement_bottles ?? 0 },
       { key: "diagnostic_surplus", value: t.physical_surplus_bottles ?? 0 }
@@ -1626,8 +1615,7 @@ y.styles = K`
     .chart-content { display: grid; grid-template-columns: minmax(112px, .85fr) minmax(0, 1.15fr); gap: 12px; align-items: center; }
     .chart-content.chart-content-no-legend { grid-template-columns: minmax(0, 1fr); }
     .donut { position: relative; display: grid; place-items: center; width: 100%; max-width: 150px; aspect-ratio: 1; border-radius: 50%; justify-self: center; }
-    .donut-chart { position: absolute; inset: 0; display: block; width: 100%; height: 100%; overflow: visible; }
-    .donut-segment { fill: none; stroke: transparent; stroke-width: 16; pointer-events: none; }
+    .donut { cursor: help; }
     .donut-tooltip {
       position: fixed;
       z-index: 10000;
