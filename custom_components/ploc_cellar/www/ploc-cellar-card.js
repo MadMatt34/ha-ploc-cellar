@@ -1436,11 +1436,10 @@ let y = class extends x {
     `;
   }
   getCardSize() {
-    const e = this.shadowRoot?.querySelector("ha-card")?.getBoundingClientRect().height;
-    return Math.max(1, Math.ceil((e ?? 0) / 50));
+    return 12;
   }
   getGridOptions() {
-    return { columns: 12, min_columns: 6, rows: 1, min_rows: 1 };
+    return { columns: 12, min_columns: 6, rows: "auto" };
   }
 };
 y.styles = K`
