@@ -17,7 +17,7 @@ Intégration personnalisée Home Assistant permettant de consulter une cave PLOC
 - Modèle local persistant : les références `Wine` reçues de PLOUD, les casiers et leurs emplacements. La valeur brute `Wine.bo` est conservée à titre informatif. Le stock effectif est reconstitué avec les mouvements `Orders` et les bouteilles physiquement placées (`RackItems`) selon la formule `max(0, solde des mouvements, bouteilles en cave)`. Les diagnostics distinguent le stock non localisé (`unlocated_bottles`), les soldes de mouvements négatifs (`negative_movement_bottles`) et les excédents physiques (`physical_surplus_bottles`). Un stock non localisé signifie que le solde issu des mouvements dépasse les bouteilles affectées à des emplacements ; cela ne prouve pas qu'une bouteille a été retirée sans mouvement de sortie déclaré. Les données PLOUD ne sont jamais modifiées. Les caractéristiques, dont le domaine viticole, sont directement enregistrées dans chaque fiche vin. La collection `Owners` est utilisée temporairement pour résoudre les UUID des propriétaires ; aucune table de correspondance n'est conservée. Si un vin reçu dans un delta référence un propriétaire absent de ce delta, ou un Owner dont l'enregistrement ne contient pas de champ de nom, une synchronisation complète ponctuelle est déclenchée pour résoudre son nom.
 - Quatorze capteurs répartis entre inventaire, casiers et diagnostics ; aucune entité individuelle n'est créée pour chaque vin, casier ou emplacement.
 - Inventaire détaillé accessible à la demande avec l'action `ploc_cellar.get_inventory`.
-- Deux boutons sur l'appareil Cave Ploc déclenchent une synchronisation partielle ou une synchronisation complète.
+- Deux boutons sur l'appareil Cave Ploc déclenchent une synchronisation différentielle ou une synchronisation complète.
 - Les UUID sont normalisés sous leur forme canonique minuscule pour les vins, casiers, positions, mouvements, propriétaires et suppressions ; les identifiants non UUID sont débarrassés des espaces périphériques sans changement de casse.
 - Synchronisation immédiate à la demande avec l'action `ploc_cellar.sync`.
 - Une seule entrée de configuration Ploc Cellar par instance Home Assistant.
@@ -67,36 +67,36 @@ L'enregistrement des options recharge l'entrée de configuration. L'adresse du s
 
 Les 14 capteurs et les deux boutons de synchronisation sont rattachés au même appareil **Cave Ploc** et utilisent le même coordinateur PLOUD. L’intégration ne crée pas d’entité individuelle pour chaque vin, casier ou emplacement.
 
-| Famille | Identifiant d’entité | Signification |
+| Famille | Nom de l’entité | Signification |
 |---|---|---|
-| Inventaire | `sensor.ploc_cellar_bottles_in_stock` | Bouteilles physiquement affectées à des emplacements (positions `RackItems` occupées). |
-| Inventaire | `sensor.ploc_cellar_bottles_stock_total` | Stock total reconstitué : stock issu des mouvements ou stock physique, selon le plus élevé, avec les positions occupées dont le vin est inconnu. |
-| Inventaire | `sensor.ploc_cellar_wines_references` | Références de vins connues dont le stock effectif est positif. |
-| Inventaire | `sensor.ploc_cellar_wines_in_stock` | Références de vins connues ayant au moins une position physique en cave. |
-| Casiers | `sensor.ploc_cellar_rack_count` | Nombre de casiers connus. |
-| Casiers | `sensor.ploc_cellar_rack_positions_total` | Nombre total d’emplacements physiques. |
-| Casiers | `sensor.ploc_cellar_rack_positions_available` | Nombre d’emplacements vides. |
-| Diagnostics | `sensor.ploc_cellar_diagnostic_bottles_unalocated` | Bouteilles reconstituées qui ne sont affectées à aucun emplacement. |
-| Diagnostics | `sensor.ploc_cellar_diagnostic_wines_unlocated` | Références de vins avec du stock non localisé. |
-| Diagnostics | `sensor.ploc_cellar_diagnostic_bottles_negative_movements` | Somme des soldes entrées-sorties négatifs, en valeur absolue. |
-| Diagnostics | `sensor.ploc_cellar_diagnostic_wines_negative_movements` | Références de vins avec un solde de mouvements négatif. |
-| Diagnostics | `sensor.ploc_cellar_diagnostic_bottles_physical_surplus` | Bouteilles physiques au-delà du stock non négatif issu des mouvements. |
-| Diagnostics | `sensor.ploc_cellar_diagnostic_wines_physical_surplus` | Références de vins présentant un excédent physique. |
-| Diagnostics | `sensor.ploc_cellar_diagnostic_last_successful_sync` | Date et heure de la dernière synchronisation réussie ; son attribut `stale` passe à true lorsqu’une synchronisation ultérieure échoue. |
-| Actions | `button.ploc_cellar_sync` | Déclenche une synchronisation partielle immédiate à partir du curseur PLOUD enregistré. |
-| Actions | `button.ploc_cellar_sync_full` | Force un instantané PLOUD complet et reconstruit l’inventaire local. |
+| Inventaire | Bouteilles en cave | Bouteilles physiquement affectées à des emplacements (positions `RackItems` occupées). |
+| Inventaire | Bouteilles en stock total | Stock total reconstitué : stock issu des mouvements ou stock physique, selon le plus élevé, avec les positions occupées dont le vin est inconnu. |
+| Inventaire | Références de vins en stock | Références de vins connues dont le stock effectif est positif. |
+| Inventaire | Références physiquement présentes en cave | Références de vins connues ayant au moins une position physique en cave. |
+| Casiers | Nombre de casiers | Nombre de casiers connus. |
+| Casiers | Nombre total d’emplacements | Nombre total d’emplacements physiques. |
+| Casiers | Emplacements disponibles | Nombre d’emplacements vides. |
+| Diagnostics | Bouteilles non localisées | Bouteilles reconstituées qui ne sont affectées à aucun emplacement. |
+| Diagnostics | Vins avec stock non localisé | Références de vins avec du stock non localisé. |
+| Diagnostics | Bouteilles liées à des mouvements négatifs | Somme des soldes entrées-sorties négatifs, en valeur absolue. |
+| Diagnostics | Vins avec solde de mouvements négatif | Références de vins avec un solde de mouvements négatif. |
+| Diagnostics | Bouteilles en excédent physique | Bouteilles physiques au-delà du stock non négatif issu des mouvements. |
+| Diagnostics | Vins avec excédent physique | Références de vins présentant un excédent physique. |
+| Diagnostics | Dernière synchronisation réussie | Date et heure de la dernière synchronisation réussie ; son attribut `stale` passe à true lorsqu’une synchronisation ultérieure échoue. |
+| Actions | Synchronisation différentielle | Récupère les modifications depuis le curseur PLOUD enregistré. |
+| Actions | Synchronisation complète | Force un instantané PLOUD complet et reconstruit l’inventaire local. |
 
 Les capteurs de stock et de diagnostic dépendant des mouvements affichent `unknown` tant qu’un instantané PLOUD complet de la collection `Orders` n’a pas été validé. Les compteurs physiques de bouteilles et d’emplacements restent disponibles. Après un échec de synchronisation, la date de dernière réussite est conservée et l’attribut `stale` du capteur de synchronisation passe à true ; une synchronisation réussie le remet à false.
 
-L’identifiant unique de l’ancien capteur d’inventaire est conservé. Lors d’une mise à niveau, l’identifiant par défaut `sensor.ploc_cellar_inventory` est migré vers `sensor.ploc_cellar_bottles_in_stock` ; un identifiant d’entité personnalisé par l’utilisateur n’est pas modifié.
+L’intégration ne force aucun identifiant d’entité. Home Assistant les génère selon le format configuré dans l’instance (zone, appareil parent, appareil et nom de l’entité). Les identifiants déjà présents dans le registre sont conservés lors d’une mise à niveau. Pour les recréer selon le format actuel, utiliser **Recréer les identifiants d’entité** dans le menu de l’appareil.
 ## Actions
 
 ### Boutons de synchronisation
 
 Les deux boutons sont disponibles sur l’appareil **Cave Ploc** :
 
-- `button.ploc_cellar_sync` : applique les modifications depuis la dernière synchronisation à partir du curseur enregistré.
-- `button.ploc_cellar_sync_full` : demande un instantané PLOUD complet et reconstruit l’inventaire local. L’inventaire validé existant reste disponible tant que le nouvel instantané n’a pas été validé et enregistré.
+- **Synchronisation différentielle** : applique les modifications depuis la dernière synchronisation à partir du curseur enregistré.
+- **Synchronisation complète** : demande un instantané PLOUD complet et reconstruit l’inventaire local. L’inventaire validé existant reste disponible tant que le nouvel instantané n’a pas été validé et enregistré.
 
 Ils appellent les mêmes méthodes du coordinateur que les actions `ploc_cellar.sync` et `ploc_cellar.sync_full`. Ils peuvent également être utilisés dans une automatisation avec l’action standard `button.press`.
 

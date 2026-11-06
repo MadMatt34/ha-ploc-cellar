@@ -91,7 +91,7 @@
     },
     "button": {
       "sync": {
-        "name": "Synchronisation partielle"
+        "name": "Synchronisation différentielle"
       },
       "sync_full": {
         "name": "Synchronisation complète"

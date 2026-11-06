@@ -10,9 +10,8 @@ from homeassistant.components.sensor import (
     SensorEntity,
     SensorStateClass,
 )
-from homeassistant.const import EntityCategory, Platform
+from homeassistant.const import EntityCategory
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
@@ -172,8 +171,6 @@ class PlocCellarMetricSensor(
         """Initialize the sensor from its static description."""
         super().__init__(coordinator)
         self._description = description
-        # Suggest an untranslated, stable entity ID on new installations.
-        self.entity_id = f"sensor.{DOMAIN}_{description.translation_key}"
         self._attr_translation_key = description.translation_key
         self._attr_unique_id = description.unique_id
         self._attr_icon = description.icon
@@ -207,7 +204,6 @@ class PlocCellarLastSyncSensor(
     def __init__(self, coordinator: PlocCellarCoordinator) -> None:
         """Initialize the timestamp sensor with its stable entity ID."""
         super().__init__(coordinator)
-        self.entity_id = f"sensor.{DOMAIN}_diagnostic_last_successful_sync"
 
     @property
     def available(self) -> bool:  # pyright: ignore[reportIncompatibleVariableOverride]
@@ -225,22 +221,6 @@ class PlocCellarLastSyncSensor(
         return {"stale": self.coordinator.data.stale}
 
 
-def _migrate_inventory_entity_id(hass: HomeAssistant) -> None:
-    """Rename the former summary entity without changing its unique ID."""
-    registry = er.async_get(hass)
-    previous_entity_id = registry.async_get_entity_id(
-        Platform.SENSOR, DOMAIN, SENSOR_UNIQUE_ID
-    )
-    expected_previous_id = f"sensor.{DOMAIN}_inventory"
-    new_entity_id = f"sensor.{DOMAIN}_bottles_in_stock"
-    if previous_entity_id is None or previous_entity_id != expected_previous_id:
-        return
-    if registry.async_get(new_entity_id) is not None:
-        return
-    registry.async_update_entity(
-        previous_entity_id, new_entity_id=new_entity_id
-    )
-
 
 async def async_setup_entry(
     hass: HomeAssistant,
@@ -248,7 +228,6 @@ async def async_setup_entry(
     async_add_entities: AddEntitiesCallback,
 ) -> None:
     """Set up all inventory and diagnostic sensors on the cellar device."""
-    _migrate_inventory_entity_id(hass)
     coordinator = entry.runtime_data
     entities: list[SensorEntity] = [
         PlocCellarMetricSensor(coordinator, description)

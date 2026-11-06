@@ -19,8 +19,8 @@ class _FakeCoordinator:
         self.failure: Exception | None = None
 
     async def async_force_sync(self) -> Cellar:
-        """Record the partial synchronization request."""
-        self.calls.append("partial")
+        """Record the differential synchronization request."""
+        self.calls.append("differential")
         if self.failure is not None:
             raise self.failure
         return Cellar()
@@ -50,16 +50,14 @@ def test_manual_buttons_call_the_matching_coordinator_methods() -> None:
         "ploc_cellar_sync",
         "ploc_cellar_sync_full",
     ]
-    assert [button.entity_id for button in buttons] == [
-        "button.ploc_cellar_sync",
-        "button.ploc_cellar_sync_full",
-    ]
+    # Home Assistant generates entity IDs from the current naming settings.
+    assert all(button.entity_id is None for button in buttons)
 
     asyncio.run(buttons[0].async_press())
-    assert fake.calls == ["partial"]
+    assert fake.calls == ["differential"]
 
     asyncio.run(buttons[1].async_press())
-    assert fake.calls == ["partial", "full"]
+    assert fake.calls == ["differential", "full"]
 
 
 def test_manual_button_propagates_synchronization_failure() -> None:
