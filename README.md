@@ -169,4 +169,4 @@ The frontend source is in `frontend/`. GitHub Actions type-checks and builds
 the module, then commits the generated asset under
 `custom_components/ploc_cellar/www/`. End users do not need Node.js.
 
-In a **Sections** view, open the card editor, go to the **Layout** tab, turn off **Use recommended size**, then enable **Fit height to content**. This setting is stored in the dashboard configuration and must be enabled for each existing card. It is not available for a card nested inside a stack or grid card. The card provides a minimal recommended size; this option then sizes it to the full set of charts and diagnostics it displays.
+In a **Sections** view, the card automatically asks Home Assistant to fit its height to its content (`rows: auto`). No manual layout change is required. The native **Fit height to content** option in the dashboard editor provides the same behavior.
