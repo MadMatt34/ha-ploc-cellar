@@ -18,7 +18,7 @@ A Home Assistant custom integration for a **read-only** view of a PLOC wine cell
 - Fourteen focused inventory, rack and diagnostic sensors; no entity is created for each wine, rack or position.
 - Detailed inventory is returned on demand by the `ploc_cellar.get_inventory` action.
 - UUIDs are normalized to their canonical lowercase form across Wine, Rack, RackItem, Order, Owner and deletion references; opaque non-UUID identifiers are trimmed without changing case.
-- Immediate synchronization is available through the `ploc_cellar.sync` action.
+- Differential and full synchronization are available through the two buttons on the **Ploc Cellar** device.
 - One Ploc Cellar config entry is allowed per Home Assistant instance.
 - No write operations are sent to PLOUD.
 
@@ -82,8 +82,8 @@ All 14 sensors and two synchronization buttons are linked to the same **Ploc Cel
 | Diagnostics | Bottles in physical surplus | Physical bottles above non-negative movement stock. |
 | Diagnostics | Wines with physical surplus | Wine references with a physical surplus. |
 | Diagnostics | Last successful synchronization | Timestamp of the last successful synchronization; its `stale` attribute is true when a later synchronization has failed. |
-| Actions | Differential synchronization | Fetches changes since the saved PLOUD cursor. |
-| Actions | Full synchronization | Forces a complete PLOUD snapshot and rebuilds the local inventory. |
+| Buttons | Differential synchronization | Fetches changes since the saved PLOUD cursor. |
+| Buttons | Full synchronization | Forces a complete PLOUD snapshot and rebuilds the local inventory. |
 
 Movement-derived inventory and diagnostic sensors show `unknown` until a complete PLOUD `Orders` snapshot has been validated. Physical bottle and rack-position counts remain available. After a synchronization failure, the last successful timestamp is retained and the `stale` attribute on the last-sync sensor becomes true; a successful synchronization resets it to false.
 
@@ -97,7 +97,7 @@ The two buttons are available on the **Ploc Cellar** device:
 - the differential synchronization button applies changes since the last synchronization using the stored cursor.
 - the full synchronization button requests a complete PLOUD snapshot and rebuilds the local inventory. The existing validated inventory remains available until the new snapshot has been validated and persisted.
 
-They invoke the same coordinator operations as the `ploc_cellar.sync` and `ploc_cellar.sync_full` actions. Both can also be used from an automation with the standard `button.press` action.
+Both buttons can also be used from an automation with the standard `button.press` action.
 
 ### `ploc_cellar.get_inventory`
 
@@ -130,16 +130,6 @@ The response contains:
 - `last_sync`, the date and time of the last successful synchronization.
 
 For each wine, `unlocated_bottles` is the difference between effective stock and physical bottles in rack positions; `negative_movement_bottles` is the absolute value of a negative incoming-minus-outgoing balance; and `physical_surplus_bottles` is the number of physical bottles above `max(0, movement_balance)`. These are separate diagnostics and may coexist for the same wine. Unlocated stock does not prove that a bottle was removed without declaring an outgoing movement: the bottle may never have been placed or may be stored outside the cellar. Raw `Wine.bo` values are informational and do not determine effective stock. No correction is sent to PLOUD. Filters do not change global totals. Each wine location contains its rack name and ID, plus row and column when available.
-
-### `ploc_cellar.sync`
-
-Triggers an immediate read-only synchronization:
-
-```yaml
-action: ploc_cellar.sync
-data:
-  config_entry_id: YOUR_CONFIG_ENTRY_ID
-```
 
 ## Storage and privacy
 
