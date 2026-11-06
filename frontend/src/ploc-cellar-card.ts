@@ -2,15 +2,40 @@ import { LitElement, css, html, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators.js";
 import "./ploc-cellar-rack-card";
 import "./ploc-cellar-inventory-card";
-import "./ploc-cellar-statistics-card";
 import "./ploc-cellar-card-editor";
 
 import type {
   HomeAssistant,
   InventoryResponse,
   PlocCellarCardConfig,
+  Wine,
 } from "./types";
 import { translate, translatePicker, type TranslationKey } from "./translations";
+
+interface DistributionItem {
+  name: string;
+  bottles: number;
+  wines: number;
+  color?: string;
+}
+
+type DistributionField =
+  | "color"
+  | "region"
+  | "appellation"
+  | "vintage"
+  | "bottle_format";
+
+const CHART_COLORS = [
+  "var(--label-badge-red, #c65a5a)",
+  "var(--label-badge-blue, #44739e)",
+  "var(--label-badge-green, #4b9b70)",
+  "var(--label-badge-yellow, #c7a13b)",
+  "var(--label-badge-purple, #8a68a8)",
+  "var(--label-badge-grey, #888888)",
+  "var(--label-badge-teal, #319b9b)",
+  "var(--secondary-text-color, #777777)",
+];
 
 @customElement("ploc-cellar-card")
 export class PlocCellarCard extends LitElement {
@@ -40,9 +65,27 @@ export class PlocCellarCard extends LitElement {
     .diagnostics { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 8px; }
     .diagnostic { border: 1px solid var(--divider-color); border-radius: 8px; padding: 10px; min-width: 0; }
     .diagnostic-value { display: block; font-weight: 600; font-variant-numeric: tabular-nums; }
+    .groups { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr)); gap: 12px; margin-top: 14px; }
+    .group { min-width: 0; border: 1px solid var(--divider-color); border-radius: 10px; padding: 12px; }
+    .group-title { margin: 0 0 12px; font-size: 1rem; font-weight: 500; }
+    .chart-content { display: grid; grid-template-columns: minmax(112px, .85fr) minmax(0, 1.15fr); gap: 12px; align-items: center; }
+    .donut { display: block; width: 100%; max-width: 150px; height: auto; justify-self: center; overflow: visible; }
+    .donut-total { fill: var(--primary-text-color); font-size: 15px; font-weight: 600; text-anchor: middle; }
+    .donut-caption { fill: var(--secondary-text-color); font-size: 7px; text-anchor: middle; }
+    .legend { display: grid; gap: 8px; min-width: 0; }
+    .legend-item { display: grid; grid-template-columns: 10px minmax(0, 1fr) auto; align-items: center; gap: 7px; font-size: .82rem; }
+    .legend-swatch { width: 9px; height: 9px; border-radius: 50%; }
+    .legend-name { min-width: 0; overflow-wrap: anywhere; }
+    .legend-value { white-space: nowrap; font-variant-numeric: tabular-nums; font-weight: 600; }
+    .legend-meta { grid-column: 2 / 4; margin-top: -6px; color: var(--secondary-text-color); font-size: .72rem; }
     .warning { color: var(--warning-color); padding: 8px 0; }
     .error { color: var(--error-color); padding: 8px 0; }
-    @media (max-width: 420px) { ha-card { padding: 12px; } }
+    @media (max-width: 420px) {
+      ha-card { padding: 12px; }
+      .chart-content { grid-template-columns: minmax(96px, .7fr) minmax(0, 1.3fr); gap: 8px; }
+      .legend { gap: 6px; }
+      .legend-item { font-size: .78rem; }
+    }
   `;
 
   static getConfigElement(): HTMLElement {
@@ -118,6 +161,116 @@ export class PlocCellarCard extends LitElement {
     `;
   }
 
+  private getBottleCount(wine: Wine): number {
+    if (this.inventory?.stock_reconstruction_complete) {
+      return wine.bottles ?? wine.bottles_in_cellar;
+    }
+    return wine.bottles_in_cellar;
+  }
+
+  private distribution(field: DistributionField): DistributionItem[] {
+    const t = (key: TranslationKey): string =>
+      translate(this.hass?.language ?? "en", key);
+    const grouped = new Map<string, DistributionItem>();
+    for (const wine of this.inventory?.wines ?? []) {
+      const rawValue = wine[field];
+      const name = rawValue === null || rawValue === ""
+        ? t("statistics_unknown")
+        : String(rawValue);
+      const current = grouped.get(name) ?? { name, bottles: 0, wines: 0 };
+      current.bottles += this.getBottleCount(wine);
+      current.wines += 1;
+      if (field === "color" && wine.color_rgb && !current.color) {
+        const rgb = wine.color_rgb.map((component) =>
+          Math.min(255, Math.max(0, Math.round(component))),
+        );
+        current.color = `rgb(${rgb.join(", ")})`;
+      }
+      grouped.set(name, current);
+    }
+
+    const sorted = [...grouped.values()].sort(
+      (a, b) => b.bottles - a.bottles || a.name.localeCompare(b.name, this.hass?.language),
+    );
+    if (sorted.length <= 8) return sorted;
+
+    const visible = sorted.slice(0, 7);
+    const other = sorted.slice(7).reduce<DistributionItem>(
+      (total, item) => ({
+        name: t("statistics_other"),
+        bottles: total.bottles + item.bottles,
+        wines: total.wines + item.wines,
+      }),
+      { name: t("statistics_other"), bottles: 0, wines: 0 },
+    );
+    return [...visible, other];
+  }
+
+  private renderDistribution(field: DistributionField, titleKey: TranslationKey) {
+    const t = (key: TranslationKey): string =>
+      translate(this.hass?.language ?? "en", key);
+    const items = this.distribution(field);
+    const total = items.reduce((sum, item) => sum + item.bottles, 0);
+    const circumference = 2 * Math.PI * 42;
+    let offset = 0;
+    const segments = items
+      .filter((item) => item.bottles > 0)
+      .map((item, index) => {
+        const length = (item.bottles / total) * circumference;
+        const segment = {
+          ...item,
+          length,
+          offset,
+          color: item.color ?? CHART_COLORS[index % CHART_COLORS.length],
+        };
+        offset += length;
+        return segment;
+      });
+    const chartLabel = items
+      .map((item) => `${item.name}: ${this.formatNumber(item.bottles)}`)
+      .join(", ");
+
+    return html`
+      <section class="group">
+        <h3 class="group-title">${t(titleKey)}</h3>
+        ${total > 0 ? html`
+          <div class="chart-content">
+            <svg class="donut" viewBox="0 0 120 120" role="img"
+              aria-label=${t(titleKey) + ": " + chartLabel}>
+              <circle cx="60" cy="60" r="42" fill="none"
+                stroke="var(--divider-color)" stroke-width="18"></circle>
+              ${segments.map((segment) => html`
+                <circle cx="60" cy="60" r="42" fill="none"
+                  stroke=${segment.color} stroke-width="18"
+                  stroke-dasharray=${segment.length + " " + (circumference - segment.length)}
+                  stroke-dashoffset=${-segment.offset}
+                  transform="rotate(-90 60 60)"></circle>
+              `)}
+              <text class="donut-total" x="60" y="58">${this.formatNumber(total)}</text>
+              <text class="donut-caption" x="60" y="70">${t("statistics_bottles")}</text>
+            </svg>
+            <div class="legend">
+              ${segments.map((item) => html`
+                <div class="legend-item">
+                  <span class="legend-swatch" style=${`background: ${item.color}`}></span>
+                  <span class="legend-name">${item.name}</span>
+                  <span class="legend-value">${this.formatNumber(item.bottles)}</span>
+                  <span class="legend-meta">
+                    ${new Intl.NumberFormat(this.hass?.language ?? undefined, {
+                      style: "percent",
+                      maximumFractionDigits: 1,
+                    }).format(item.bottles / total)}
+                    · ${this.formatNumber(item.wines)} ${t("statistics_references")}
+                  </span>
+                </div>
+              `)}
+            </div>
+          </div>
+        ` : html`<p class="muted">${t("statistics_empty")}</p>`}
+      </section>
+    `;
+  }
+
   protected render() {
     const t = (key: TranslationKey): string =>
       translate(this.hass?.language ?? "en", key);
@@ -133,6 +286,8 @@ export class PlocCellarCard extends LitElement {
           { key: "diagnostic_surplus" as const, value: data.physical_surplus_bottles ?? 0 },
         ].filter((item) => item.value > 0)
       : [];
+    const wines = data?.wines ?? [];
+    const referenceCount = data?.wine_references ?? wines.length;
 
     return html`
       <ha-card>
@@ -154,7 +309,7 @@ export class PlocCellarCard extends LitElement {
               data.total_stock_bottles ?? t("unknown_value"),
               t("reconstructed_stock"),
             )}
-            ${this.metric(data.wine_references ?? data.stocked_wines, t("stocked_references"))}
+            ${this.metric(referenceCount, t("stocked_references"))}
             ${this.metric(data.rack_count, t("racks"))}
           </div>
           <section class="section" aria-label=${t("rack_occupancy")}>
@@ -186,6 +341,20 @@ export class PlocCellarCard extends LitElement {
               </div>
             </section>
           ` : nothing}
+          ${data.positions_with_unknown_wine > 0
+            ? html`<div class="warning">${t("statistics_unknown_wine_positions").replace("{count}", this.formatNumber(data.positions_with_unknown_wine))}</div>`
+            : nothing}
+          <section class="section">
+            <h3 class="section-title">${t("statistics_title")}</h3>
+            <p class="muted">${t("statistics_distribution_scope")}</p>
+            <div class="groups">
+              ${this.renderDistribution("color", "statistics_color")}
+              ${this.renderDistribution("region", "statistics_region")}
+              ${this.renderDistribution("appellation", "statistics_appellation")}
+              ${this.renderDistribution("vintage", "statistics_vintage")}
+              ${this.renderDistribution("bottle_format", "statistics_format")}
+            </div>
+          </section>
           <div class="muted section">${t("last_sync")}: ${this.formatSync(data.last_sync)}</div>
         ` : nothing}
       </ha-card>
@@ -193,13 +362,20 @@ export class PlocCellarCard extends LitElement {
   }
 
   getCardSize(): number {
-    return 6;
+    return 12;
   }
 
   getGridOptions() {
-    return { columns: 12, min_columns: 6, rows: 6, min_rows: 4 };
+    return { columns: 12, min_columns: 6, rows: 12, min_rows: 6 };
   }
 }
+
+/**
+ * Keep existing dashboards using the former statistics card type working.
+ * Both card types now render the unified overview and statistics experience.
+ */
+@customElement("ploc-cellar-statistics-card")
+export class PlocCellarStatisticsCard extends PlocCellarCard {}
 
 declare global {
   interface Window {
@@ -208,6 +384,7 @@ declare global {
 
   interface HTMLElementTagNameMap {
     "ploc-cellar-card": PlocCellarCard;
+    "ploc-cellar-statistics-card": PlocCellarStatisticsCard;
   }
 }
 
