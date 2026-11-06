@@ -23,10 +23,11 @@ from ploc_cellar.models import Cellar
 
 
 class _Coordinator:
-    """Capture the public synchronization calls made by registered services."""
+    """Provide the cached inventory data used by the inventory service."""
 
     def __init__(self) -> None:
         self.data = Cellar()
+
 
 class _Services:
     """Record service handlers registered by the integration."""
@@ -61,7 +62,7 @@ def _hass(coordinator: _Coordinator) -> SimpleNamespace:
 
 
 def test_async_setup_registers_only_the_inventory_service() -> None:
-    """Setup registers inventory; synchronization is exposed through entity buttons."""
+    """Register only inventory; synchronization is exposed through entity buttons."""
     coordinator = _Coordinator()
     hass = _hass(coordinator)
 
@@ -105,7 +106,6 @@ def test_services_reject_missing_wrong_or_unloaded_entries(entry: object) -> Non
 
     with pytest.raises(ServiceValidationError):
         asyncio.run(hass.services.handlers[SERVICE_GET_INVENTORY](call))
-
 
 
 def test_setup_entry_loads_coordinator_and_forwards_platforms(
