@@ -169,4 +169,4 @@ The frontend source is in `frontend/`. GitHub Actions type-checks and builds
 the module, then commits the generated asset under
 `custom_components/ploc_cellar/www/`. End users do not need Node.js.
 
-In a **Sections** view, the card automatically asks Home Assistant to fit its height to its content (`rows: auto`). No manual layout change is required. The native **Fit height to content** option in the dashboard editor provides the same behavior.
+In a **Sections** view, the card keeps a default width of 12 columns without forcing a row height. You can enable **Fit height to content** in the **Layout** tab for this card only if you want its height to follow its content.

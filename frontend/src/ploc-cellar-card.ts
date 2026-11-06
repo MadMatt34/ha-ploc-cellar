@@ -248,7 +248,7 @@ export class PlocCellarCard extends LitElement {
                   const tooltip = `${item.name}: ${this.formatNumber(item.bottles)} ${t("statistics_bottles")} (${new Intl.NumberFormat(this.hass?.language ?? undefined, { style: "percent", maximumFractionDigits: 1 }).format(item.bottles / total)}), ${this.formatNumber(item.wines)} ${t("statistics_references")}`;
                   return html`
                     <circle class="donut-segment" cx="50" cy="50" r="42"
-                      stroke=${item.color}
+                      style=${`stroke: ${item.color}`}
                       stroke-dasharray=${dashArray}
                       stroke-dashoffset=${dashOffset}>
                       <title>${tooltip}</title>
@@ -378,7 +378,7 @@ export class PlocCellarCard extends LitElement {
   }
 
   getGridOptions() {
-    return { columns: 12, min_columns: 6, rows: "auto" as const };
+    return { columns: 12, min_columns: 6 };
   }
 }
 
