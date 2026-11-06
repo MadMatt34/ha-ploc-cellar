@@ -30,11 +30,13 @@ export class PlocCellarRackCard extends LitElement {
     .rack-picker { display: flex; flex-wrap: wrap; gap: 8px; margin: 14px 0; }
     .grid-wrap { overflow-x: auto; padding: 4px 0 12px; }
     .rack-grid { display: grid; gap: 6px; min-width: min-content; }
-    .slot { min-width: 76px; min-height: 64px; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; padding: 6px; border-radius: 8px; border: 1px solid var(--divider-color); background: var(--secondary-background-color); box-sizing: border-box; }
-    .slot.occupied { border-color: var(--primary-color); background: var(--card-background-color); }
+    .slot { min-width: 76px; min-height: 76px; display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 5px; text-align: center; padding: 7px 6px; border-radius: 8px; border: 1px solid var(--divider-color); background: var(--secondary-background-color); box-sizing: border-box; }
+    .slot.occupied { border-color: var(--primary-color); background: var(--card-background-color); cursor: help; }
+    .slot.occupied:focus-visible { outline: 2px solid var(--primary-color); outline-offset: 2px; }
     .slot.missing { border-style: dashed; color: var(--secondary-text-color); background: transparent; }
-    .slot strong { font-size: .9rem; }
-    .slot small { color: var(--secondary-text-color); font-size: .75rem; }
+    .slot strong { font-size: .82rem; line-height: 1.25; overflow-wrap: anywhere; }
+    .slot small { color: var(--secondary-text-color); font-size: .72rem; }
+    .bottle-marker { display: block; flex: 0 0 30px; width: 30px; height: 30px; border-radius: 50%; background: var(--bottle-color, var(--secondary-text-color)); border: 2px solid var(--divider-color); box-shadow: inset 0 1px 3px rgb(0 0 0 / 25%), 0 1px 2px rgb(0 0 0 / 15%); box-sizing: border-box; }
     .legend, .muted { color: var(--secondary-text-color); font-size: .85rem; }
     .warning { color: var(--warning-color); padding: 8px 0; }
     .error { color: var(--error-color); padding: 8px 0; }
@@ -158,6 +160,49 @@ export class PlocCellarRackCard extends LitElement {
     return wine ? wine.name : translate(this.hass?.language ?? "en", "unknown_wine");
   }
 
+  private wineColor(wine: Wine | undefined): string {
+    const rgb = wine?.color_rgb;
+    if (
+      !rgb ||
+      rgb.length !== 3 ||
+      !rgb.every((component) => Number.isInteger(component) && component >= 0 && component <= 255)
+    ) {
+      return "var(--secondary-text-color)";
+    }
+    return `rgb(${rgb[0]} ${rgb[1]} ${rgb[2]})`;
+  }
+
+  private wineTooltip(wine: Wine | undefined): string {
+    const language = this.hass?.language ?? "en";
+    const t = (key: TranslationKey): string => translate(language, key);
+    if (!wine) return t("unknown_wine");
+
+    const lines = [wine.name];
+    if (wine.vintage !== null) lines.push(`${t("tooltip_vintage")}: ${wine.vintage}`);
+    if (wine.domain) lines.push(`${t("tooltip_domain")}: ${wine.domain}`);
+    if (wine.appellation) lines.push(`${t("tooltip_appellation")}: ${wine.appellation}`);
+    if (wine.classification) lines.push(`${t("tooltip_classification")}: ${wine.classification}`);
+    if (wine.color) lines.push(`${t("tooltip_color")}: ${wine.color}`);
+    if (wine.region) lines.push(`${t("tooltip_region")}: ${wine.region}`);
+    if (wine.country) lines.push(`${t("tooltip_country")}: ${wine.country}`);
+    if (wine.grapes) lines.push(`${t("tooltip_grapes")}: ${wine.grapes}`);
+    if (wine.cuvee) lines.push(`${t("tooltip_cuvee")}: ${wine.cuvee}`);
+    if (wine.bottle_format) lines.push(`${t("tooltip_format")}: ${wine.bottle_format}`);
+    if (wine.bottle_volume_l !== null) {
+      const volume = wine.bottle_volume_l.toLocaleString(language);
+      lines.push(`${t("tooltip_volume")}: ${volume} L`);
+    }
+    if (wine.service_temperature_min !== null || wine.service_temperature_max !== null) {
+      const minimum = wine.service_temperature_min;
+      const maximum = wine.service_temperature_max;
+      const temperature = minimum !== null && maximum !== null
+        ? `${minimum}–${maximum} °C`
+        : `${minimum ?? maximum} °C`;
+      lines.push(`${t("tooltip_temperature")}: ${temperature}`);
+    }
+    return lines.join("\n");
+  }
+
   protected render() {
     const t = (key: TranslationKey): string =>
       translate(this.hass?.language ?? "en", key);
@@ -195,10 +240,15 @@ export class PlocCellarRackCard extends LitElement {
                   const row = (item.row as number) - this.firstRow + 1;
                   const column = (item.column as number) - this.firstColumn + 1;
                   const occupied = Boolean(item.wine_id);
+                  const wine = item.wine_id ? this.wineById.get(item.wine_id) : undefined;
+                  const label = occupied ? this.wineTooltip(wine) : t("empty_position");
                   return html`
                     <div class=${occupied ? "slot occupied" : "slot"}
                       style=${`grid-row: ${row}; grid-column: ${column};`}
-                      title=${this.wineLabel(item) || (t("empty_position"))}>
+                      title=${label}
+                      aria-label=${label}
+                      tabindex=${occupied ? "0" : nothing}>
+                      ${occupied ? html`<span class="bottle-marker" style=${`--bottle-color: ${this.wineColor(wine)};`} aria-hidden="true"></span>` : nothing}
                       <strong>${occupied ? this.wineLabel(item) : "—"}</strong>
                       <small>${t("row")} ${item.row} · ${t("column")} ${item.column}</small>
                     </div>

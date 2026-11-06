@@ -90,5 +90,17 @@
   "diagnostic_detail_purchased": "Entrées",
   "diagnostic_detail_consumed": "Sorties",
   "diagnostic_detail_balance": "Solde des mouvements",
-  "diagnostic_detail_empty": "Aucun détail par référence de vin n’est disponible pour ce diagnostic."
+  "diagnostic_detail_empty": "Aucun détail par référence de vin n’est disponible pour ce diagnostic.",
+  "tooltip_vintage": "Millésime",
+  "tooltip_domain": "Domaine",
+  "tooltip_appellation": "Appellation",
+  "tooltip_classification": "Classement",
+  "tooltip_color": "Couleur du vin",
+  "tooltip_region": "Région",
+  "tooltip_country": "Pays",
+  "tooltip_grapes": "Cépages",
+  "tooltip_cuvee": "Cuvée",
+  "tooltip_format": "Format de bouteille",
+  "tooltip_volume": "Volume",
+  "tooltip_temperature": "Température de service"
 }
