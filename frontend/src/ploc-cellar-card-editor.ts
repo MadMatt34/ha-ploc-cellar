@@ -9,18 +9,22 @@ export class PlocCellarCardEditor extends LitElement {
   @property({ attribute: false }) hass?: HomeAssistant;
   @state() private config?: PlocCellarCardConfig;
 
-  private readonly schema = [
-    {
-      name: "config_entry_id",
-      required: true,
-      selector: { config_entry: { integration: "ploc_cellar" } },
-    },
-    { name: "title", selector: { text: {} } },
-    { name: "show_occupancy", selector: { boolean: {} } },
-    { name: "show_diagnostics", selector: { boolean: {} } },
-    { name: "show_statistics", selector: { boolean: {} } },
-    { name: "show_statistics_legends", selector: { boolean: {} } },
-  ];
+  private get schema() {
+    return [
+      {
+        name: "config_entry_id",
+        required: true,
+        selector: { config_entry: { integration: "ploc_cellar" } },
+      },
+      { name: "title", selector: { text: {} } },
+      { name: "show_occupancy", selector: { boolean: {} } },
+      { name: "show_diagnostics", selector: { boolean: {} } },
+      { name: "show_statistics", selector: { boolean: {} } },
+      ...(this.config?.show_statistics !== false
+        ? [{ name: "show_statistics_legends", selector: { boolean: {} } }]
+        : []),
+    ];
+  }
 
   setConfig(config: PlocCellarCardConfig): void {
     this.config = {

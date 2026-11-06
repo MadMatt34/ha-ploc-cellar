@@ -72,7 +72,7 @@ export class PlocCellarCard extends LitElement {
     .chart-content.chart-content-no-legend { grid-template-columns: minmax(0, 1fr); }
     .donut { position: relative; display: grid; place-items: center; width: 100%; max-width: 150px; aspect-ratio: 1; border-radius: 50%; justify-self: center; }
     .donut-chart { position: absolute; inset: 0; display: block; width: 100%; height: 100%; overflow: visible; }
-    .donut-segment { fill: none; stroke-width: 16; pointer-events: stroke; cursor: help; }
+    .donut-segment { fill: none; stroke: transparent; stroke-width: 16; pointer-events: stroke; cursor: help; }
     .donut-segment:focus { outline: none; }
     .donut-center { position: absolute; inset: 17%; display: flex; flex-direction: column; align-items: center; justify-content: center; border-radius: 50%; background: var(--card-background-color, var(--ha-card-background, #fff)); pointer-events: none; }
     .donut-total { color: var(--primary-text-color); font-size: 1rem; font-weight: 600; font-variant-numeric: tabular-nums; }
@@ -235,6 +235,9 @@ export class PlocCellarCard extends LitElement {
           color: item.color ?? CHART_COLORS[index % CHART_COLORS.length],
         };
       });
+    const gradient = segments
+      .map((item) => `${item.color} ${item.start}% ${item.end}%`)
+      .join(", ");
     const chartLabel = items
       .map((item) => `${item.name}: ${this.formatNumber(item.bottles)}`)
       .join(", ");
@@ -248,6 +251,7 @@ export class PlocCellarCard extends LitElement {
             : "chart-content"}>
             <div class="donut" role="img"
               aria-label=${t(titleKey) + ": " + chartLabel}
+              style=${`background: conic-gradient(${gradient})`}
 >
               <svg class="donut-chart" viewBox="0 0 100 100"
                 aria-hidden="true">
@@ -259,7 +263,7 @@ export class PlocCellarCard extends LitElement {
                   const tooltip = `${item.name}: ${this.formatNumber(item.bottles)} ${t("statistics_bottles")} (${new Intl.NumberFormat(this.hass?.language ?? undefined, { style: "percent", maximumFractionDigits: 1 }).format(item.bottles / total)}), ${this.formatNumber(item.wines)} ${t("statistics_references")}`;
                   return html`
                     <circle class="donut-segment" cx="50" cy="50" r="42"
-                      style=${`stroke: ${item.color}`}
+                      stroke="transparent"
                       stroke-dasharray=${dashArray}
                       stroke-dashoffset=${dashOffset}>
                       <title>${tooltip}</title>
