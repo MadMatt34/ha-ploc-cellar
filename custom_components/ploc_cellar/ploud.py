@@ -300,12 +300,12 @@ def _resolve_wine_references(
 ) -> Wine:
     """Refresh display fields using the cached compact IDs and current lookups."""
     fields = wine.ploud_reference_fields
-    appellation_id = fields.get("ap")
-    classification_id = fields.get("cl")
-    country_id = fields.get("cn")
-    region_id = fields.get("rn")
-    color_id = fields.get("co")
-    bottle_format_id = fields.get("vf")
+    appellation_id = fields.get("ap", fields.get("appellation_id"))
+    classification_id = fields.get("cl", fields.get("classification_id"))
+    country_id = fields.get("cn", fields.get("country_id"))
+    region_id = fields.get("rn", fields.get("region_id"))
+    color_id = fields.get("co", fields.get("color_id"))
+    bottle_format_id = fields.get("vf", fields.get("bottle_format_id"))
     bottle_format = _reference_entry(references, "bottleFormats", bottle_format_id)
     bottle_volume = (
         _reference_float(bottle_format.get("vo"))
