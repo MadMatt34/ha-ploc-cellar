@@ -104,7 +104,7 @@ export class PlocCellarCard extends LitElement {
       <ha-card>
         <header>
           <h2>${title}</h2>
-          <button ?disabled=${this.loading} @click=${this.refresh}>
+          <button ?disabled=${this.loading} @click=${() => this.refresh()}>
             ${this.loading ? (fr ? "Chargement…" : "Loading…") : (fr ? "Actualiser" : "Refresh")}
           </button>
         </header>
