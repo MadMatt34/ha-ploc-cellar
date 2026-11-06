@@ -19,7 +19,7 @@ from ploc_cellar.const import (
     PLOUD_DEFAULT_SERVER,
     SERVICE_GET_INVENTORY,
 )
-from ploc_cellar.models import Cellar
+from ploc_cellar.models import Cellar, Rack, RackItem
 
 
 class _Coordinator:
@@ -85,6 +85,8 @@ def test_inventory_service_returns_json_safe_empty_inventory() -> None:
     assert response["rack_count"] == 0
     assert response["wines"] == []
     assert response["racks"] == []
+    assert response["rack_items"] == []
+    assert response["stale"] is False
 
 
 @pytest.mark.parametrize(
@@ -200,3 +202,33 @@ def test_unload_entry_delegates_platform_unload() -> None:
 
     assert asyncio.run(async_unload_entry(hass, entry)) is True
     assert len(calls) == 2
+
+
+def test_inventory_service_exposes_complete_rack_positions() -> None:
+    """The response contains physical positions, including unassigned ones."""
+    coordinator = _Coordinator()
+    coordinator.data.racks["rack-1"] = Rack(id="rack-1", name="Rack A")
+    coordinator.data.rack_items["slot-1"] = RackItem(
+        id="slot-1",
+        rack_id="rack-1",
+        wine_id="",
+        row=2,
+        column=3,
+    )
+    coordinator.data.stale = True
+    hass = _hass(coordinator)
+    asyncio.run(async_setup(hass, {}))
+    call = SimpleNamespace(data={"config_entry_id": "entry-1"})
+
+    response = asyncio.run(hass.services.handlers[SERVICE_GET_INVENTORY](call))
+
+    assert response["stale"] is True
+    assert response["rack_items"] == [
+        {
+            "id": "slot-1",
+            "rack_id": "rack-1",
+            "wine_id": None,
+            "row": 2,
+            "column": 3,
+        }
+    ]
