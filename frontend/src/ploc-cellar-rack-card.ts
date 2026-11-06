@@ -7,6 +7,7 @@ import type {
   RackItem,
   Wine,
 } from "./types";
+import { translate, type TranslationKey } from "./translations";
 
 @customElement("ploc-cellar-rack-card")
 export class PlocCellarRackCard extends LitElement {
@@ -152,11 +153,12 @@ export class PlocCellarRackCard extends LitElement {
   private wineLabel(item: RackItem): string {
     if (!item.wine_id) return "";
     const wine = this.wineById.get(item.wine_id);
-    return wine ? wine.name : (this.hass?.language.startsWith("fr") ? "Vin inconnu" : "Unknown wine");
+    return wine ? wine.name : translate(this.hass?.language ?? "en", "unknown_wine");
   }
 
   protected render() {
-    const fr = (this.hass?.language ?? "").startsWith("fr");
+    const t = (key: TranslationKey): string =>
+      translate(this.hass?.language ?? "en", key);
     const data = this.inventory;
     const rack = data?.racks.find((item) => item.id === this.selectedRackId);
     const rows = this.rowValues;
@@ -170,20 +172,20 @@ export class PlocCellarRackCard extends LitElement {
     return html`
       <ha-card>
         <header>
-          <h2>${this.config?.title ?? (fr ? "Rangement de la cave" : "Cellar storage")}</h2>
-          <button ?disabled=${this.loading} @click=${() => this.refresh()}>${this.loading ? "…" : (fr ? "Actualiser" : "Refresh")}</button>
+          <h2>${this.config?.title ?? (t("rack_title"))}</h2>
+          <button ?disabled=${this.loading} @click=${() => this.refresh()}>${this.loading ? "…" : (t("refresh"))}</button>
         </header>
         ${this.error ? html`<div class="error">${this.error}</div>` : nothing}
-        ${!this.config?.config_entry_id ? html`<div class="muted">${fr ? "Sélectionnez une configuration Ploc Cellar dans l'éditeur de carte." : "Select a Ploc Cellar configuration in the card editor."}</div>` : nothing}
-        ${data?.stale ? html`<div class="warning">${fr ? "Les données peuvent être obsolètes." : "Data may be stale."}</div>` : nothing}
+        ${!this.config?.config_entry_id ? html`<div class="muted">${t("select_config")}</div>` : nothing}
+        ${data?.stale ? html`<div class="warning">${t("stale")}</div>` : nothing}
         ${data?.racks.length ? html`
-          <nav class="rack-picker" aria-label=${fr ? "Sélection du casier" : "Rack selection"}>
+          <nav class="rack-picker" aria-label=${t("rack_selection")}>
             ${data.racks.map((item) => html`
               <button aria-pressed=${item.id === this.selectedRackId}
                 @click=${() => { this.selectedRackId = item.id; }}>${item.name}</button>
             `)}
           </nav>
-          <div class="legend">${rack?.name ?? ""} · ${this.selectedItems.filter((item) => item.wine_id).length} ${fr ? "occupées" : "occupied"} · ${this.selectedItems.filter((item) => !item.wine_id).length} ${fr ? "libres" : "empty"}</div>
+          <div class="legend">${rack?.name ?? ""} · ${this.selectedItems.filter((item) => item.wine_id).length} ${t("occupied")} · ${this.selectedItems.filter((item) => !item.wine_id).length} ${t("free")}</div>
           ${rows.length && columns.length ? html`
             <div class="grid-wrap">
               <div class="rack-grid" style=${`grid-template-columns: repeat(${this.columnCount}, minmax(88px, 1fr)); grid-template-rows: repeat(${this.rowCount}, minmax(72px, auto));`}>
@@ -194,9 +196,9 @@ export class PlocCellarRackCard extends LitElement {
                   return html`
                     <div class=${occupied ? "slot occupied" : "slot"}
                       style=${`grid-row: ${row}; grid-column: ${column};`}
-                      title=${this.wineLabel(item) || (fr ? "Emplacement libre" : "Empty position")}>
+                      title=${this.wineLabel(item) || (t("empty_position"))}>
                       <strong>${occupied ? this.wineLabel(item) : "—"}</strong>
-                      <small>${fr ? "Rangée" : "Row"} ${item.row} · ${fr ? "Colonne" : "Column"} ${item.column}</small>
+                      <small>${t("row")} ${item.row} · ${t("column")} ${item.column}</small>
                     </div>
                   `;
                 })}
@@ -204,21 +206,21 @@ export class PlocCellarRackCard extends LitElement {
                   <div class="slot missing"
                     style=${`grid-row: ${position.row - this.firstRow + 1}; grid-column: ${position.column - this.firstColumn + 1};`}>
                     <strong>—</strong>
-                    <small>${fr ? "Non renseigné" : "Not mapped"}</small>
+                    <small>${t("not_mapped")}</small>
                   </div>
                 `)}
               </div>
             </div>
-          ` : html`<div class="warning">${fr ? "Aucune coordonnée de rangée/colonne disponible pour ce casier." : "No row/column coordinates are available for this rack."}</div>`}
+          ` : html`<div class="warning">${t("no_coordinates")}</div>`}
           ${unplaced.length ? html`
             <div class="unplaced">
-              <strong>${fr ? "Emplacements sans coordonnées" : "Positions without coordinates"}</strong>
-              ${unplaced.map((item) => html`<div class="unplaced-item">${this.wineLabel(item) || (fr ? "Emplacement libre" : "Empty position")}</div>`)}
+              <strong>${t("positions_without_coordinates")}</strong>
+              ${unplaced.map((item) => html`<div class="unplaced-item">${this.wineLabel(item) || (t("empty_position"))}</div>`)}
             </div>
           ` : nothing}
-        ` : html`<p class="muted">${fr ? "Aucun casier disponible." : "No racks available."}</p>`}
+        ` : html`<p class="muted">${t("no_racks")}</p>`}
         ${rackItemsWithUnknownRack.length ? html`
-          <div class="warning">${rackItemsWithUnknownRack.length} ${fr ? "emplacement(s) référencent un casier absent." : "position(s) reference a missing rack."}</div>
+          <div class="warning">${rackItemsWithUnknownRack.length} ${t("missing_rack")}</div>
         ` : nothing}
       </ha-card>
     `;
