@@ -15,13 +15,13 @@ from homeassistant.util.json import JsonValueType
 
 from .const import (
     PLOUD_COLLECTION_DELETED,
-    PLOUD_REFERENCE_COLLECTIONS,
     PLOUD_COLLECTION_ORDERS,
     PLOUD_COLLECTION_OWNERS,
     PLOUD_COLLECTION_RACK_ITEMS,
     PLOUD_COLLECTION_RACKS,
     PLOUD_COLLECTION_WINES,
     PLOUD_HMAC_KEY,
+    PLOUD_REFERENCE_COLLECTIONS,
     PLOUD_SUPPORTED_COLLECTIONS,
     PLOUD_SYNC_METHOD,
     PLOUD_SYNC_PATH,
@@ -300,34 +300,62 @@ def _resolve_wine_references(
 ) -> Wine:
     """Refresh display fields using the cached compact IDs and current lookups."""
     fields = wine.ploud_reference_fields
-    appellation_id = fields.get("ap", fields.get("appellation_id"))
-    classification_id = fields.get("cl", fields.get("classification_id"))
-    country_id = fields.get("cn", fields.get("country_id"))
-    region_id = fields.get("rn", fields.get("region_id"))
+
+    def resolve_name(
+        collection: str,
+        compact_field: str,
+        expanded_field: str,
+        fallback: str | None,
+    ) -> str | None:
+        """Resolve a field while preserving omission-versus-clear semantics."""
+        if compact_field not in fields and expanded_field not in fields:
+            return fallback
+        identifier = fields.get(compact_field, fields.get(expanded_field))
+        if identifier is None or identifier == "":
+            return None
+        return _reference_name(references, collection, identifier) or fallback
+
+    def resolve_bottle_format(
+        fallback: str | None,
+    ) -> tuple[str | None, float | None]:
+        """Resolve bottle format label and volume from one lookup record."""
+        if "vf" not in fields and "bottle_format_id" not in fields:
+            return fallback, wine.bottle_volume_l
+        identifier = fields.get("vf", fields.get("bottle_format_id"))
+        if identifier is None or identifier == "":
+            return None, None
+        entry = _reference_entry(references, "bottleFormats", identifier)
+        if entry is None:
+            return fallback, wine.bottle_volume_l
+        return (
+            _optional_text(entry.get("nm")) or fallback,
+            _reference_float(entry.get("vo")) or wine.bottle_volume_l,
+        )
+
     color_id = fields.get("co", fields.get("color_id"))
-    bottle_format_id = fields.get("vf", fields.get("bottle_format_id"))
-    bottle_format = _reference_entry(references, "bottleFormats", bottle_format_id)
-    bottle_volume = (
-        _reference_float(bottle_format.get("vo"))
-        if bottle_format is not None
-        else None
-    )
+    if "co" in fields or "color_id" in fields:
+        if color_id is None or color_id == "":
+            color_rgb = None
+        else:
+            color_rgb = _reference_rgb(references, color_id) or wine.color_rgb
+    else:
+        color_rgb = wine.color_rgb
+
+    bottle_format, bottle_volume_l = resolve_bottle_format(wine.bottle_format)
     return replace(
         wine,
-        appellation=_reference_name(references, "appellations", appellation_id)
-        or wine.appellation,
-        classification=_reference_name(references, "classifications", classification_id)
-        or wine.classification,
-        country=_reference_name(references, "countries", country_id) or wine.country,
-        region=_reference_name(references, "regions", region_id) or wine.region,
-        color=_reference_name(references, "colors", color_id) or wine.color,
-        color_rgb=_reference_rgb(references, color_id) or wine.color_rgb,
-        bottle_format=(
-            _optional_text(bottle_format.get("nm"))
-            if bottle_format is not None
-            else None
-        ) or wine.bottle_format,
-        bottle_volume_l=bottle_volume or wine.bottle_volume_l,
+        appellation=resolve_name(
+            "appellations", "ap", "appellation_id", wine.appellation
+        ),
+        classification=resolve_name(
+            "classifications", "cl", "classification_id", wine.classification
+        ),
+        country=resolve_name("countries", "cn", "country_id", wine.country),
+        region=resolve_name("regions", "rn", "region_id", wine.region),
+        color=resolve_name("colors", "co", "color_id", wine.color),
+        color_rgb=color_rgb,
+        bottle_format=bottle_format,
+        bottle_volume_l=bottle_volume_l,
     )
 
 
@@ -485,7 +513,7 @@ def _parse_wine(
         domain = owner_names[owner_id]
 
     bottle_format_entry = _reference_entry(
-        references, "bottleFormats", fields.get("vf")
+        references, "bottleFormats", fields.get("vf", fields.get("bottle_format_id"))
     )
     bottle_format_name = (
         _optional_text(bottle_format_entry.get("nm"))
