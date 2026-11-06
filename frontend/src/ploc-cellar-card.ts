@@ -97,8 +97,7 @@ export class PlocCellarCard extends LitElement {
     .chart-content { display: grid; grid-template-columns: minmax(112px, .85fr) minmax(0, 1.15fr); gap: 12px; align-items: center; }
     .chart-content.chart-content-no-legend { grid-template-columns: minmax(0, 1fr); }
     .donut { position: relative; display: grid; place-items: center; width: 100%; max-width: 150px; aspect-ratio: 1; border-radius: 50%; justify-self: center; }
-    .donut-chart { position: absolute; inset: 0; display: block; width: 100%; height: 100%; overflow: visible; }
-    .donut-segment { fill: none; stroke: transparent; stroke-width: 16; pointer-events: none; }
+    .donut { cursor: help; }
     .donut-tooltip {
       position: fixed;
       z-index: 10000;
@@ -338,20 +337,6 @@ export class PlocCellarCard extends LitElement {
               @pointermove=${(event: PointerEvent) => this.handleDonutPointerMove(event, segments)}
               @pointerleave=${() => { this.donutTooltip = undefined; }}
               style=${`background: conic-gradient(${gradient})`}>
-              <svg class="donut-chart" viewBox="0 0 100 100" aria-hidden="true">
-                ${segments.map((item) => {
-                  const circumference = 2 * Math.PI * 42;
-                  const segmentLength = ((item.end - item.start) / 100) * circumference;
-                  const dashArray = `${segmentLength} ${circumference - segmentLength}`;
-                  const dashOffset = -(item.start / 100) * circumference;
-                  return html`
-                    <circle class="donut-segment" cx="50" cy="50" r="42"
-                      stroke-dasharray=${dashArray}
-                      stroke-dashoffset=${dashOffset}>
-                    </circle>
-                  `;
-                })}
-              </svg>
               <div class="donut-center">
                 <span class="donut-total">${this.formatNumber(total)}</span>
                 <span class="donut-caption">${t("statistics_bottles")}</span>
