@@ -1,6 +1,7 @@
 """Cellar coordinator and persistent Home Assistant storage."""
 from __future__ import annotations
 
+import hashlib
 import logging
 from copy import deepcopy
 from datetime import UTC, datetime, timedelta
@@ -368,9 +369,14 @@ class PlocCellarCoordinator(DataUpdateCoordinator[Cellar]):
     def image_url(self, document_id: str) -> str | None:
         """Return the authenticated API URL when a PLOUD image is cached."""
         identifier = normalize_identifier(document_id)
-        if not identifier or find_cached_image(self.image_directory, identifier) is None:
+        if not identifier:
             return None
+        cached_image = find_cached_image(self.image_directory, identifier)
+        if cached_image is None:
+            return None
+        cache_prefix = f"{hashlib.sha256(identifier.encode()).hexdigest()}-"
+        image_version = cached_image.stem.removeprefix(cache_prefix)
         return (
             f"/api/ploc_cellar/{self.entry_id}/images/"
-            f"{quote(identifier, safe='')}"
+            f"{quote(identifier, safe='')}?v={quote(image_version, safe='')}"
         )
