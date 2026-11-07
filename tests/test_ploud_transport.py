@@ -179,6 +179,18 @@ def test_sync_accepts_empty_delta_and_omitted_collections() -> None:
     assert collections == {"Wines": []}
 
 
+def test_sync_keeps_lowercase_documents_collection() -> None:
+    """The PLOUD Documents collection is retained for photo synchronization."""
+    document = {"id": "4fe6124e-6d59-45b5-9dcd-67f3fcdcda0a", "ct": "image/jpeg"}
+    session = _FakeSession(
+        _FakeResponse(payload={"objects": {"documents": [document]}})
+    )
+
+    collections, _ = _run_sync(session)
+
+    assert collections == {"documents": [document]}
+
+
 def test_sync_ignores_unknown_collections() -> None:
     """New server-side collections do not break forward-compatible parsing."""
     session = _FakeSession(
