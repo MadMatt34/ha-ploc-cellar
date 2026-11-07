@@ -2,9 +2,9 @@
 from __future__ import annotations
 
 import asyncio
-from pathlib import Path
 from copy import deepcopy
 from datetime import timedelta
+from pathlib import Path
 from typing import Any, cast
 
 import pytest
