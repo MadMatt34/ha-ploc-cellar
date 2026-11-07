@@ -166,6 +166,7 @@ def _build_inventory_response(
                 "bottle_format": wine.bottle_format,
                 "bottle_volume_l": wine.bottle_volume_l,
                 "ploud_pid": wine.ploud_pid,
+                "meals": wine.meals,
                 "image_url": _wine_image_url(wine, image_url_builder),
                 "locations": locations,
             }
