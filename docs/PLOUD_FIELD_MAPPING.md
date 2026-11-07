@@ -36,9 +36,10 @@ business model.
 | `ow` | `owner_id` | Owner UUID | Retained in the Wine record only as a technical reference, allowing later Owner updates to refresh the winery name |
 | `Owners.id` → `fullname` | `domain` | Winery / estate name | Owner UUID is resolved from the current response; the name is stored directly in the matching Wine record. The PLOC `Owner` model inherits the `Contact.fullname` display field; empty or unresolved names become `None` |
 
-The legacy `ploud_reference_fields` dictionary is no longer part of the
-`Wine` model or newly persisted data. Its confirmed values are extracted during
-the storage migration.
+The `ploud_reference_fields` dictionary retains the original compact PLOUD
+properties used for incremental-delta merging and reference resolution. The
+`ml` value is additionally decoded into the typed `Wine.meals` attribute; the
+raw compact value remains in the dictionary as well.
 
 ## Reference collections
 
