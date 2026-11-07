@@ -101,7 +101,6 @@ def test_services_reject_missing_wrong_or_unloaded_entries(entry: object) -> Non
     """A service cannot dispatch against an absent or unloaded config entry."""
     hass = SimpleNamespace(
         services=_Services(),
-
         config_entries=SimpleNamespace(async_get_entry=lambda entry_id: entry),
     )
     asyncio.run(async_setup(hass, {}))
