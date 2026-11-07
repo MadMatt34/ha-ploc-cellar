@@ -157,7 +157,20 @@ def test_get_inventory_response_matches_public_contract() -> None:
         "unlocated_bottles",
         "negative_movement_bottles",
         "physical_surplus_bottles",
+        "wine",
     }
+    diagnostic_wine = cast(dict[str, object], diagnostics[0]["wine"])
+    assert set(diagnostic_wine) == {
+        "id", "name", "domain", "bottles", "effective_stock",
+        "ploud_bottles", "bottles_in_cellar", "unlocated_bottles",
+        "purchased", "consumed", "movement_balance", "calculated_stock",
+        "negative_movement_bottles", "physical_surplus_bottles",
+        "vintage", "appellation", "color", "color_rgb", "classification",
+        "region", "country", "grapes", "cuvee", "comment", "alcohol_percent",
+        "service_temperature_min", "service_temperature_max", "bottle_format",
+        "bottle_volume_l", "ploud_pid", "locations",
+    }
+    assert diagnostic_wine["id"] == "wine-1"
 
     # Pin important nullable/type semantics as well as field names.
     assert response["last_sync"] == "2026-11-07T10:00:00+00:00"
