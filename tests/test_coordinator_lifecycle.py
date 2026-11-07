@@ -45,7 +45,16 @@ def _coordinator(
     store: _Store | None = None,
 ) -> PlocCellarCoordinator:
     coordinator = object.__new__(PlocCellarCoordinator)
-    hass = type("FakeHass", (), {"is_stopping": False})()
+    fake_config = type(
+        "FakeConfig",
+        (),
+        {"path": lambda self, *parts: str(Path("/tmp").joinpath(*parts))},
+    )()
+    hass = type(
+        "FakeHass",
+        (),
+        {"is_stopping": False, "config": fake_config},
+    )()
     coordinator.hass = cast(Any, hass)
     coordinator.store = cast(Any, store or _Store())
     coordinator.cellar = cellar or Cellar()
