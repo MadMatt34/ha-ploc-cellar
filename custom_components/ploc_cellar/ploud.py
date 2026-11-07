@@ -497,6 +497,20 @@ def _parse_wine(
     else:
         color_rgb = previous.color_rgb if previous is not None else None
 
+    has_meals, meals_value = _source_field(raw, fields, "meals", "ml")
+    if not has_meals:
+        meals = previous.meals if previous is not None else None
+    elif meals_value is None or (
+        isinstance(meals_value, str) and not meals_value.strip()
+    ):
+        meals = None
+    else:
+        meals = _int(meals_value)
+        if meals is None or meals < 0:
+            raise PloudError(
+                f"PLOUD returned an invalid meal association bitmask for wine {wine_id}"
+            )
+
     has_owner_id, owner_value = _source_field(
         raw, fields, "owner_id", "ownerId", "ow", "owner", "Owner"
     )
@@ -638,6 +652,7 @@ def _parse_wine(
         domain=domain,
         owner_id=owner_id,
         ploud_reference_fields=fields,
+        meals=meals,
     )
     return _resolve_wine_references(wine, references)
 

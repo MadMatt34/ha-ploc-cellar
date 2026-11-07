@@ -486,3 +486,48 @@ def test_reference_delta_refreshes_characteristics_of_cached_wines() -> None:
     wine = cellar.wines["wine-1"]
     assert wine.color == "Rouge profond"
     assert wine.color_rgb == (90, 10, 20)
+
+
+def test_wine_meal_associations_parse_and_survive_incremental_deltas() -> None:
+    """The ml bitmask is decoded without losing flags on partial Wine updates."""
+    cellar = Cellar()
+    apply_sync(
+        cellar,
+        {
+            "Wines": [
+                {"id": "wine-1", "nm": "Vin de test", "bo": 1, "ml": 2080}
+            ]
+        },
+        2,
+    )
+
+    wine = cellar.wines["wine-1"]
+    assert wine.meals == 2080
+    assert wine.ploud_reference_fields["ml"] == 2080
+
+    apply_sync(cellar, {"Wines": [{"id": "wine-1", "bo": 2}]}, 3)
+    assert cellar.wines["wine-1"].meals == 2080
+
+    # Preserve an unrecognized future bit instead of rejecting or rewriting it.
+    apply_sync(cellar, {"Wines": [{"id": "wine-1", "ml": 8192}]}, 4)
+    assert cellar.wines["wine-1"].meals == 8192
+
+    # An explicit zero clears all meal associations.
+    apply_sync(cellar, {"Wines": [{"id": "wine-1", "ml": 0}]}, 5)
+    assert cellar.wines["wine-1"].meals == 0
+
+
+@pytest.mark.parametrize("value", [-1, True, 1.5, "not-a-number"])
+def test_invalid_wine_meal_association_bitmask_is_rejected(value: object) -> None:
+    """Malformed ml values cannot silently become valid meal associations."""
+    cellar = Cellar()
+    with pytest.raises(PloudError, match="meal association bitmask"):
+        apply_sync(
+            cellar,
+            {
+                "Wines": [
+                    {"id": "wine-1", "nm": "Vin de test", "bo": 1, "ml": value}
+                ]
+            },
+            2,
+        )

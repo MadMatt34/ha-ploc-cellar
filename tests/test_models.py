@@ -5,7 +5,9 @@ import pytest
 from ploc_cellar.models import Cellar, Order, Rack, RackItem, Wine
 
 
-def _wine(wine_id: str, *, bottles: int = 0) -> Wine:
+def _wine(
+    wine_id: str, *, bottles: int = 0, meals: int | None = None
+) -> Wine:
     """Build a wine with all persisted fields populated."""
     return Wine(
         id=wine_id,
@@ -30,6 +32,7 @@ def _wine(wine_id: str, *, bottles: int = 0) -> Wine:
         ploud_pid=None,
         domain=None,
         owner_id=None,
+        meals=meals,
     )
 
 
@@ -315,3 +318,33 @@ def test_legacy_cache_without_reference_indexes_requests_full_sync() -> None:
 
     assert restored.cursor == 1
     assert restored.stock_reconstruction_complete is True
+
+
+def test_wine_meal_bitmask_survives_storage_round_trip() -> None:
+    """The raw meal bitmask, including unknown future flags, is persisted."""
+    cellar = Cellar(
+        wines={
+            "wine": _wine(
+                "wine", meals=8192 | 2048 | 32
+            )
+        }
+    )
+
+    restored = Cellar.from_storage(cellar.to_storage())
+
+    assert restored.wines["wine"].meals == 10272
+
+
+def test_legacy_wine_meals_are_restored_from_compact_reference_fields() -> None:
+    """Older caches can recover ml from their retained PLOUD compact fields."""
+    stored = Cellar(wines={"wine": _wine("wine")}).to_storage()
+    wines = stored["wines"]
+    assert isinstance(wines, dict)
+    record = wines["wine"]
+    assert isinstance(record, dict)
+    record.pop("meals")
+    record["ploud_reference_fields"] = {"ml": 2080}
+
+    restored = Cellar.from_storage(stored)
+
+    assert restored.wines["wine"].meals == 2080

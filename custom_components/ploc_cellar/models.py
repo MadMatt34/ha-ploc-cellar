@@ -69,6 +69,8 @@ class Wine:
     owner_id: str | None
     # Original compact PLOUD properties retained for later reference resolution.
     ploud_reference_fields: JsonObject = field(default_factory=_empty_json_object)
+    # Raw PLOUD Meals bitmask (ml); unknown future bits remain preserved.
+    meals: int | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -373,6 +375,7 @@ class Cellar:
                 "ploud_pid": wine.ploud_pid,
                 "domain": wine.domain,
                 "owner_id": wine.owner_id,
+                "meals": wine.meals,
                 "ploud_reference_fields": wine.ploud_reference_fields,
             }
             for wine_id, wine in self.wines.items()
@@ -657,6 +660,14 @@ def _validate_current_storage(
             raise ValueError(
                 f"Invalid Wine vintage in current cellar storage: {identifier}"
             )
+        meals = wine.get("meals")
+        if meals is not None and (
+            isinstance(meals, bool) or not isinstance(meals, int) or meals < 0
+        ):
+            raise ValueError(
+                f"Invalid Wine meal association bitmask in current cellar storage: "
+                f"{identifier}"
+            )
         reference_fields = wine.get("ploud_reference_fields")
         if reference_fields is not None and not isinstance(reference_fields, dict):
             raise ValueError(
@@ -900,6 +911,11 @@ def _wine_from_dict(raw: JsonObject, key: str) -> Wine:
     if parsed_bottles_in_cellar < 0:
         raise ValueError(f"Invalid in-cellar bottle count in stored wine {key}")
 
+    raw_meals = raw.get("meals", legacy_fields.get("ml"))
+    meals = _int(raw_meals)
+    if raw_meals is not None and (meals is None or meals < 0):
+        raise ValueError(f"Invalid meal association bitmask in stored wine {key}")
+
     return Wine(
         id=_stored_id(raw.get("id"), key, "Wine"),
         name=_str(raw.get("name")) or "",
@@ -930,6 +946,7 @@ def _wine_from_dict(raw: JsonObject, key: str) -> Wine:
         domain=_optional_str(value("domain", "domain")),
         owner_id=_optional_id(value("owner_id", "ow")),
         ploud_reference_fields=legacy_fields,
+        meals=meals,
     )
 
 
