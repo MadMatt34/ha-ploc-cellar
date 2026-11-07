@@ -11,6 +11,33 @@ Intégration personnalisée Home Assistant permettant de consulter une cave PLOC
 
 ## Fonctionnalités
 
+## Données des accords mets et vins
+
+PLOUD stocke les associations mets-vins dans le champ `Wine.ml`. L'intégration expose cette valeur sous la forme de l'entier brut facultatif `Wine.meals` ; elle ne traduit, ne normalise et ne supprime aucun indicateur. Il s'agit d'un masque de bits : plusieurs catégories peuvent être présentes dans une même valeur en combinant leurs indicateurs par OU binaire.
+
+Indicateurs connus de l'énumération publique `Meals` :
+
+| Valeur du bit | Catégorie de mets |
+|---:|---|
+| `1` | Apéritif |
+| `2` | Soupe |
+| `4` | Entrée |
+| `8` | Porc et charcuterie |
+| `16` | Fruits de mer |
+| `32` | Poisson |
+| `64` | Viande blanche |
+| `128` | Gibier |
+| `256` | Volaille |
+| `512` | Viande rouge |
+| `1024` | Plats et légumes |
+| `2048` | Fromage |
+| `4096` | Dessert |
+
+Le frontend associe ces indicateurs à des libellés localisés dans la fenêtre de détail du vin. Une valeur `meals` absente ou nulle signifie que les données d'association ne sont pas disponibles ; elle ne doit pas être interprétée comme une liste explicitement vide.
+
+L'APK contient également une ressource `foodtype8192`, mais `8192` n'est pas défini dans l'énumération publique du serveur. Sa signification n'est pas confirmée et cet indicateur est volontairement absent de la correspondance. Le backend doit conserver les bits inconnus et le frontend doit les ignorer.
+
+
 - PLOUD reste la source de vérité.
 - Synchronisation incrémentale en lecture seule via `POST https://ploud.ploc.co/v1/sync/exec`, avec `Objects={}`.
 - Le premier chargement utilise la valeur d'initialisation validée `LastSyncTime=1`. Les synchronisations suivantes utilisent le curseur client en millisecondes Unix.
