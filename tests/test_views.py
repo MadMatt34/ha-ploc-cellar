@@ -46,7 +46,7 @@ def test_image_view_serves_only_cached_images(
     )
 
     assert isinstance(response, web.FileResponse)
-    assert response.headers["Cache-Control"] == "private, max-age=3600"
+    assert response.headers["Cache-Control"] == "private, no-store"
     assert view.requires_auth is True
 
 
