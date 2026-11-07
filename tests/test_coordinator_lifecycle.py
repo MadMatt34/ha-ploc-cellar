@@ -582,10 +582,10 @@ def test_image_url_changes_when_cached_document_version_changes(
 
     assert first_url == (
         "/api/ploc_cellar/test-entry/images/"
-        "4fe6124e-6d59-45b5-9dcd-67f3fcdcda0a?v=first"
+        "4fe6124e-6d59-45b5-9dcd-67f3fcdcda0a?v=first.jpg"
     )
     assert second_url == (
         "/api/ploc_cellar/test-entry/images/"
-        "4fe6124e-6d59-45b5-9dcd-67f3fcdcda0a?v=second"
+        "4fe6124e-6d59-45b5-9dcd-67f3fcdcda0a?v=second.jpg"
     )
     assert first_url != second_url
