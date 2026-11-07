@@ -51,7 +51,7 @@ def test_image_download_enforces_the_exact_size_limit(
     document_id = "4fe6124e-6d59-45b5-9dcd-67f3fcdcda0a"
 
     async def fake_download(*args: Any, **kwargs: Any) -> bytes:
-        return b"\\xff\\xd8\\xff" + b"x" * (size - 3)
+        return b"\xff\xd8\xff" + b"x" * (size - 3)
 
     monkeypatch.setattr(images_module, "async_get_document", fake_download)
     asyncio.run(
