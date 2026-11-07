@@ -67,7 +67,11 @@ def test_sync_downloads_and_caches_a_referenced_image(
     """A missing referenced document is downloaded and stored by opaque ID hash."""
     document_id = "4fe6124e-6d59-45b5-9dcd-67f3fcdcda0a"
     cellar = Cellar(wines={"wine-1": _wine(document_id)})
-    objects: PLOUDCollections = {"Documents": [_document(document_id, 1)]}
+    objects: PLOUDCollections = {
+        "Documents": [
+            {**_document(document_id, 1), "ct": "application/octet-stream"}
+        ]
+    }
     downloads: list[str] = []
 
     async def fake_download(
