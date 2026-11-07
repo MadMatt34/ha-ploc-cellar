@@ -148,36 +148,9 @@ CI runs Ruff, Hassfest, strict Pyright type analysis against the latest stable H
 These static checks do not replace end-to-end testing against a real Home Assistant instance and the PLOUD cellar.
 
 
-### Lovelace dashboard cards
+### Lovelace cards
 
-The integration includes three optional custom Lovelace cards:
-
-- **Ploc Cellar**: unified cellar overview and statistics, including physical and reconstructed stock, rack occupancy, stock diagnostics, and donut charts for distributions by color, region, appellation, vintage and bottle format. Chart breakdowns cover known Wine references only; occupied positions with unresolved Wine references remain included in the global physical/reconstructed totals and are reported separately.
-- **Ploc Cellar Rack**: rack selector and a position map based on the actual PLOUD row/column coordinates.
-- **Ploc Cellar Inventory**: searchable wine list with color, region, appellation and vintage filters, sorting, quantities and expandable wine details.
-
-The former **Ploc Cellar Statistics** card type remains registered as a compatibility alias: existing dashboards using `custom:ploc-cellar-statistics-card` continue to work and display the unified overview. New dashboards should use **Ploc Cellar**.
-
-The frontend is now maintained in the standalone
+The optional Lovelace cards are maintained and released independently in the
 [Ploc Cellar Cards repository](https://github.com/MadMatt34/ha-ploc-cellar-frontend).
-For new installations, add that repository to HACS as a custom **Dashboard**
-repository and install **Ploc Cellar Cards**. HACS registers its dashboard
-resource automatically. If dashboard resources are managed manually, the
-HACS resource is
-`/hacsfiles/ha-ploc-cellar-frontend/ploc-cellar-card.js`.
-
-The former integration-served module remains available temporarily for
-existing dashboards at `/ploc_cellar_static/ploc-cellar-card.js`. Migrate by
-installing the standalone Dashboard package and replacing the old resource
-with the HACS resource. Do not load both modules at once: they register the
-same card types. Existing card configurations and their `config_entry_id`
-values are preserved.
-
-The backend repository temporarily retains the previous frontend source,
-generated bundle and build workflow as a migration fallback. The standalone
-frontend repository is the source of truth for future card development and
-independent frontend releases. End users do not need Node.js.
-
-In a **Sections** view, the overview card keeps a default width of 12 columns
-without forcing a row height. You can enable **Fit height to content** in the
-**Layout** tab if you want its height to follow its content.
+That repository contains the card documentation, HACS Dashboard installation
+instructions and frontend development workflow.
