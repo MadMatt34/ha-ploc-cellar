@@ -375,7 +375,7 @@ class PlocCellarCoordinator(DataUpdateCoordinator[Cellar]):
         if cached_image is None:
             return None
         cache_prefix = f"{hashlib.sha256(identifier.encode()).hexdigest()}-"
-        image_version = cached_image.stem.removeprefix(cache_prefix)
+        image_version = cached_image.name.removeprefix(cache_prefix)
         return (
             f"/api/ploc_cellar/{self.entry_id}/images/"
             f"{quote(identifier, safe='')}?v={quote(image_version, safe='')}"
