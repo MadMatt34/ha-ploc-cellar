@@ -10,7 +10,6 @@ from typing import Any, cast
 import pytest
 from aiohttp import web
 from homeassistant.config_entries import ConfigEntryState
-
 from ploc_cellar.views import PlocCellarImageView
 
 
