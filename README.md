@@ -158,15 +158,26 @@ The integration includes three optional custom Lovelace cards:
 
 The former **Ploc Cellar Statistics** card type remains registered as a compatibility alias: existing dashboards using `custom:ploc-cellar-statistics-card` continue to work and display the unified overview. New dashboards should use **Ploc Cellar**.
 
-The JavaScript module is served by Home Assistant at
-`/ploc_cellar_static/ploc-cellar-card.js`. Add it once under
-**Settings → Dashboards → Resources** as a JavaScript module. Then add any
-of the three cards from the dashboard card picker and select the Ploc Cellar
-configuration entry in the shared card editor. Each card stores its own `config_entry_id`, so
-dashboards remain compatible with multiple cellar connections.
+The frontend is now maintained in the standalone
+[Ploc Cellar Cards repository](https://github.com/MadMatt34/ha-ploc-cellar-frontend).
+For new installations, add that repository to HACS as a custom **Dashboard**
+repository and install **Ploc Cellar Cards**. HACS registers its dashboard
+resource automatically. If dashboard resources are managed manually, the
+HACS resource is
+`/hacsfiles/ha-ploc-cellar-frontend/ploc-cellar-card.js`.
 
-The frontend source is in `frontend/`. GitHub Actions type-checks and builds
-the module, then commits the generated asset under
-`custom_components/ploc_cellar/www/`. End users do not need Node.js.
+The former integration-served module remains available temporarily for
+existing dashboards at `/ploc_cellar_static/ploc-cellar-card.js`. Migrate by
+installing the standalone Dashboard package and replacing the old resource
+with the HACS resource. Do not load both modules at once: they register the
+same card types. Existing card configurations and their `config_entry_id`
+values are preserved.
 
-In a **Sections** view, the card keeps a default width of 12 columns without forcing a row height. You can enable **Fit height to content** in the **Layout** tab for this card only if you want its height to follow its content.
+The backend repository temporarily retains the previous frontend source,
+generated bundle and build workflow as a migration fallback. The standalone
+frontend repository is the source of truth for future card development and
+independent frontend releases. End users do not need Node.js.
+
+In a **Sections** view, the overview card keeps a default width of 12 columns
+without forcing a row height. You can enable **Fit height to content** in the
+**Layout** tab if you want its height to follow its content.
