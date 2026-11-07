@@ -7,8 +7,8 @@ from pathlib import Path
 from types import SimpleNamespace
 from typing import Any, cast
 
-from aiohttp import web
 import pytest
+from aiohttp import web
 from homeassistant.config_entries import ConfigEntryState
 
 from ploc_cellar.views import PlocCellarImageView
