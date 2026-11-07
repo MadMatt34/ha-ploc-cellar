@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import asyncio
+from pathlib import Path
 from copy import deepcopy
 from datetime import timedelta
 from typing import Any, cast
@@ -50,6 +51,8 @@ def _coordinator(
     coordinator.cellar = cellar or Cellar()
     coordinator._force_full_sync = False
     coordinator.session = cast(Any, object())
+    coordinator.entry_id = "test-entry"
+    coordinator.image_directory = Path("/tmp/ploc-cellar-test-images")
     coordinator.server = "https://ploud.example"
     coordinator.token = "token"
     coordinator.device = "device"
