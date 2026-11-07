@@ -184,7 +184,7 @@ They are intentionally not exposed or persisted in the business model.
 
 | PLOUD key | Observed values in supplied snapshot | Status |
 |---|---|---|
-| `ml` | Zero or positive integers (61 non-zero records) | Unknown; do not infer meaning from the numeric pattern |
+| `ml` | Zero or positive integers (61 non-zero records) | Wine food-pairing associations; flags enum `Meals` (bitmask), exposed as the raw integer so unknown future bits are preserved |
 | `no` | Zero or numeric identifiers (38 non-zero records) | Unknown |
 | `ps` | `0`, `1`, `8`, `16` | Unknown code |
 | `at` | Zero on 115 records; `2022` on one | Unknown |
@@ -192,7 +192,7 @@ They are intentionally not exposed or persisted in the business model.
 | `ac`, `af`, `cf`, `ct`, `ep`, `it`, `lt`, `lg`, `nt` | Zero on all 116 records | Unknown; no non-zero sample |
 | `fa` | `false` on all 116 records | Unknown boolean; no positive sample |
 
-The compact keys `cn`, `rn`, `ap`, `vf`, `co` and `cl` are known
+\nThe official PLOUD server model maps `ml` to the `Meals` flags enum on each\nWine record (`Wine.cs`, `Meals.cs`). The currently documented flags are:\n\n| Bit value | PLOUD enum | Meaning |\n|---:|---|---|\n| 1 | `Aperitif` | Apéritif |\n| 2 | `Soup` | Soupe |\n| 4 | `Entry` | Entrée |\n| 8 | `PorkButchery` | Charcuterie et porc |\n| 16 | `SeaFood` | Fruits de mer |\n| 32 | `Fish` | Poissons |\n| 64 | `WhiteMeat` | Viandes blanches |\n| 128 | `Game` | Gibier |\n| 256 | `Poultry` | Volailles |\n| 512 | `RedMeat` | Viandes rouges |\n| 1024 | `DishAndVegetable` | Plats et légumes |\n| 2048 | `Cheese` | Fromages |\n| 4096 | `Dessert` | Desserts |\n\nThese values are combined with bitwise OR. For example, `2080` means\n`Cheese` + `Fish`. The APK contains a resource named `foodtype8192`, but\nthat value is not defined in the public server enum; it is therefore retained\nin the raw mask and deliberately not assigned a display label.\n\nThe compact keys `cn`, `rn`, `ap`, `vf`, `co` and `cl` are known
 reference identifiers from the legacy payload. Their corresponding expanded
 labels are used instead. They are not persisted as separate model attributes.
 
