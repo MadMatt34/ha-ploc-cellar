@@ -32,6 +32,7 @@ def _contract_wine() -> Wine:
         ploud_pid="ploud-1",
         domain="Domaine Mas Olivier",
         owner_id=None,
+        ploud_reference_fields={"im": "4fe6124e-6d59-45b5-9dcd-67f3fcdcda0a"},
     )
 
 
@@ -58,7 +59,12 @@ def test_get_inventory_response_matches_public_contract() -> None:
         },
     )
 
-    response = _build_inventory_response(cellar, search="", color="")
+    response = _build_inventory_response(
+        cellar,
+        search="",
+        color="",
+        image_url_builder=lambda identifier: f"/api/image/{identifier}",
+    )
 
     assert set(response) == {
         "stale",
@@ -121,6 +127,7 @@ def test_get_inventory_response_matches_public_contract() -> None:
         "bottle_format",
         "bottle_volume_l",
         "ploud_pid",
+        "image_url",
         "locations",
     }
 
@@ -168,7 +175,7 @@ def test_get_inventory_response_matches_public_contract() -> None:
         "vintage", "appellation", "color", "color_rgb", "classification",
         "region", "country", "grapes", "cuvee", "comment", "alcohol_percent",
         "service_temperature_min", "service_temperature_max", "bottle_format",
-        "bottle_volume_l", "ploud_pid", "locations",
+        "bottle_volume_l", "ploud_pid", "image_url", "locations",
     }
     assert diagnostic_wine["id"] == "wine-1"
 
@@ -179,6 +186,7 @@ def test_get_inventory_response_matches_public_contract() -> None:
     assert wines[0]["color_rgb"] == [120, 20, 30]
     assert wines[0]["classification"] is None
     assert wines[0]["bottle_volume_l"] == 0.75
+    assert wines[0]["image_url"] == "/api/image/4fe6124e-6d59-45b5-9dcd-67f3fcdcda0a"
     assert rack_items[0]["wine_id"] == "wine-1"
     assert diagnostics[0]["physical_surplus_bottles"] == 1
 
@@ -208,3 +216,4 @@ def test_get_inventory_incomplete_reconstruction_preserves_nullable_contract() -
     assert wines[0]["calculated_stock"] is None
     assert wines[0]["negative_movement_bottles"] is None
     assert wines[0]["physical_surplus_bottles"] is None
+    assert wines[0]["image_url"] is None
