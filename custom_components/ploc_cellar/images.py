@@ -179,7 +179,10 @@ def _store_image(
     temporary = destination.with_suffix(destination.suffix + ".tmp")
     temporary.write_bytes(content)
     temporary.replace(destination)
-    _remove_document_files(directory, document_id)
+    prefix = _cache_prefix(document_id) + "-"
+    for path in directory.iterdir():
+        if path.is_file() and path.name.startswith(prefix) and path != destination:
+            path.unlink(missing_ok=True)
 
 
 def _cleanup_unreferenced(directory: Path, referenced: set[str]) -> None:
