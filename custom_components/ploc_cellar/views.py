@@ -46,5 +46,5 @@ class PlocCellarImageView(HomeAssistantView):
 
         return web.FileResponse(
             image_path,
-            headers={"Cache-Control": "private, max-age=3600"},
+            headers={"Cache-Control": "private, no-store"},
         )
