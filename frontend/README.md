@@ -1,28 +1,21 @@
-# Ploc Cellar Lovelace frontend
+# Legacy Ploc Cellar frontend snapshot
 
-This directory contains the TypeScript/Lit source for the optional Lovelace
-cards. The overview, inventory and rack-layout cards read inventory only through the
-integration's `ploc_cellar.get_inventory` response action. They never
-communicate with PLOUD directly.
+The maintained frontend source has moved to the standalone
+[MadMatt34/ha-ploc-cellar-frontend](https://github.com/MadMatt34/ha-ploc-cellar-frontend)
+repository. New card development, frontend documentation, releases and
+frontend CI belong there.
 
-## Development
+This directory and the integration-served JavaScript bundle are retained
+temporarily as a migration fallback for existing dashboards. Do not develop
+new frontend features here. The legacy resource remains available at
+`/ploc_cellar_static/ploc-cellar-card.js` until the HACS Dashboard migration
+has been validated.
 
-Run:
+When migrating a dashboard, install the standalone HACS Dashboard package,
+replace the old resource with
+`/hacsfiles/ha-ploc-cellar-frontend/ploc-cellar-card.js`, and remove the old
+resource. Do not load both modules simultaneously because they register the
+same custom card types. Existing card configurations remain compatible.
 
-```sh
-npm install
-npm run check
-npm run build
-```
-
-Vite writes the distributable module to
-`custom_components/ploc_cellar/www/ploc-cellar-card.js`. The frontend GitHub
-Actions workflow performs the type-check and build on frontend changes, then
-commits the lockfile and generated module. Node.js is not required by end users.
-
-## Home Assistant resource
-
-The integration serves the compiled module at
-`/ploc_cellar_static/ploc-cellar-card.js`. Add this URL once under
-**Settings → Dashboards → Resources** with type **JavaScript module**. The card picker then offers `Ploc Cellar`, `Ploc Cellar Rack` and `Ploc Cellar Inventory`. The overview card shows cellar-wide stock indicators; the inventory card provides text search, filters for color, region, appellation and vintage, sorting, bottle quantities and expandable wine details. Each card editor
-provides a native configuration-entry selector.
+The previous source and build setup below this directory are not the source of
+truth for future frontend changes.
