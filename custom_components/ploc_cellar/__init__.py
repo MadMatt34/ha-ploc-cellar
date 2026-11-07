@@ -98,6 +98,52 @@ def _build_inventory_response(
             physical_surplus = stock.physical_surplus_bottles or 0
             if not (unlocated or negative or physical_surplus):
                 continue
+            locations: list[JsonValueType] = [
+                {
+                    "rack": cellar.racks[item.rack_id].name,
+                    "rack_id": item.rack_id,
+                    "row": item.row,
+                    "column": item.column,
+                }
+                for item in cellar.rack_items.values()
+                if item.wine_id == wine.id and item.rack_id in cellar.racks
+            ]
+            wine_details: JsonObjectType = {
+                "id": wine.id,
+                "name": wine.name,
+                "domain": wine.domain,
+                "bottles": stock.effective_stock,
+                "effective_stock": stock.effective_stock,
+                "ploud_bottles": wine.bottles,
+                "bottles_in_cellar": wine.bottles_in_cellar,
+                "unlocated_bottles": stock.unlocated_bottles,
+                "purchased": stock.purchased,
+                "consumed": stock.consumed,
+                "movement_balance": stock.movement_balance,
+                "calculated_stock": stock.calculated_stock,
+                "negative_movement_bottles": stock.negative_movement_bottles,
+                "physical_surplus_bottles": stock.physical_surplus_bottles,
+                "vintage": wine.vintage,
+                "appellation": wine.appellation,
+                "color": wine.color,
+                "color_rgb": cast(
+                    JsonValueType,
+                    list(wine.color_rgb) if wine.color_rgb is not None else None,
+                ),
+                "classification": wine.classification,
+                "region": wine.region,
+                "country": wine.country,
+                "grapes": wine.grapes,
+                "cuvee": wine.cuvee,
+                "comment": wine.comment,
+                "alcohol_percent": wine.alcohol_percent,
+                "service_temperature_min": wine.service_temperature_min,
+                "service_temperature_max": wine.service_temperature_max,
+                "bottle_format": wine.bottle_format,
+                "bottle_volume_l": wine.bottle_volume_l,
+                "ploud_pid": wine.ploud_pid,
+                "locations": locations,
+            }
             wine_diagnostics.append(
                 {
                     "id": wine.id,
@@ -116,6 +162,7 @@ def _build_inventory_response(
                     "physical_surplus_bottles": (
                         stock.physical_surplus_bottles
                     ),
+                    "wine": wine_details,
                 }
             )
 
