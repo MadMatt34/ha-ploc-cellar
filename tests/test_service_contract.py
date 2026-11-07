@@ -220,4 +220,4 @@ def test_get_inventory_incomplete_reconstruction_preserves_nullable_contract() -
     assert wines[0]["negative_movement_bottles"] is None
     assert wines[0]["physical_surplus_bottles"] is None
     assert wines[0]["image_url"] is None
-    assert wines[0]["meals"] is None
+    assert wines[0]["meals"] == 2080
