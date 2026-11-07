@@ -7,8 +7,8 @@ import hmac
 import logging
 import math
 import time
-from urllib.parse import quote
 from dataclasses import replace
+from urllib.parse import quote
 from typing import cast
 
 from aiohttp import ClientError, ClientSession, ClientTimeout, FormData
