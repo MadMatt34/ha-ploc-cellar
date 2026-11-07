@@ -55,7 +55,6 @@ def _hass(coordinator: _Coordinator) -> SimpleNamespace:
     )
     return SimpleNamespace(
         services=_Services(),
-
         config_entries=SimpleNamespace(
             async_get_entry=lambda entry_id: entry if entry_id == "entry-1" else None
         ),
