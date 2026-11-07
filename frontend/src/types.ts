@@ -7,6 +7,7 @@ export interface PlocCellarCardConfig {
   type: string;
   config_entry_id?: string;
   title?: string;
+  rack_picker_mode?: "buttons" | "dropdown";
   show_occupancy?: boolean;
   show_diagnostics?: boolean;
   show_statistics?: boolean;
