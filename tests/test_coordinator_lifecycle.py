@@ -2,8 +2,10 @@
 from __future__ import annotations
 
 import asyncio
+import hashlib
 from copy import deepcopy
 from datetime import timedelta
+from pathlib import Path
 from typing import Any, cast
 
 import pytest
@@ -44,12 +46,23 @@ def _coordinator(
     store: _Store | None = None,
 ) -> PlocCellarCoordinator:
     coordinator = object.__new__(PlocCellarCoordinator)
-    hass = type("FakeHass", (), {"is_stopping": False})()
+    fake_config = type(
+        "FakeConfig",
+        (),
+        {"path": lambda self, *parts: str(Path("/tmp").joinpath(*parts))},
+    )()
+    hass = type(
+        "FakeHass",
+        (),
+        {"is_stopping": False, "config": fake_config},
+    )()
     coordinator.hass = cast(Any, hass)
     coordinator.store = cast(Any, store or _Store())
     coordinator.cellar = cellar or Cellar()
     coordinator._force_full_sync = False
     coordinator.session = cast(Any, object())
+    coordinator.entry_id = "test-entry"
+    coordinator.image_directory = Path("/tmp/ploc-cellar-test-images")
     coordinator.server = "https://ploud.example"
     coordinator.token = "token"
     coordinator.device = "device"
@@ -470,7 +483,16 @@ def test_coordinator_initializes_ha_refresh_and_entry_storage(
         fake_base_init,
     )
     monkeypatch.setattr(coordinator_module, "Store", fake_store)
-    hass = type("FakeHass", (), {"is_stopping": False})()
+    fake_config = type(
+        "FakeConfig",
+        (),
+        {"path": lambda self, *parts: str(Path("/tmp").joinpath(*parts))},
+    )()
+    hass = type(
+        "FakeHass",
+        (),
+        {"is_stopping": False, "config": fake_config},
+    )()
     entry = type("FakeEntry", (), {"entry_id": "entry-42"})()
 
     coordinator = PlocCellarCoordinator(
@@ -537,3 +559,33 @@ def test_incomplete_fallback_snapshot_is_rejected_without_committing_delta(
     assert coordinator.cellar.stale is True
     assert coordinator._force_full_sync is True
     assert coordinator.store.saved is None
+
+
+
+def test_image_url_changes_when_cached_document_version_changes(
+    tmp_path: Path,
+) -> None:
+    """A changed document version produces a new frontend cache-busting URL."""
+    coordinator = _coordinator()
+    coordinator.image_directory = tmp_path
+    document_id = "4fe6124e-6d59-45b5-9dcd-67f3fcdcda0a"
+    prefix = hashlib.sha256(document_id.encode()).hexdigest()
+
+    first_image = tmp_path / f"{prefix}-first.jpg"
+    first_image.write_bytes(b"\xff\xd8\xfffirst")
+    first_url = coordinator.image_url(document_id)
+
+    second_image = tmp_path / f"{prefix}-second.jpg"
+    second_image.write_bytes(b"\xff\xd8\xffsecond")
+    first_image.unlink()
+    second_url = coordinator.image_url(document_id)
+
+    assert first_url == (
+        "/api/ploc_cellar/test-entry/images/"
+        "4fe6124e-6d59-45b5-9dcd-67f3fcdcda0a?v=first.jpg"
+    )
+    assert second_url == (
+        "/api/ploc_cellar/test-entry/images/"
+        "4fe6124e-6d59-45b5-9dcd-67f3fcdcda0a?v=second.jpg"
+    )
+    assert first_url != second_url

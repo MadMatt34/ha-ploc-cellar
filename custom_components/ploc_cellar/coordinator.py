@@ -1,9 +1,12 @@
 """Cellar coordinator and persistent Home Assistant storage."""
 from __future__ import annotations
 
+import hashlib
 import logging
 from copy import deepcopy
 from datetime import UTC, datetime, timedelta
+from pathlib import Path
+from urllib.parse import quote
 
 from aiohttp import ClientSession
 from homeassistant.core import HomeAssistant
@@ -18,7 +21,8 @@ from .const import (
     STORAGE_KEY,
     STORAGE_VERSION,
 )
-from .models import Cellar, JsonValue
+from .images import async_sync_images, find_cached_image
+from .models import Cellar, JsonValue, normalize_identifier
 from .ploud import (
     PloudAuthError,
     PLOUDCollections,
@@ -65,6 +69,10 @@ class PlocCellarCoordinator(DataUpdateCoordinator[Cellar]):
             always_update=False,
         )
         self.session = session
+        self.entry_id = entry.entry_id
+        self.image_directory = Path(
+            hass.config.path(".storage", DOMAIN, entry.entry_id, "images")
+        )
         self.server = server
         self.token = token
         self.device = device
@@ -295,6 +303,22 @@ class PlocCellarCoordinator(DataUpdateCoordinator[Cellar]):
                 len(updated_cellar.racks),
                 updated_cellar.occupied_positions,
             )
+            try:
+                await async_sync_images(
+                    self.hass,
+                    self.session,
+                    directory=self.image_directory,
+                    server=self.server,
+                    token=self.token,
+                    device=self.device,
+                    cellar=updated_cellar,
+                    objects=objects,
+                    last_sync_time=next_cursor,
+                )
+            except (PloudError, OSError) as err:
+                # Image availability must never prevent inventory refreshes.
+                _LOGGER.warning("PLOUD wine image cache update failed: %s", err)
+
             updated_cellar.last_sync = datetime.now(UTC).isoformat()
             updated_cellar.stale = False
             await self._async_save_verified(updated_cellar.to_storage())
@@ -340,3 +364,19 @@ class PlocCellarCoordinator(DataUpdateCoordinator[Cellar]):
                 translation_key="sync_failed",
             ) from self.last_exception
         return self.data
+
+
+    def image_url(self, document_id: str) -> str | None:
+        """Return the authenticated API URL when a PLOUD image is cached."""
+        identifier = normalize_identifier(document_id)
+        if not identifier:
+            return None
+        cached_image = find_cached_image(self.image_directory, identifier)
+        if cached_image is None:
+            return None
+        cache_prefix = f"{hashlib.sha256(identifier.encode()).hexdigest()}-"
+        image_version = cached_image.name.removeprefix(cache_prefix)
+        return (
+            f"/api/ploc_cellar/{self.entry_id}/images/"
+            f"{quote(identifier, safe='')}?v={quote(image_version, safe='')}"
+        )

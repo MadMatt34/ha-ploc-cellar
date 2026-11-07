@@ -6,7 +6,13 @@ from typing import Any, cast
 
 import aiohttp
 import pytest
-from ploc_cellar.ploud import PloudAuthError, PloudError, async_sync
+from ploc_cellar.ploud import (
+    PloudAuthError,
+    PloudError,
+    _signature,
+    async_get_document,
+    async_sync,
+)
 
 
 class _FakeResponse:
@@ -18,10 +24,12 @@ class _FakeResponse:
         status: int = 200,
         payload: object = None,
         json_error: Exception | None = None,
+        content: bytes = b"image-bytes",
     ) -> None:
         self.status = status
         self.payload = payload
         self.json_error = json_error
+        self.content = content
 
     async def __aenter__(self) -> _FakeResponse:
         return self
@@ -33,6 +41,10 @@ class _FakeResponse:
         traceback: object,
     ) -> None:
         return None
+
+    async def read(self) -> bytes:
+        """Return the configured binary response body."""
+        return self.content
 
     async def json(self, *, content_type: str | None = None) -> object:
         """Return the configured payload or simulate JSON decoding failure."""
@@ -54,18 +66,21 @@ class _FakeSession:
         )
         self.request_error = request_error
         self.request_url: str | None = None
+        self.request_json: dict[str, object] | None = None
         self.request_timeout: aiohttp.ClientTimeout | None = None
 
     def post(
         self,
         url: str,
         *,
-        data: aiohttp.FormData,
+        data: aiohttp.FormData | None = None,
+        json: dict[str, object] | None = None,
         timeout: aiohttp.ClientTimeout,
     ) -> _FakeResponse:
         """Capture request details and return the configured response."""
         self.request_url = url
         self.request_timeout = timeout
+        self.request_json = json
         if self.request_error is not None:
             raise self.request_error
         return self.response
@@ -164,6 +179,18 @@ def test_sync_accepts_empty_delta_and_omitted_collections() -> None:
     assert collections == {"Wines": []}
 
 
+def test_sync_keeps_lowercase_documents_collection() -> None:
+    """The PLOUD Documents collection is retained for photo synchronization."""
+    document = {"id": "4fe6124e-6d59-45b5-9dcd-67f3fcdcda0a", "ct": "image/jpeg"}
+    session = _FakeSession(
+        _FakeResponse(payload={"objects": {"documents": [document]}})
+    )
+
+    collections, _ = _run_sync(session)
+
+    assert collections == {"documents": [document]}
+
+
 def test_sync_ignores_unknown_collections() -> None:
     """New server-side collections do not break forward-compatible parsing."""
     session = _FakeSession(
@@ -256,3 +283,61 @@ def test_sync_preserves_server_records_and_never_moves_cursor_backwards(
         "Wines": [{"id": "wine-1", "name": "Vin", "bottles": 1}]
     }
     assert cursor == 123
+
+
+
+def test_get_document_uses_the_android_signed_document_endpoint(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The APK's getdocument signature includes the document identifier."""
+    from ploc_cellar import ploud as ploud_module
+
+    monkeypatch.setattr(ploud_module.time, "time", lambda: 1_800_000_000)
+    session = _FakeSession(_FakeResponse(content=b"\xff\xd8\xffjpeg"))
+    content = asyncio.run(
+        async_get_document(
+            cast(aiohttp.ClientSession, session),
+            server="https://ploud.example/v1/",
+            token="test-token",
+            device="device-identifier",
+            document_id="4fe6124e-6d59-45b5-9dcd-67f3fcdcda0a",
+            last_sync_time=123,
+        )
+    )
+
+    assert content == b"\xff\xd8\xffjpeg"
+    assert session.request_url == (
+        "https://ploud.example/v1/sync/documents/"
+        "4fe6124e-6d59-45b5-9dcd-67f3fcdcda0a/"
+    )
+    assert session.request_json is not None
+    assert session.request_json == {
+        "Token": "test-token",
+        "Signature": _signature(
+            "test-token",
+            "devic",
+            1_800_000_000,
+            method="getdocument",
+            object_id="4fe6124e-6d59-45b5-9dcd-67f3fcdcda0a",
+        ),
+        "Timestamp": 1_800_000_000,
+        "LastSyncTime": 123,
+        "Device": "devic",
+        "Document": "4fe6124e-6d59-45b5-9dcd-67f3fcdcda0a",
+    }
+
+
+def test_get_document_rejects_empty_response() -> None:
+    """An empty successful body is not a valid cached image."""
+    session = _FakeSession(_FakeResponse(content=b""))
+
+    with pytest.raises(PloudError, match="empty document"):
+        asyncio.run(
+            async_get_document(
+                cast(aiohttp.ClientSession, session),
+                server="https://ploud.example/v1",
+                token="test-token",
+                device="device-identifier",
+                document_id="document-1",
+            )
+        )

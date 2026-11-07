@@ -3,13 +3,19 @@ from __future__ import annotations
 
 import asyncio
 from datetime import timedelta
+from pathlib import Path
 from types import SimpleNamespace
 from typing import Any
 
 import pytest
 from homeassistant.config_entries import ConfigEntryState
 from homeassistant.exceptions import HomeAssistantError, ServiceValidationError
-from ploc_cellar import async_setup, async_setup_entry, async_unload_entry
+from ploc_cellar import (
+    async_remove_entry,
+    async_setup,
+    async_setup_entry,
+    async_unload_entry,
+)
 from ploc_cellar.const import (
     CONF_DEVICE,
     CONF_LANGUAGE,
@@ -27,6 +33,20 @@ class _Coordinator:
 
     def __init__(self) -> None:
         self.data = Cellar()
+
+    def image_url(self, document_id: str) -> None:
+        """Test coordinator has no cached image documents."""
+        return None
+
+
+class _HTTP:
+    """Record authenticated views registered by the integration."""
+
+    def __init__(self) -> None:
+        self.views: list[Any] = []
+
+    def register_view(self, view: Any) -> None:
+        self.views.append(view)
 
 
 class _Services:
@@ -55,6 +75,7 @@ def _hass(coordinator: _Coordinator) -> SimpleNamespace:
     )
     return SimpleNamespace(
         services=_Services(),
+        http=_HTTP(),
         config_entries=SimpleNamespace(
             async_get_entry=lambda entry_id: entry if entry_id == "entry-1" else None
         ),
@@ -68,6 +89,7 @@ def test_async_setup_registers_only_the_inventory_service() -> None:
 
     assert asyncio.run(async_setup(hass, {})) is True
     assert set(hass.services.handlers) == {SERVICE_GET_INVENTORY}
+    assert len(hass.http.views) == 1
 
 
 def test_inventory_service_returns_json_safe_empty_inventory() -> None:
@@ -101,6 +123,7 @@ def test_services_reject_missing_wrong_or_unloaded_entries(entry: object) -> Non
     """A service cannot dispatch against an absent or unloaded config entry."""
     hass = SimpleNamespace(
         services=_Services(),
+        http=_HTTP(),
         config_entries=SimpleNamespace(async_get_entry=lambda entry_id: entry),
     )
     asyncio.run(async_setup(hass, {}))
@@ -232,3 +255,27 @@ def test_inventory_service_exposes_complete_rack_positions() -> None:
             "column": 3,
         }
     ]
+
+
+
+def test_remove_entry_deletes_its_image_cache(tmp_path: Path) -> None:
+    """Deleting a config entry removes only its own integration cache."""
+    cache_root = tmp_path / ".storage" / DOMAIN / "entry-1"
+    image_directory = cache_root / "images"
+    image_directory.mkdir(parents=True)
+    (image_directory / "cached.jpg").write_bytes(b"image")
+
+    async def add_executor_job(function: Any, *args: Any) -> Any:
+        return function(*args)
+
+    hass = SimpleNamespace(
+        config=SimpleNamespace(
+            path=lambda *parts: str(tmp_path.joinpath(*parts))
+        ),
+        async_add_executor_job=add_executor_job,
+    )
+    entry = SimpleNamespace(entry_id="entry-1")
+
+    asyncio.run(async_remove_entry(hass, entry))
+
+    assert not cache_root.exists()

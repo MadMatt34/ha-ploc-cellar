@@ -9,6 +9,7 @@ import math
 import time
 from dataclasses import replace
 from typing import cast
+from urllib.parse import quote
 
 from aiohttp import ClientError, ClientSession, ClientTimeout, FormData
 from homeassistant.util.json import JsonValueType
@@ -76,17 +77,26 @@ def _sha_repeat(value: str, count: int) -> str:
     return result
 
 
-def _signature(token: str, device: str, timestamp: int) -> str:
-    """Build the validated PLOUD sync HMAC signature."""
-    material = "".join(
-        (
-            _sha_repeat(str(timestamp), 15),
-            _sha_repeat(token, 20),
-            _sha_repeat(device, 20),
-            _sha_repeat(PLOUD_SYNC_METHOD, 20),
-        )
-    )
-    digest = hmac.new(PLOUD_HMAC_KEY, material.encode(), hashlib.sha256).digest()
+def _signature(
+    token: str,
+    device: str,
+    timestamp: int,
+    *,
+    method: str = PLOUD_SYNC_METHOD,
+    object_id: str | None = None,
+) -> str:
+    """Build the Android application's PLOUD HMAC signature."""
+    parts = [
+        _sha_repeat(str(timestamp), 15),
+        _sha_repeat(token, 20),
+        _sha_repeat(device, 20),
+        _sha_repeat(method, 20),
+    ]
+    if object_id:
+        parts.append(_sha_repeat(object_id, 20))
+    digest = hmac.new(
+        PLOUD_HMAC_KEY, "".join(parts).encode(), hashlib.sha256
+    ).digest()
     return base64.b64encode(digest).decode("ascii")
 
 
@@ -714,6 +724,73 @@ def _deleted_kind(raw: JsonObject) -> str:
             return numeric_types.get(normalized, "")
         return normalized.replace("_", "").replace("-", "")
     return ""
+
+
+async def async_get_document(
+    session: ClientSession,
+    *,
+    server: str,
+    token: str,
+    device: str,
+    document_id: str,
+    last_sync_time: int = 1,
+) -> bytes:
+    """Download one PLOUD document using the Android getdocument signature."""
+    identifier = normalize_identifier(document_id)
+    if not identifier:
+        raise PloudError("PLOUD document ID is empty")
+
+    timestamp = int(time.time())
+    short_device = device[:5]
+    request_payload = {
+        "Token": token,
+        "Signature": _signature(
+            token,
+            short_device,
+            timestamp,
+            method="getdocument",
+            object_id=identifier,
+        ),
+        "Timestamp": timestamp,
+        "LastSyncTime": max(1, last_sync_time),
+        "Device": short_device,
+        "Document": identifier,
+    }
+    url = (
+        server.rstrip("/")
+        + "/sync/documents/"
+        + quote(identifier, safe="")
+        + "/"
+    )
+
+    try:
+        async with session.post(
+            url,
+            json=request_payload,
+            timeout=ClientTimeout(total=60),
+        ) as response:
+            if response.status in (401, 403):
+                try:
+                    payload_raw: object = await response.json(content_type=None)
+                except (ValueError, TypeError):
+                    payload_raw = None
+                auth_payload = _as_json_object(payload_raw)
+                error_code = (
+                    auth_payload.get("error") if auth_payload is not None else None
+                )
+                if response.status == 401 or str(error_code) == "20":
+                    raise PloudAuthError("PLOUD rejected the access token")
+            if response.status != 200:
+                raise PloudError(
+                    f"PLOUD document request returned HTTP {response.status}"
+                )
+            content = await response.read()
+    except (ClientError, TimeoutError) as err:
+        raise PloudError(f"PLOUD document request failed: {err}") from err
+
+    if not content:
+        raise PloudError("PLOUD returned an empty document")
+    return content
 
 
 async def async_sync(
