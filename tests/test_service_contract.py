@@ -177,7 +177,7 @@ def test_get_inventory_response_matches_public_contract() -> None:
         "vintage", "appellation", "color", "color_rgb", "classification",
         "region", "country", "grapes", "cuvee", "comment", "alcohol_percent",
         "service_temperature_min", "service_temperature_max", "bottle_format",
-        "bottle_volume_l", "ploud_pid", "image_url", "locations",
+        "bottle_volume_l", "ploud_pid", "image_url", "meals", "locations",
     }
     assert diagnostic_wine["id"] == "wine-1"
 
@@ -220,3 +220,4 @@ def test_get_inventory_incomplete_reconstruction_preserves_nullable_contract() -
     assert wines[0]["negative_movement_bottles"] is None
     assert wines[0]["physical_surplus_bottles"] is None
     assert wines[0]["image_url"] is None
+    assert wines[0]["meals"] is None
