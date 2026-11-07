@@ -11,7 +11,6 @@ Intégration personnalisée Home Assistant permettant de consulter une cave PLOC
 
 ## Fonctionnalités
 
-
 - PLOUD reste la source de vérité.
 - Synchronisation incrémentale en lecture seule via `POST https://ploud.ploc.co/v1/sync/exec`, avec `Objects={}`.
 - Le premier chargement utilise la valeur d'initialisation validée `LastSyncTime=1`. Les synchronisations suivantes utilisent le curseur client en millisecondes Unix.
