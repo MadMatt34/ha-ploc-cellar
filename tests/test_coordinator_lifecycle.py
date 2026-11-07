@@ -482,7 +482,16 @@ def test_coordinator_initializes_ha_refresh_and_entry_storage(
         fake_base_init,
     )
     monkeypatch.setattr(coordinator_module, "Store", fake_store)
-    hass = type("FakeHass", (), {"is_stopping": False})()
+    fake_config = type(
+        "FakeConfig",
+        (),
+        {"path": lambda self, *parts: str(Path("/tmp").joinpath(*parts))},
+    )()
+    hass = type(
+        "FakeHass",
+        (),
+        {"is_stopping": False, "config": fake_config},
+    )()
     entry = type("FakeEntry", (), {"entry_id": "entry-42"})()
 
     coordinator = PlocCellarCoordinator(
