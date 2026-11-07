@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import asyncio
+from pathlib import Path
 from typing import Any, cast
 
 import pytest
@@ -48,6 +49,8 @@ def _coordinator(cellar: Cellar, store: _FakeStore) -> PlocCellarCoordinator:
     coordinator.cellar = cellar
     coordinator._force_full_sync = False
     coordinator.session = cast(Any, object())
+    coordinator.entry_id = "test-entry"
+    coordinator.image_directory = Path("/tmp/ploc-cellar-test-images")
     coordinator.server = "https://ploud.example"
     coordinator.token = "token"
     coordinator.device = "device"
