@@ -21,7 +21,7 @@ from .const import (
     STORAGE_VERSION,
 )
 from .images import async_sync_images, find_cached_image
-from .models import Cellar, JsonValue
+from .models import Cellar, JsonValue, normalize_identifier
 from .ploud import (
     PloudAuthError,
     PLOUDCollections,
@@ -367,9 +367,10 @@ class PlocCellarCoordinator(DataUpdateCoordinator[Cellar]):
 
     def image_url(self, document_id: str) -> str | None:
         """Return the authenticated API URL when a PLOUD image is cached."""
-        if find_cached_image(self.image_directory, document_id) is None:
+        identifier = normalize_identifier(document_id)
+        if not identifier or find_cached_image(self.image_directory, identifier) is None:
             return None
         return (
             f"/api/ploc_cellar/{self.entry_id}/images/"
-            f"{quote(document_id, safe='')}"
+            f"{quote(identifier, safe='')}"
         )
