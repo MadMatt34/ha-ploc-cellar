@@ -37,7 +37,7 @@ from .const import (
 from .coordinator import PlocCellarCoordinator
 from .images import remove_image_cache
 from .language import get_ploud_language
-from .models import Cellar
+from .models import Cellar, Wine
 from .types import GetInventoryServiceData, PlocCellarConfigEntry
 from .views import PlocCellarImageView
 
@@ -77,7 +77,7 @@ def _get_coordinator(
 
 
 def _wine_image_url(
-    wine: Any,
+    wine: Wine,
     image_url_builder: Callable[[str], str] | None,
 ) -> str | None:
     """Resolve a Wine's primary image, falling back to its cover image."""
