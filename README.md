@@ -11,7 +11,6 @@ A Home Assistant custom integration for a **read-only** view of a PLOC wine cell
 
 ## Features
 
-
 - PLOUD remains the source of truth.
 - Read-only incremental synchronization through `POST https://ploud.ploc.co/v1/sync/exec`, using `Objects={}`.
 - Initial synchronization uses the validated bootstrap value `LastSyncTime=1`. Later synchronizations use the client-maintained Unix-millisecond cursor.
