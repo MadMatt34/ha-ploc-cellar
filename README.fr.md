@@ -158,17 +158,29 @@ L'intégration fournit trois cartes Lovelace personnalisées facultatives :
 
 L'ancien type de carte **Ploc Cellar Statistics** reste enregistré comme alias de compatibilité : les tableaux de bord existants utilisant `custom:ploc-cellar-statistics-card` continuent de fonctionner et affichent désormais la vue d'ensemble unifiée. Pour les nouveaux tableaux de bord, utilisez **Ploc Cellar**.
 
-Le module JavaScript est servi par Home Assistant à l'adresse
-`/ploc_cellar_static/ploc-cellar-card.js`. Ajoutez-le une seule fois dans
-**Paramètres → Tableaux de bord → Ressources**, avec le type « Module
-JavaScript ». Ajoutez ensuite les cartes souhaitées depuis le sélecteur de
-cartes du tableau de bord et choisissez l'entrée de configuration Ploc Cellar
-dans l'éditeur de carte partagé. Chaque carte conserve son propre `config_entry_id`,
-ce qui permet de prendre en charge plusieurs connexions à une cave.
+Le frontend est désormais maintenu dans le dépôt indépendant
+[Ploc Cellar Cards](https://github.com/MadMatt34/ha-ploc-cellar-frontend).
+Pour une nouvelle installation, ajoutez ce dépôt dans HACS comme dépôt
+personnalisé de catégorie **Dashboard**, puis installez **Ploc Cellar Cards**.
+HACS enregistre automatiquement la ressource du tableau de bord. Si les
+ressources sont gérées manuellement, l'URL HACS est
+`/hacsfiles/ha-ploc-cellar-frontend/ploc-cellar-card.js`.
 
-Le code source frontend se trouve dans `frontend/`. GitHub Actions vérifie le
-typage et construit le module, puis ajoute le fichier généré dans
-`custom_components/ploc_cellar/www/`. Node.js n'est pas nécessaire pour les
-utilisateurs finaux.
+L'ancien module servi par l'intégration reste temporairement disponible pour
+les tableaux de bord existants à l'adresse
+`/ploc_cellar_static/ploc-cellar-card.js`. Pour migrer, installez le paquet
+Dashboard indépendant et remplacez l'ancienne ressource par celle de HACS.
+Ne chargez pas les deux modules simultanément : ils enregistrent les mêmes
+types de cartes. Les configurations existantes et leurs valeurs
+`config_entry_id` sont conservées.
 
-Dans une vue **Sections**, la carte conserve une largeur par défaut de 12 colonnes sans imposer de hauteur (`rows`). Vous pouvez activer **Fit height to content** dans l'onglet **Disposition** uniquement pour cette carte si vous souhaitez que sa hauteur suive son contenu.
+L'ancien code source frontend, le bundle généré et son workflow de compilation
+sont temporairement conservés dans le dépôt backend comme solution de repli
+pendant la migration. Le dépôt frontend indépendant devient la source de
+référence pour les futurs développements des cartes et leurs versions
+indépendantes. Node.js n'est pas nécessaire pour les utilisateurs finaux.
+
+Dans une vue **Sections**, la carte de vue d'ensemble conserve une largeur par
+défaut de 12 colonnes sans imposer de hauteur (`rows`). Vous pouvez activer
+**Fit height to content** dans l'onglet **Disposition** si vous souhaitez
+que sa hauteur suive son contenu.
