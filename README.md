@@ -136,7 +136,7 @@ For each wine, `unlocated_bottles` is the difference between effective stock and
 
 ## Storage and privacy
 
-Les fichiers image restent dans le cache privé de l'entrée de configuration et ne sont accessibles qu'aux utilisateurs authentifiés de Home Assistant. Le cache est indépendant de l'inventaire persistant et ne provoque aucune écriture vers PLOUD.
+Image files remain in the config entry's private cache and are served only to authenticated Home Assistant users. The cache is separate from the persisted inventory and does not cause any writes to PLOUD.
 
 The PLOUD access token and device UUID are stored in the Home Assistant config entry. The password and PLOC session token are not stored.
 
