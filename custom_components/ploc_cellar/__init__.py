@@ -78,7 +78,7 @@ def _get_coordinator(
 
 def _wine_image_url(
     wine: Wine,
-    image_url_builder: Callable[[str], str] | None,
+    image_url_builder: Callable[[str], str | None] | None,
 ) -> str | None:
     """Resolve a Wine's primary image, falling back to its cover image."""
     if image_url_builder is None:
@@ -86,9 +86,13 @@ def _wine_image_url(
     for field in ("im", "ci"):
         value = wine.ploud_reference_fields.get(field)
         if isinstance(value, str) and value.strip():
-            return image_url_builder(value.strip())
+            image_url = image_url_builder(value.strip())
+            if image_url is not None:
+                return image_url
         if isinstance(value, int) and not isinstance(value, bool):
-            return image_url_builder(str(value))
+            image_url = image_url_builder(str(value))
+            if image_url is not None:
+                return image_url
     return None
 
 
@@ -97,7 +101,7 @@ def _build_inventory_response(
     *,
     search: str,
     color: str,
-    image_url_builder: Callable[[str], str] | None = None,
+    image_url_builder: Callable[[str], str | None] | None = None,
 ) -> JsonObjectType:
     """Build a JSON-safe inventory response without exposing sensor attributes."""
     normalized_search = search.casefold().strip()
