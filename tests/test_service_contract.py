@@ -33,6 +33,7 @@ def _contract_wine() -> Wine:
         domain="Domaine Mas Olivier",
         owner_id=None,
         ploud_reference_fields={"im": "4fe6124e-6d59-45b5-9dcd-67f3fcdcda0a"},
+        meals=2080,
     )
 
 
@@ -128,6 +129,7 @@ def test_get_inventory_response_matches_public_contract() -> None:
         "bottle_volume_l",
         "ploud_pid",
         "image_url",
+        "meals",
         "locations",
     }
 
@@ -187,6 +189,7 @@ def test_get_inventory_response_matches_public_contract() -> None:
     assert wines[0]["classification"] is None
     assert wines[0]["bottle_volume_l"] == 0.75
     assert wines[0]["image_url"] == "/api/image/4fe6124e-6d59-45b5-9dcd-67f3fcdcda0a"
+    assert wines[0]["meals"] == 2080
     assert rack_items[0]["wine_id"] == "wine-1"
     assert diagnostics[0]["physical_surplus_bottles"] == 1
 
