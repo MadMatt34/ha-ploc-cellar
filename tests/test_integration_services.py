@@ -29,6 +29,16 @@ class _Coordinator:
         self.data = Cellar()
 
 
+class _HTTP:
+    """Record authenticated views registered by the integration."""
+
+    def __init__(self) -> None:
+        self.views: list[Any] = []
+
+    def register_view(self, view: Any) -> None:
+        self.views.append(view)
+
+
 class _Services:
     """Record service handlers registered by the integration."""
 
@@ -55,6 +65,7 @@ def _hass(coordinator: _Coordinator) -> SimpleNamespace:
     )
     return SimpleNamespace(
         services=_Services(),
+        http=_HTTP(),
         config_entries=SimpleNamespace(
             async_get_entry=lambda entry_id: entry if entry_id == "entry-1" else None
         ),
@@ -68,6 +79,7 @@ def test_async_setup_registers_only_the_inventory_service() -> None:
 
     assert asyncio.run(async_setup(hass, {})) is True
     assert set(hass.services.handlers) == {SERVICE_GET_INVENTORY}
+    assert len(hass.http.views) == 1
 
 
 def test_inventory_service_returns_json_safe_empty_inventory() -> None:
@@ -101,6 +113,7 @@ def test_services_reject_missing_wrong_or_unloaded_entries(entry: object) -> Non
     """A service cannot dispatch against an absent or unloaded config entry."""
     hass = SimpleNamespace(
         services=_Services(),
+        http=_HTTP(),
         config_entries=SimpleNamespace(async_get_entry=lambda entry_id: entry),
     )
     asyncio.run(async_setup(hass, {}))
