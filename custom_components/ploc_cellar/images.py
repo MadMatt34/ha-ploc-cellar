@@ -238,8 +238,10 @@ async def async_sync_images(
 
         if record is not None:
             content_type = record.get("ct")
-            if isinstance(content_type, str) and content_type.strip() and not (
-                content_type.casefold().startswith("image/")
+            if isinstance(content_type, str) and content_type.strip() and (
+                content_type.casefold().startswith(
+                    ("application/pdf", "text/", "audio/", "video/")
+                )
             ):
                 await hass.async_add_executor_job(
                     _remove_document_files, directory, identifier
