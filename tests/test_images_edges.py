@@ -7,7 +7,6 @@ from pathlib import Path
 from typing import Any, cast
 
 import pytest
-
 from ploc_cellar import images as images_module
 from ploc_cellar.images import (
     _cleanup_unreferenced,
@@ -170,7 +169,11 @@ def test_non_image_document_metadata_removes_cached_photo(
             token="token",
             device="device",
             cellar=_cellar(document_id),
-            objects={"Documents": [{"id": document_id, "tp": 2, "ct": "application/pdf"}]},
+            objects={
+                "Documents": [
+                    {"id": document_id, "tp": 2, "ct": "application/pdf"}
+                ]
+            },
             last_sync_time=1,
         )
     )
