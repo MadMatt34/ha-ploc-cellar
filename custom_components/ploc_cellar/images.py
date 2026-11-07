@@ -212,10 +212,12 @@ async def async_sync_images(
     last_sync_time: int,
 ) -> None:
     """Download changed referenced images and prune stale cache files."""
-    await hass.async_add_executor_job(directory.mkdir, 0o700, True, True)
     referenced = image_document_ids(cellar)
     deleted = _deleted_document_ids(objects)
+    if not referenced and not deleted:
+        return
     metadata = _document_records(objects)
+    await hass.async_add_executor_job(directory.mkdir, 0o700, True, True)
 
     for identifier in deleted:
         await hass.async_add_executor_job(
