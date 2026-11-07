@@ -198,6 +198,14 @@ def test_inventory_service_excludes_unstocked_wines_but_reports_anomalies() -> N
     assert diagnostics_by_id["anomaly"]["movement_balance"] == -3
     assert diagnostics_by_id["anomaly"]["effective_stock"] == 0
     assert diagnostics_by_id["anomaly"]["negative_movement_bottles"] == 3
+    diagnostic_wine = cast(
+        dict[str, object], diagnostics_by_id["anomaly"]["wine"]
+    )
+    assert diagnostic_wine["id"] == "anomaly"
+    assert diagnostic_wine["name"] == "Vin anomalie"
+    assert diagnostic_wine["appellation"] == "AOC"
+    assert diagnostic_wine["color_rgb"] == [120, 20, 30]
+    assert diagnostic_wine["locations"] == []
     assert diagnostics_by_id["anomaly"]["unlocated_bottles"] == 0
     assert diagnostics_by_id["anomaly"]["physical_surplus_bottles"] == 0
     assert diagnostics_by_id["stocked"]["movement_balance"] == 2
