@@ -3,6 +3,7 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from datetime import timedelta
+from pathlib import Path
 from typing import Any, cast
 
 import voluptuous as vol
@@ -34,9 +35,11 @@ from .const import (
     SERVICE_GET_INVENTORY,
 )
 from .coordinator import PlocCellarCoordinator
+from .images import remove_image_cache
 from .language import get_ploud_language
 from .models import Cellar
 from .types import GetInventoryServiceData, PlocCellarConfigEntry
+from .views import PlocCellarImageView
 
 PLATFORMS: list[Platform] = [Platform.BUTTON, Platform.SENSOR]
 CONFIG_SCHEMA: Callable[[dict[str, Any]], dict[str, Any]] = cast(
@@ -73,11 +76,28 @@ def _get_coordinator(
     return cast(PlocCellarConfigEntry, entry).runtime_data
 
 
+def _wine_image_url(
+    wine: Any,
+    image_url_builder: Callable[[str], str] | None,
+) -> str | None:
+    """Resolve a Wine's primary image, falling back to its cover image."""
+    if image_url_builder is None:
+        return None
+    for field in ("im", "ci"):
+        value = wine.ploud_reference_fields.get(field)
+        if isinstance(value, str) and value.strip():
+            return image_url_builder(value.strip())
+        if isinstance(value, int) and not isinstance(value, bool):
+            return image_url_builder(str(value))
+    return None
+
+
 def _build_inventory_response(
     cellar: Cellar,
     *,
     search: str,
     color: str,
+    image_url_builder: Callable[[str], str] | None = None,
 ) -> JsonObjectType:
     """Build a JSON-safe inventory response without exposing sensor attributes."""
     normalized_search = search.casefold().strip()
@@ -142,6 +162,7 @@ def _build_inventory_response(
                 "bottle_format": wine.bottle_format,
                 "bottle_volume_l": wine.bottle_volume_l,
                 "ploud_pid": wine.ploud_pid,
+                "image_url": _wine_image_url(wine, image_url_builder),
                 "locations": locations,
             }
             wine_diagnostics.append(
@@ -254,6 +275,7 @@ def _build_inventory_response(
                 "bottle_format": wine.bottle_format,
                 "bottle_volume_l": wine.bottle_volume_l,
                 "ploud_pid": wine.ploud_pid,
+                "image_url": _wine_image_url(wine, image_url_builder),
                 "locations": locations,
             }
         )
@@ -301,7 +323,8 @@ def _build_inventory_response(
 
 
 async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
-    """Register the inventory response service."""
+    """Register the inventory service and authenticated image endpoint."""
+    hass.http.register_view(PlocCellarImageView(hass))
 
     async def get_inventory(call: ServiceCall) -> JsonObjectType:
         """Return the current stocked inventory on demand."""
@@ -313,6 +336,7 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
             coordinator.data,
             search=service_data.get(CONF_SEARCH, ""),
             color=service_data.get(CONF_COLOR, ""),
+            image_url_builder=coordinator.image_url,
         )
 
     hass.services.async_register(  # pyright: ignore[reportUnknownMemberType]
@@ -388,3 +412,13 @@ async def async_unload_entry(
 ) -> bool:
     """Unload platforms; the config-entry-bound coordinator shuts down automatically."""
     return await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
+
+
+
+async def async_remove_entry(
+    hass: HomeAssistant,
+    entry: PlocCellarConfigEntry,
+) -> None:
+    """Remove the integration-owned image cache when its config entry is deleted."""
+    cache_root = Path(hass.config.path(".storage", DOMAIN, entry.entry_id))
+    await hass.async_add_executor_job(remove_image_cache, cache_root)
