@@ -11,6 +11,33 @@ A Home Assistant custom integration for a **read-only** view of a PLOC wine cell
 
 ## Features
 
+## Food-pairing data
+
+PLOUD stores food-pairing associations in the `Wine.ml` field. The integration exposes this value as the optional raw integer `Wine.meals`; it does not translate, normalize or discard individual flags. It is a bitmask, so several categories can be present in one value by combining their flags with bitwise OR.
+
+Known public `Meals` flags:
+
+| Bit value | Food category |
+|---:|---|
+| `1` | Aperitif |
+| `2` | Soup |
+| `4` | Starter |
+| `8` | Pork and charcuterie |
+| `16` | Seafood |
+| `32` | Fish |
+| `64` | White meat |
+| `128` | Game |
+| `256` | Poultry |
+| `512` | Red meat |
+| `1024` | Dishes with vegetables |
+| `2048` | Cheese |
+| `4096` | Dessert |
+
+The frontend maps these flags to localized labels in the wine detail dialog. A missing or null `meals` value means that no association data is available; it must not be interpreted as an explicit empty list.
+
+The APK also contains a `foodtype8192` resource, but `8192` is not defined in the public server enum. Its meaning is unconfirmed and it is intentionally omitted from the mapping. Unknown bits must be preserved by the backend and ignored by the frontend.
+
+
 - PLOUD remains the source of truth.
 - Read-only incremental synchronization through `POST https://ploud.ploc.co/v1/sync/exec`, using `Objects={}`.
 - Initial synchronization uses the validated bootstrap value `LastSyncTime=1`. Later synchronizations use the client-maintained Unix-millisecond cursor.
