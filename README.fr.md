@@ -148,7 +148,7 @@ La CI vérifie le code avec Ruff et Hassfest, exécute Pyright en mode strict co
 Ces contrôles statiques ne remplacent pas les essais de bout en bout avec une instance Home Assistant réelle et la cave PLOUD.
 
 
-### Cartes Lovelace
+## Cartes Lovelace
 
 Les cartes Lovelace facultatives sont désormais maintenues et publiées
 indépendamment dans le dépôt

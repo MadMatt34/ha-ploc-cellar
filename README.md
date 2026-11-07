@@ -148,7 +148,7 @@ CI runs Ruff, Hassfest, strict Pyright type analysis against the latest stable H
 These static checks do not replace end-to-end testing against a real Home Assistant instance and the PLOUD cellar.
 
 
-### Lovelace cards
+## Lovelace cards
 
 The optional Lovelace cards are maintained and released independently in the
 [Ploc Cellar Cards repository](https://github.com/MadMatt34/ha-ploc-cellar-frontend).
