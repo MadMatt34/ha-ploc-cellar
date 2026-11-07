@@ -150,37 +150,8 @@ Ces contrôles statiques ne remplacent pas les essais de bout en bout avec une i
 
 ### Cartes Lovelace
 
-L'intégration fournit trois cartes Lovelace personnalisées facultatives :
-
-- **Ploc Cellar** : vue d'ensemble et statistiques réunies : stock physique et reconstitué, occupation des casiers, diagnostics du stock et graphiques en anneau pour les répartitions par couleur, région, appellation, millésime et format de bouteille. Les graphiques portent uniquement sur les références Wine connues ; les emplacements occupés dont la référence est inconnue restent inclus dans les totaux globaux et font l'objet d'un avertissement distinct.
-- **Ploc Cellar Rack** : sélection d'un casier et représentation des emplacements à partir des coordonnées réelles de rangée et de colonne PLOUD.
-- **Ploc Cellar Inventory** : liste des vins avec recherche, filtres par couleur, région, appellation et millésime, tri, quantités et détails dépliables.
-
-L'ancien type de carte **Ploc Cellar Statistics** reste enregistré comme alias de compatibilité : les tableaux de bord existants utilisant `custom:ploc-cellar-statistics-card` continuent de fonctionner et affichent désormais la vue d'ensemble unifiée. Pour les nouveaux tableaux de bord, utilisez **Ploc Cellar**.
-
-Le frontend est désormais maintenu dans le dépôt indépendant
+Les cartes Lovelace facultatives sont désormais maintenues et publiées
+indépendamment dans le dépôt
 [Ploc Cellar Cards](https://github.com/MadMatt34/ha-ploc-cellar-frontend).
-Pour une nouvelle installation, ajoutez ce dépôt dans HACS comme dépôt
-personnalisé de catégorie **Dashboard**, puis installez **Ploc Cellar Cards**.
-HACS enregistre automatiquement la ressource du tableau de bord. Si les
-ressources sont gérées manuellement, l'URL HACS est
-`/hacsfiles/ha-ploc-cellar-frontend/ploc-cellar-card.js`.
-
-L'ancien module servi par l'intégration reste temporairement disponible pour
-les tableaux de bord existants à l'adresse
-`/ploc_cellar_static/ploc-cellar-card.js`. Pour migrer, installez le paquet
-Dashboard indépendant et remplacez l'ancienne ressource par celle de HACS.
-Ne chargez pas les deux modules simultanément : ils enregistrent les mêmes
-types de cartes. Les configurations existantes et leurs valeurs
-`config_entry_id` sont conservées.
-
-L'ancien code source frontend, le bundle généré et son workflow de compilation
-sont temporairement conservés dans le dépôt backend comme solution de repli
-pendant la migration. Le dépôt frontend indépendant devient la source de
-référence pour les futurs développements des cartes et leurs versions
-indépendantes. Node.js n'est pas nécessaire pour les utilisateurs finaux.
-
-Dans une vue **Sections**, la carte de vue d'ensemble conserve une largeur par
-défaut de 12 colonnes sans imposer de hauteur (`rows`). Vous pouvez activer
-**Fit height to content** dans l'onglet **Disposition** si vous souhaitez
-que sa hauteur suive son contenu.
+Ce dépôt contient la documentation des cartes, les instructions d'installation
+du plugin Dashboard HACS et le workflow de développement frontend.

@@ -3,11 +3,9 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from datetime import timedelta
-from pathlib import Path
 from typing import Any, cast
 
 import voluptuous as vol
-from homeassistant.components.http import StaticPathConfig
 from homeassistant.config_entries import ConfigEntryState
 from homeassistant.const import ATTR_CONFIG_ENTRY_ID, Platform
 from homeassistant.core import (
@@ -256,16 +254,7 @@ def _build_inventory_response(
 
 
 async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
-    """Register the inventory action and the optional Lovelace card asset."""
-    await hass.http.async_register_static_paths(
-        [
-            StaticPathConfig(
-                f"/{DOMAIN}_static",
-                str(Path(__file__).parent / "www"),
-                False,
-            )
-        ]
-    )
+    """Register the inventory response service."""
 
     async def get_inventory(call: ServiceCall) -> JsonObjectType:
         """Return the current stocked inventory on demand."""
