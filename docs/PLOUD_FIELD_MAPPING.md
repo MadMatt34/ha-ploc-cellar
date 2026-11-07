@@ -32,6 +32,7 @@ business model.
 | `bottle_format` | `bottle_format` | Bottle format label | Expanded label used directly; reference ID `vf` is not stored |
 | `bottle_volume_l` | `bottle_volume_l` | Bottle volume in litres | Expanded value used directly |
 | `pid` / `ploud_pid` | `ploud_pid` | PLOC product identifier | Confirmed by matching the compact and expanded fields; empty text becomes `None` |
+| `ml` | `Wine.meals` | Food-pairing association bitmask | Confirmed by the public PLOUD `Meals` flags enum; raw integer is preserved, including unknown bits |
 | `ow` | `owner_id` | Owner UUID | Retained in the Wine record only as a technical reference, allowing later Owner updates to refresh the winery name |
 | `Owners.id` → `fullname` | `domain` | Winery / estate name | Owner UUID is resolved from the current response; the name is stored directly in the matching Wine record. The PLOC `Owner` model inherits the `Contact.fullname` display field; empty or unresolved names become `None` |
 
@@ -184,7 +185,6 @@ They are intentionally not exposed or persisted in the business model.
 
 | PLOUD key | Observed values in supplied snapshot | Status |
 |---|---|---|
-| `ml` | Zero or positive integers (61 non-zero records) | Wine food-pairing associations; flags enum `Meals` (bitmask), exposed as the raw integer so unknown future bits are preserved |
 | `no` | Zero or numeric identifiers (38 non-zero records) | Unknown |
 | `ps` | `0`, `1`, `8`, `16` | Unknown code |
 | `at` | Zero on 115 records; `2022` on one | Unknown |
@@ -192,7 +192,12 @@ They are intentionally not exposed or persisted in the business model.
 | `ac`, `af`, `cf`, `ct`, `ep`, `it`, `lt`, `lg`, `nt` | Zero on all 116 records | Unknown; no non-zero sample |
 | `fa` | `false` on all 116 records | Unknown boolean; no positive sample |
 
-\nThe official PLOUD server model maps `ml` to the `Meals` flags enum on each\nWine record (`Wine.cs`, `Meals.cs`). The currently documented flags are:\n\n| Bit value | PLOUD enum | Meaning |\n|---:|---|---|\n| 1 | `Aperitif` | Apéritif |\n| 2 | `Soup` | Soupe |\n| 4 | `Entry` | Entrée |\n| 8 | `PorkButchery` | Charcuterie et porc |\n| 16 | `SeaFood` | Fruits de mer |\n| 32 | `Fish` | Poissons |\n| 64 | `WhiteMeat` | Viandes blanches |\n| 128 | `Game` | Gibier |\n| 256 | `Poultry` | Volailles |\n| 512 | `RedMeat` | Viandes rouges |\n| 1024 | `DishAndVegetable` | Plats et légumes |\n| 2048 | `Cheese` | Fromages |\n| 4096 | `Dessert` | Desserts |\n\nThese values are combined with bitwise OR. For example, `2080` means\n`Cheese` + `Fish`. The APK contains a resource named `foodtype8192`, but\nthat value is not defined in the public server enum; it is therefore retained\nin the raw mask and deliberately not assigned a display label.\n\nThe compact key `ml` is also exposed as the raw `Wine.meals` integer in the inventory response. It is optional for legacy records and preserves all bits, including values not defined by the public enum.
+
+The official PLOUD server model maps `ml` to the `Meals` flags enum on each
+Wine record (`Wine.cs`, `Meals.cs`). The currently documented flags are:
+
+| Bit value | PLOUD enum | Meaning |\n|---:|---|---|\n| 1 | `Aperitif` | Apéritif |\n| 2 | `Soup` | Soupe |\n| 4 | `Entry` | Entrée |\n| 8 | `PorkButchery` | Charcuterie et porc |\n| 16 | `SeaFood` | Fruits de mer |\n| 32 | `Fish` | Poissons |\n| 64 | `WhiteMeat` | Viandes blanches |\n| 128 | `Game` | Gibier |\n| 256 | `Poultry` | Volailles |\n| 512 | `RedMeat` | Viandes rouges |\n| 1024 | `DishAndVegetable` | Plats et légumes |\n| 2048 | `Cheese` | Fromages |\n| 4096 | `Dessert` | Desserts |\n\nThese values are combined with bitwise OR. For example, `2080` means\n`Cheese` + `Fish`. The APK contains a resource named `foodtype8192`, but\nthat value is not defined in the public server enum; it is therefore retained\nin the raw mask and deliberately not assigned a display label.\n
+The compact key `ml` is exposed as the raw `Wine.meals` integer in the inventory response. It is optional for legacy records and preserves all bits, including values not defined by the public enum.
 
 The compact keys `cn`, `rn`, `ap`, `vf`, `co` and `cl` are known
 reference identifiers from the legacy payload. Their corresponding expanded
