@@ -3,6 +3,8 @@ from __future__ import annotations
 
 import logging
 from copy import deepcopy
+from pathlib import Path
+from urllib.parse import quote
 from datetime import UTC, datetime, timedelta
 
 from aiohttp import ClientSession
@@ -19,6 +21,7 @@ from .const import (
     STORAGE_VERSION,
 )
 from .models import Cellar, JsonValue
+from .images import async_sync_images
 from .ploud import (
     PloudAuthError,
     PLOUDCollections,
@@ -65,6 +68,10 @@ class PlocCellarCoordinator(DataUpdateCoordinator[Cellar]):
             always_update=False,
         )
         self.session = session
+        self.entry_id = entry.entry_id
+        self.image_directory = Path(
+            hass.config.path(".storage", DOMAIN, entry.entry_id, "images")
+        )
         self.server = server
         self.token = token
         self.device = device
@@ -295,6 +302,22 @@ class PlocCellarCoordinator(DataUpdateCoordinator[Cellar]):
                 len(updated_cellar.racks),
                 updated_cellar.occupied_positions,
             )
+            try:
+                await async_sync_images(
+                    self.hass,
+                    self.session,
+                    directory=self.image_directory,
+                    server=self.server,
+                    token=self.token,
+                    device=self.device,
+                    cellar=updated_cellar,
+                    objects=objects,
+                    last_sync_time=next_cursor,
+                )
+            except (PloudError, OSError) as err:
+                # Image availability must never prevent inventory refreshes.
+                _LOGGER.warning("PLOUD wine image cache update failed: %s", err)
+
             updated_cellar.last_sync = datetime.now(UTC).isoformat()
             updated_cellar.stale = False
             await self._async_save_verified(updated_cellar.to_storage())
@@ -340,3 +363,11 @@ class PlocCellarCoordinator(DataUpdateCoordinator[Cellar]):
                 translation_key="sync_failed",
             ) from self.last_exception
         return self.data
+
+
+    def image_url(self, document_id: str) -> str:
+        """Return the authenticated API URL for a cached PLOUD image."""
+        return (
+            f"/api/ploc_cellar/{self.entry_id}/images/"
+            f"{quote(document_id, safe='')}"
+        )
