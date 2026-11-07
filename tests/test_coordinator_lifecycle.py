@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import asyncio
+import hashlib
 from copy import deepcopy
 from datetime import timedelta
 from pathlib import Path
@@ -558,3 +559,33 @@ def test_incomplete_fallback_snapshot_is_rejected_without_committing_delta(
     assert coordinator.cellar.stale is True
     assert coordinator._force_full_sync is True
     assert coordinator.store.saved is None
+
+
+
+def test_image_url_changes_when_cached_document_version_changes(
+    tmp_path: Path,
+) -> None:
+    """A changed document version produces a new frontend cache-busting URL."""
+    coordinator = _coordinator()
+    coordinator.image_directory = tmp_path
+    document_id = "4fe6124e-6d59-45b5-9dcd-67f3fcdcda0a"
+    prefix = hashlib.sha256(document_id.encode()).hexdigest()
+
+    first_image = tmp_path / f"{prefix}-first.jpg"
+    first_image.write_bytes(b"\xff\xd8\xfffirst")
+    first_url = coordinator.image_url(document_id)
+
+    second_image = tmp_path / f"{prefix}-second.jpg"
+    second_image.write_bytes(b"\xff\xd8\xffsecond")
+    first_image.unlink()
+    second_url = coordinator.image_url(document_id)
+
+    assert first_url == (
+        "/api/ploc_cellar/test-entry/images/"
+        "4fe6124e-6d59-45b5-9dcd-67f3fcdcda0a?v=first"
+    )
+    assert second_url == (
+        "/api/ploc_cellar/test-entry/images/"
+        "4fe6124e-6d59-45b5-9dcd-67f3fcdcda0a?v=second"
+    )
+    assert first_url != second_url
