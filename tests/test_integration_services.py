@@ -34,6 +34,10 @@ class _Coordinator:
     def __init__(self) -> None:
         self.data = Cellar()
 
+    def image_url(self, document_id: str) -> None:
+        """Test coordinator has no cached image documents."""
+        return None
+
 
 class _HTTP:
     """Record authenticated views registered by the integration."""
@@ -261,10 +265,14 @@ def test_remove_entry_deletes_its_image_cache(tmp_path: Path) -> None:
     image_directory.mkdir(parents=True)
     (image_directory / "cached.jpg").write_bytes(b"image")
 
+    async def add_executor_job(function: Any, *args: Any) -> Any:
+        return function(*args)
+
     hass = SimpleNamespace(
         config=SimpleNamespace(
             path=lambda *parts: str(tmp_path.joinpath(*parts))
-        )
+        ),
+        async_add_executor_job=add_executor_job,
     )
     entry = SimpleNamespace(entry_id="entry-1")
 
