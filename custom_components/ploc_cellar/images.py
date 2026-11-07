@@ -12,7 +12,7 @@ from typing import TYPE_CHECKING
 from homeassistant.core import HomeAssistant
 
 from .models import Cellar, JsonObject, normalize_identifier
-from .ploud import PloudError, PLOUDCollections, async_get_document
+from .ploud import PLOUDCollections, PloudError, async_get_document
 
 if TYPE_CHECKING:
     from aiohttp import ClientSession
@@ -50,16 +50,20 @@ def image_document_ids(cellar: Cellar) -> set[str]:
     return identifiers
 
 
+def _collection_records(
+    objects: PLOUDCollections,
+    collection_name: str,
+) -> list[JsonObject]:
+    """Return one known collection from a PLOUD response."""
+    for name, records in objects.items():
+        if name.casefold() == collection_name.casefold():
+            return records
+    return []
+
+
 def _deleted_document_ids(objects: PLOUDCollections) -> set[str]:
     """Return document IDs explicitly deleted by PLOUD."""
-    records = next(
-        (
-            values
-            for name, values in objects.items()
-            if name.casefold() == "deletedobjects"
-        ),
-        [],
-    )
+    records = _collection_records(objects, "DeletedObjects")
     deleted: set[str] = set()
     for record in records:
         raw_kind = next(
@@ -85,14 +89,7 @@ def _deleted_document_ids(objects: PLOUDCollections) -> set[str]:
 
 def _document_records(objects: PLOUDCollections) -> dict[str, JsonObject]:
     """Index document metadata from one incremental or complete response."""
-    records = next(
-        (
-            values
-            for name, values in objects.items()
-            if name.casefold() == "documents"
-        ),
-        [],
-    )
+    records = _collection_records(objects, "Documents")
     indexed: dict[str, JsonObject] = {}
     for record in records:
         identifier = _document_id(record.get("id"))
@@ -266,7 +263,8 @@ async def async_sync_images(
                 )
                 if len(content) > _MAX_IMAGE_BYTES:
                     raise PloudError(
-                        f"PLOUD image {identifier} exceeds the {_MAX_IMAGE_BYTES}-byte limit"
+                        f"PLOUD image {identifier} exceeds the "
+                        f"{_MAX_IMAGE_BYTES}-byte limit"
                     )
                 extension = _image_extension(content)
                 if extension is None:
