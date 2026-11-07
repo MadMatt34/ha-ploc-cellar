@@ -409,3 +409,35 @@ ne transmet aucun objet de cave modifié et n'envoie aucune écriture métier à
 PLOUD. Les corrections de cohérence sont locales au modèle Home Assistant ;
 les anomalies distantes restent des diagnostics et ne sont jamais corrigées
 automatiquement.
+
+## 8. Images des vins et documents PLOUD
+
+Les images ne font pas partie du calcul du stock et ne modifient jamais les données de cave. Elles sont synchronisées séparément à partir de la collection PLOUD `Documents` et des références portées par les fiches `Wines`.
+
+### 8.1 Références et récupération
+
+- Les champs compacts `im` et `ci` d'un Wine référencent respectivement l'image principale et l'image de couverture.
+- Les métadonnées des documents sont conservées depuis la collection `Documents`. Elles permettent d'identifier le type de document et de calculer une empreinte de version à partir des métadonnées disponibles (`tm`, `tp`, `lt`, `ct`, `wd`, `ht`, `or`, `ty`).
+- Le contenu binaire est récupéré à la demande par la méthode PLOUD `getdocument`, via la route document dédiée. La requête est signée selon le protocole du client PLOC ; la réponse est un flux binaire, pas un objet JSON.
+- Seuls les documents référencés par au moins un Wine sont téléchargés. Les documents sans référence image ne sont pas aspirés.
+- Les formats image reconnus sont JPEG, PNG, GIF et WebP. La validation s'appuie sur la signature binaire ; un type MIME générique n'empêche pas un fichier image valide d'être accepté. Les documents identifiés comme PDF, texte, audio ou vidéo sont rejetés. La taille maximale acceptée est de 20 Mio par image.
+
+### 8.2 Cache et actualisation
+
+Les images sont stockées dans un cache privé propre à l'entrée de configuration, sous `.storage/ploc_cellar/<entry_id>/images`. Le cache image est distinct du stockage transactionnel de l'inventaire.
+
+Le nom de fichier inclut une empreinte du document. Si les métadonnées changent pour un même identifiant de document, une nouvelle version est téléchargée et le chemin servi change également. Le frontend peut ainsi détecter une URL différente et recharger l'image même lorsque l'identifiant PLOUD reste identique.
+
+Une erreur de téléchargement d'image ne fait pas échouer la synchronisation de l'inventaire. L'image existante reste disponible lorsqu'elle est valide ; un nouvel essai sera effectué lors d'une synchronisation ultérieure.
+
+### 8.3 Suppressions et nettoyage
+
+Après une synchronisation d'images réussie, le cache est élagué : les fichiers qui ne correspondent plus à une référence `im` ou `ci`, les documents explicitement supprimés (type PLOUD `Document = 115`) et les anciennes versions remplacées sont supprimés. Les suppressions ne sont pas déduites d'une simple absence dans un delta d'inventaire ; elles reposent sur les références et suppressions documentaires effectivement connues.
+
+La suppression de l'entrée de configuration Home Assistant supprime son répertoire de cache image. Un simple déchargement ou rechargement de l'entrée ne supprime pas les images. Le cache reste local et n'est jamais envoyé à PLOUD.
+
+### 8.4 Exposition à Home Assistant et au frontend
+
+Le service `get_inventory` ajoute `image_url` à chaque fiche vin lorsque l'image principale ou, à défaut, l'image de couverture est disponible dans le cache. La valeur est `null` lorsqu'aucune image locale exploitable n'existe. Le chemin est servi par une vue Home Assistant authentifiée ; les réponses utilisent un cache HTTP privé sans conservation partagée.
+
+L'URL est un endpoint local Home Assistant, pas une URL PLOUD publique. Le frontend doit utiliser le mécanisme authentifié de Home Assistant pour récupérer son contenu. Les images ne doivent pas être chargées avec un élément distant non authentifié ni être mises en cache dans un stockage public.
