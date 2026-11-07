@@ -23,7 +23,7 @@ from ploc_cellar.images import (
     remove_image_cache,
     safe_image_path,
 )
-from ploc_cellar.models import Cellar
+from ploc_cellar.models import Cellar, Wine
 from ploc_cellar.ploud import PloudError
 
 
@@ -57,7 +57,7 @@ def test_deleted_document_filter_and_empty_metadata_fingerprint() -> None:
             "DeletedObjects": [
                 {"id": "wine-1", "ty": 100},
                 {"id": document_id, "ty": 115},
-                {"id": "not-an-id", "ty": "document"},
+                {"id": [], "ty": "document"},
             ]
         }
     )
@@ -68,8 +68,6 @@ def test_deleted_document_filter_and_empty_metadata_fingerprint() -> None:
 
 def test_image_document_ids_include_cover_image_and_ignore_invalid_fields() -> None:
     """The cover image remains usable when the primary image is absent."""
-    from ploc_cellar.models import Wine
-
     wine = Wine(
         id="wine-1",
         name="Vin",
@@ -189,8 +187,6 @@ class _FakeHass:
 
 def _cellar(document_id: str) -> Cellar:
     """Build one Wine with a primary image reference."""
-    from ploc_cellar.models import Wine
-
     wine = Wine(
         id="wine-1",
         name="Vin",
