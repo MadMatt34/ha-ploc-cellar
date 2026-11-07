@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import asyncio
+from pathlib import Path
 from datetime import timedelta
 from types import SimpleNamespace
 from typing import Any
@@ -9,7 +10,12 @@ from typing import Any
 import pytest
 from homeassistant.config_entries import ConfigEntryState
 from homeassistant.exceptions import HomeAssistantError, ServiceValidationError
-from ploc_cellar import async_setup, async_setup_entry, async_unload_entry
+from ploc_cellar import (
+    async_remove_entry,
+    async_setup,
+    async_setup_entry,
+    async_unload_entry,
+)
 from ploc_cellar.const import (
     CONF_DEVICE,
     CONF_LANGUAGE,
@@ -245,3 +251,23 @@ def test_inventory_service_exposes_complete_rack_positions() -> None:
             "column": 3,
         }
     ]
+
+
+
+def test_remove_entry_deletes_its_image_cache(tmp_path: Path) -> None:
+    """Deleting a config entry removes only its own integration cache."""
+    cache_root = tmp_path / ".storage" / DOMAIN / "entry-1"
+    image_directory = cache_root / "images"
+    image_directory.mkdir(parents=True)
+    (image_directory / "cached.jpg").write_bytes(b"image")
+
+    hass = SimpleNamespace(
+        config=SimpleNamespace(
+            path=lambda *parts: str(tmp_path.joinpath(*parts))
+        )
+    )
+    entry = SimpleNamespace(entry_id="entry-1")
+
+    asyncio.run(async_remove_entry(hass, entry))
+
+    assert not cache_root.exists()
