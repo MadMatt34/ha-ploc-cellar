@@ -43,7 +43,8 @@ Known public `Meals` flags:
 | `512` | Red meat |
 | `1024` | Dishes with vegetables |
 | `2048` | Cheese |
-| `4096` | Dessert |\n| `8192` | Spicy dishes |
+| `4096` | Dessert |
+| `8192` | Spicy dishes |
 
 The frontend maps these flags to localized labels in the wine detail dialog. A missing or null `meals` value means that no association data is available; it must not be interpreted as an explicit empty list.
 
