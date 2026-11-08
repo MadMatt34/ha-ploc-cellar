@@ -1,46 +1,58 @@
 # Test strategy
 
-The test suite is designed to validate the integration at three levels:
+The backend suite validates the integration at three levels:
 
-1. **Pure model and protocol tests** validate parsing, normalization, stock reconstruction, deletion semantics and PLOUD transport contracts without network access.
-2. **Coordinator and service tests** validate synchronization behavior, persistence boundaries, failure propagation and the JSON inventory response.
-3. **Home Assistant contract checks** run Ruff, Hassfest, strict Pyright against the latest stable Home Assistant, and HACS validation.
+1. **Pure model and protocol tests** cover parsing, normalization, stock reconstruction, deletion semantics, storage migrations and PLOUD transport contracts without network access.
+2. **Coordinator, image and service tests** cover incremental/full synchronization, transactional persistence, image cache lifecycle and boundaries, authenticated views, diagnostics and the JSON inventory response.
+3. **Home Assistant contract checks** run Ruff, Hassfest, strict Pyright, the unit suite and HACS validation.
 
-All PLOC/PLOUD HTTP calls in unit tests are replaced by deterministic response/session doubles. The tests never contact a real PLOC account or mutate a cellar.
+All PLOC/PLOUD HTTP calls in unit tests use deterministic response/session doubles. Tests do not contact a real PLOC account or mutate a cellar.
 
 ## Test modules
 
 | Module | Coverage |
 |---|---|
-| `test_auth.py` | Encrypted sign-in payload shape, PLOC account token, PLOUD activation, HTTP status classification, malformed responses and transport failures |
+| `test_auth.py` | Encrypted sign-in payload, PLOC account token, PLOUD activation, response validation and transport failures |
 | `test_config_flow_validation.py` | Email validation before authentication |
-| `test_config_flow.py` | Initial setup, existing-entry rejection, generated device identity, authentication errors and reauthentication token renewal |
-| `test_language.py` | Automatic language selection from HA country/language and explicit override precedence |
-| `test_ploud_transport.py` | Sync endpoint, timeout, HTTP/network failures, JSON shape, collection validation and cursor behavior |
-| `test_ploud.py` | PLOUD record parsing, identifiers, optional values, Owner resolution and malformed records |
-| `test_delta_regressions.py` | Partial-record merge, missing fields, deletions and full-snapshot semantics |
-| `test_models.py` | Stock calculations, diagnostics, storage serialization and integrity counters |
-| `test_storage_migrations.py` | Legacy schema migration, identifier normalization and invalid current storage |
-| `test_coordinator.py` | Verified persistence, incremental/full sync success and failure, recovery from incomplete deltas, snapshot validation, manual sync, authentication failure and transactional rollback |
-| `test_services.py` | Inventory filtering/response, diagnostics and service response contracts |
-| `test_integration_services.py` | Home Assistant service registration/dispatch, config-entry setup validation, platform forwarding and unload lifecycle |
-| `test_sensor.py` | Sensor values and availability, unknown values before Orders reconstruction, timestamp/stale attributes, registry migration and platform entity creation |
-| `test_button.py` | Partial/full button mapping and propagation of synchronization failures |
+| `test_config_flow.py` | Initial setup, duplicate-entry rejection, generated device identity, authentication errors and reauthentication |
+| `test_language.py` | Automatic language selection and manual override precedence |
+| `test_ploud_transport.py` | Sync/document endpoints, request signatures, timeouts, HTTP/network errors, malformed JSON and collection validation |
+| `test_ploud.py` | PLOUD record parsing, identifiers, optional fields, Owner resolution and malformed records |
+| `test_ploud_payload_edges.py` | Malformed and partial PLOUD payload edge cases |
+| `test_delta_regressions.py` | Partial-record merge, omitted versus cleared fields, deletions and full-snapshot semantics |
+| `test_models.py` | Stock calculations, diagnostics, serialization and model integrity |
+| `test_models_storage_edges.py` | Invalid storage fields, cross-reference integrity and serialization edge cases |
+| `test_storage_migrations.py` | Legacy schema migration and identifier normalization |
+| `test_coordinator.py` | Verified persistence, incremental/full sync, recovery, rollback and authentication failure |
+| `test_coordinator_lifecycle.py` | Coordinator setup, refresh, cancellation, unload and lifecycle cleanup |
+| `test_services.py` | Inventory filtering, stock diagnostics and response values |
+| `test_service_contract.py` | Exact JSON response contract and frontend-facing compatibility |
+| `test_integration_services.py` | Service registration/dispatch, config-entry setup, platform forwarding and unload |
+| `test_sensor.py` | Sensor values, availability, stale timestamp attributes, registry migration and entity creation |
+| `test_button.py` | Differential/full synchronization button behavior and failure propagation |
+| `test_images.py` | Image metadata, download/cache, replacement and deletion lifecycle |
+| `test_images_edges.py` | Invalid metadata, unsupported documents, cache cleanup and filesystem failures |
+| `test_image_boundaries.py` | Image size and content-type boundaries |
+| `test_image_lifecycle.py` | Image cache cleanup on config-entry lifecycle |
+| `test_views.py` | Authenticated image endpoint and invalid document requests |
 
 ## Local execution
 
 Run the same checks as CI from the repository root:
 
-```bash
+```sh
 ruff check custom_components/ploc_cellar tests
 PYTHONPATH=custom_components pytest -q --cov=ploc_cellar --cov-report=term-missing
 pyright --project pyrightconfig.json
 ```
 
-The CI workflow installs the latest stable Home Assistant, runs the strict type checker and reports line coverage for the integration package. CI fails if total line coverage falls below **95%**. The threshold is applied to the complete integration package, not to individual modules; tests should continue to cover meaningful behavior rather than adding assertions solely to execute lines.
+CI tests against the declared minimum Home Assistant version (2026.10.4) and
+the latest stable release. The coverage threshold is 95% for the complete
+integration package, not for each module. Tests should exercise meaningful
+behavior rather than add assertions solely to execute lines.
 
 ## Scope and limitations
 
-- The suite is deterministic and offline; it does not validate the availability or current behavior of the external PLOC/PLOUD servers.
-- It validates Home Assistant compatibility with the latest stable package installed by CI, plus Hassfest. It does not replace a manual installation test on a real Home Assistant instance.
-- Authentication tests verify request construction and response handling; they do not use real credentials or assert that PLOC accepts a particular account.
+- The suite is deterministic and offline; it does not validate current external PLOC/PLOUD server availability or undocumented server behavior.
+- Version-matrix CI and Hassfest provide compatibility checks, but do not replace installation testing on a real Home Assistant instance.
+- Authentication tests verify request construction and response handling; they do not use real credentials or prove that PLOC accepts a particular account.
