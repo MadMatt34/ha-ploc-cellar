@@ -259,6 +259,11 @@ async def async_sync_images(
                     last_sync_time=last_sync_time,
                     max_bytes=_MAX_IMAGE_BYTES,
                 )
+                if len(content) > _MAX_IMAGE_BYTES:
+                    raise PloudError(
+                        f"PLOUD image {identifier} exceeds the "
+                        f"{_MAX_IMAGE_BYTES}-byte limit"
+                    )
                 extension = _image_extension(content)
                 if extension is None:
                     raise PloudError(
