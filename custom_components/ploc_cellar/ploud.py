@@ -749,8 +749,9 @@ async def async_get_document(
     device: str,
     document_id: str,
     last_sync_time: int = 1,
+    max_bytes: int = 20 * 1024 * 1024,
 ) -> bytes:
-    """Download one PLOUD document using the Android getdocument signature."""
+    """Download one bounded PLOUD document using the Android signature."""
     identifier = normalize_identifier(document_id)
     if not identifier:
         raise PloudError("PLOUD document ID is empty")
@@ -799,7 +800,27 @@ async def async_get_document(
                 raise PloudError(
                     f"PLOUD document request returned HTTP {response.status}"
                 )
-            content = await response.read()
+            content_length = response.headers.get("Content-Length")
+            if content_length is not None:
+                try:
+                    declared_size = int(content_length)
+                except ValueError:
+                    declared_size = -1
+                if declared_size > max_bytes:
+                    raise PloudError(
+                        f"PLOUD document exceeds the {max_bytes}-byte limit"
+                    )
+
+            chunks: list[bytes] = []
+            total_size = 0
+            async for chunk in response.content.iter_chunked(64 * 1024):
+                total_size += len(chunk)
+                if total_size > max_bytes:
+                    raise PloudError(
+                        f"PLOUD document exceeds the {max_bytes}-byte limit"
+                    )
+                chunks.append(chunk)
+            content = b"".join(chunks)
     except (ClientError, TimeoutError) as err:
         raise PloudError(f"PLOUD document request failed: {err}") from err
 
