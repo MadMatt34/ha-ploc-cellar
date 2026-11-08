@@ -173,7 +173,7 @@ L'intégration envoie uniquement les paramètres nécessaires à la synchronisat
 
 ## Validation
 
-La CI vérifie le code avec Ruff et Hassfest, exécute Pyright en mode strict contre la dernière version stable de Home Assistant disponible sur PyPI ainsi que la suite unitaire pytest, et valide la structure HACS de l'intégration.
+La CI vérifie le code avec Ruff et Hassfest, puis exécute Pyright en mode strict et la suite pytest avec la version minimale déclarée de Home Assistant (2026.10.4) ainsi que la dernière version stable. La validation HACS de l'intégration est exécutée séparément.
 
 Ces contrôles statiques ne remplacent pas les essais de bout en bout avec une instance Home Assistant réelle et la cave PLOUD.
 
