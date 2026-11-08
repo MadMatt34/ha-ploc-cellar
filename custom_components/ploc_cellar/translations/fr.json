@@ -105,32 +105,12 @@
       "fields": {
         "search": {
           "name": "Recherche",
-          "description": "Rechercher dans le nom du vin, l'appellation, la région, le pays, le cépage ou la cuvée."
+          "description": "Rechercher dans le nom du vin, le domaine viticole, l'appellation, la région, le pays, les cépages, la cuvée ou le commentaire."
         },
         "color": {
           "name": "Couleur",
           "description": "Filtrer selon la couleur du vin."
         },
-        "config_entry_id": {
-          "name": "Configuration Ploc Cellar",
-          "description": "Sélectionner la connexion PLOUD à utiliser."
-        }
-      }
-    },
-    "sync": {
-      "name": "Synchroniser",
-      "description": "Déclencher immédiatement une synchronisation en lecture seule avec PLOUD.",
-      "fields": {
-        "config_entry_id": {
-          "name": "Configuration Ploc Cellar",
-          "description": "Sélectionner la connexion PLOUD à utiliser."
-        }
-      }
-    },
-    "sync_full": {
-      "name": "Synchronisation complète",
-      "description": "Récupérer et reconstruire l’inventaire complet de la cave depuis PLOUD.",
-      "fields": {
         "config_entry_id": {
           "name": "Configuration Ploc Cellar",
           "description": "Sélectionner la connexion PLOUD à utiliser."
