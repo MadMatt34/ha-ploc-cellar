@@ -12,7 +12,8 @@ inventaire local en lecture seule et ne corrige jamais la cave distante.
 | `Orders` | Mouvements d'entrée et de sortie de bouteilles |
 | `RackItems` | Emplacements physiques, occupés ou vides |
 | `Racks` | Métadonnées des casiers |
-| `Owners` | Résolution temporaire du domaine viticole à partir de son UUID |
+| `appellations`, `bottleFormats`, `classifications`, `colors`, `countries`, `regions` | Index de références persisté dans `Cellar.references` pour résoudre les identifiants compacts des vins |
+| `Owners` | Résolution temporaire du domaine viticole à partir de son UUID ; seul le nom résolu est conservé dans `Wine.domain` |
 | `DeletedObjects` | Suppressions explicites à appliquer au modèle local |
 
 Les références `Wine` à stock nul sont conservées dans le modèle : un delta
@@ -431,10 +432,11 @@ Indicateurs connus de l'énumération publique `Meals` :
 | `1024` | Plats et légumes |
 | `2048` | Fromage |
 | `4096` | Dessert |
+| `8192` | Plats épicés |
 
 Le frontend associe ces indicateurs à des libellés localisés dans la fenêtre de détail du vin. Une valeur `meals` absente ou nulle signifie que les données d'association ne sont pas disponibles ; elle ne doit pas être interprétée comme une liste explicitement vide.
 
-L'APK contient également une ressource `foodtype8192`, mais `8192` n'est pas défini dans l'énumération publique du serveur. Sa signification n'est pas confirmée et cet indicateur est volontairement absent de la correspondance. Le backend doit conserver les bits inconnus et le frontend doit les ignorer.
+L'application Android PLOUD identifie `8192` comme `foodtype8192` (plats épicés). Le frontend affiche cet indicateur sous le libellé **Plats épicés**. Les autres bits inconnus restent conservés par le backend et ignorés par le frontend.
 
 ## 8. Images des vins et documents PLOUD
 
