@@ -248,7 +248,7 @@ def test_failed_replacement_keeps_previous_cached_image(
     cellar = Cellar(wines={"wine-1": _wine(document_id)})
 
     async def successful_download(*args: Any, **kwargs: Any) -> bytes:
-        return b"\\xff\\xd8\\xffold-image"
+        return b"\xff\xd8\xffold-image"
 
     monkeypatch.setattr(images_module, "async_get_document", successful_download)
     common = {
@@ -282,4 +282,4 @@ def test_failed_replacement_keeps_previous_cached_image(
     )
 
     assert find_cached_image(tmp_path, document_id) == previous
-    assert previous.read_bytes() == b"\\xff\\xd8\\xffold-image"
+    assert previous.read_bytes() == b"\xff\xd8\xffold-image"
