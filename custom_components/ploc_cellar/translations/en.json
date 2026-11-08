@@ -105,32 +105,12 @@
       "fields": {
         "search": {
           "name": "Search",
-          "description": "Match wine name, appellation, region, country, grape or cuvée."
+          "description": "Match wine name, winery, appellation, region, country, grape, cuvée or comment."
         },
         "color": {
           "name": "Color",
           "description": "Filter by wine color."
         },
-        "config_entry_id": {
-          "name": "Ploc Cellar configuration",
-          "description": "Select the PLOUD connection to use."
-        }
-      }
-    },
-    "sync": {
-      "name": "Synchronize",
-      "description": "Trigger an immediate read-only synchronization with PLOUD.",
-      "fields": {
-        "config_entry_id": {
-          "name": "Ploc Cellar configuration",
-          "description": "Select the PLOUD connection to use."
-        }
-      }
-    },
-    "sync_full": {
-      "name": "Full synchronization",
-      "description": "Fetch and rebuild the complete cellar inventory from PLOUD.",
-      "fields": {
         "config_entry_id": {
           "name": "Ploc Cellar configuration",
           "description": "Select the PLOUD connection to use."
