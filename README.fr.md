@@ -48,7 +48,7 @@ Indicateurs `Meals` identifiés dans les données PLOUD :
 
 Le frontend associe ces indicateurs à des libellés localisés dans la fenêtre de détail du vin. Une valeur `meals` absente ou nulle signifie que les données d'association ne sont pas disponibles ; elle ne doit pas être interprétée comme une liste explicitement vide.
 
-L'application Android PLOUD identifie `8192` comme `foodtype8192` (plats épicés). Le frontend affiche cet indicateur confirmé sous le libellé **Plats épicés**. Les autres bits inconnus doivent toujours être conservés par le backend et ignorés par le frontend.
+L'application Android PLOUD identifie `8192` comme `foodtype8192` (plats épicés). Le frontend affiche cet indicateur confirmé sous le libellé **Épicés**. Les autres bits inconnus doivent toujours être conservés par le backend et ignorés par le frontend.
 
 Les règles détaillées de calcul du stock, de synchronisation et d'intégrité
 du stockage sont décrites dans la [spécification des algorithmes](docs/ALGORITHMES.md).
