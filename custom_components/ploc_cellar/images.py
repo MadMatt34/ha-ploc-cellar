@@ -248,11 +248,6 @@ async def async_sync_images(
                 )
                 return
 
-        if cached is not None:
-            await hass.async_add_executor_job(
-                _remove_document_files, directory, identifier
-            )
-
         async with semaphore:
             try:
                 content = await async_get_document(
@@ -262,6 +257,7 @@ async def async_sync_images(
                     device=device,
                     document_id=identifier,
                     last_sync_time=last_sync_time,
+                    max_bytes=_MAX_IMAGE_BYTES,
                 )
                 if len(content) > _MAX_IMAGE_BYTES:
                     raise PloudError(

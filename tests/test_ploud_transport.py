@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import asyncio
+from collections.abc import AsyncIterator
 from typing import Any, cast
 
 import aiohttp
@@ -15,6 +16,17 @@ from ploc_cellar.ploud import (
 )
 
 
+class _FakeStream:
+    """Minimal bounded async response stream."""
+
+    def __init__(self, body: bytes) -> None:
+        self.body = body
+
+    async def iter_chunked(self, size: int) -> AsyncIterator[bytes]:
+        for offset in range(0, len(self.body), size):
+            yield self.body[offset : offset + size]
+
+
 class _FakeResponse:
     """Small aiohttp response double supporting async context management."""
 
@@ -25,11 +37,13 @@ class _FakeResponse:
         payload: object = None,
         json_error: Exception | None = None,
         content: bytes = b"image-bytes",
+        headers: dict[str, str] | None = None,
     ) -> None:
         self.status = status
         self.payload = payload
         self.json_error = json_error
-        self.content = content
+        self.content = _FakeStream(content)
+        self.headers = headers or {}
 
     async def __aenter__(self) -> _FakeResponse:
         return self
@@ -41,10 +55,6 @@ class _FakeResponse:
         traceback: object,
     ) -> None:
         return None
-
-    async def read(self) -> bytes:
-        """Return the configured binary response body."""
-        return self.content
 
     async def json(self, *, content_type: str | None = None) -> object:
         """Return the configured payload or simulate JSON decoding failure."""
@@ -339,5 +349,41 @@ def test_get_document_rejects_empty_response() -> None:
                 token="test-token",
                 device="device-identifier",
                 document_id="document-1",
+            )
+        )
+
+
+def test_get_document_rejects_oversized_content_length_before_streaming() -> None:
+    """A declared body larger than the configured limit is rejected immediately."""
+    session = _FakeSession(
+        _FakeResponse(content=b"ignored", headers={"Content-Length": "6"})
+    )
+
+    with pytest.raises(PloudError, match="5-byte limit"):
+        asyncio.run(
+            async_get_document(
+                cast(aiohttp.ClientSession, session),
+                server="https://ploud.example/v1",
+                token="test-token",
+                device="device-identifier",
+                document_id="document-1",
+                max_bytes=5,
+            )
+        )
+
+
+def test_get_document_bounds_stream_when_content_length_is_missing() -> None:
+    """Chunked bodies without Content-Length cannot exceed the configured limit."""
+    session = _FakeSession(_FakeResponse(content=b"123456"))
+
+    with pytest.raises(PloudError, match="5-byte limit"):
+        asyncio.run(
+            async_get_document(
+                cast(aiohttp.ClientSession, session),
+                server="https://ploud.example/v1",
+                token="test-token",
+                device="device-identifier",
+                document_id="document-1",
+                max_bytes=5,
             )
         )

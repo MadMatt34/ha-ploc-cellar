@@ -14,7 +14,7 @@ Intégration personnalisée Home Assistant permettant de consulter une cave PLOC
 - PLOUD reste la source de vérité.
 - Synchronisation incrémentale en lecture seule via `POST https://ploud.ploc.co/v1/sync/exec`, avec `Objects={}`.
 - Le premier chargement utilise la valeur d'initialisation validée `LastSyncTime=1`. Les synchronisations suivantes utilisent le curseur client en millisecondes Unix.
-- Modèle local persistant : les références `Wine` reçues de PLOUD, les casiers et leurs emplacements. La valeur brute `Wine.bo` est conservée à titre informatif. Le stock effectif est reconstitué avec les mouvements `Orders` et les bouteilles physiquement placées (`RackItems`) selon la formule `max(0, solde des mouvements, bouteilles en cave)`. Les diagnostics distinguent le stock non localisé (`unlocated_bottles`), les soldes de mouvements négatifs (`negative_movement_bottles`) et les excédents physiques (`physical_surplus_bottles`). Un stock non localisé signifie que le solde issu des mouvements dépasse les bouteilles affectées à des emplacements ; cela ne prouve pas qu'une bouteille a été retirée sans mouvement de sortie déclaré. Les données PLOUD ne sont jamais modifiées. Les caractéristiques, dont le domaine viticole, sont directement enregistrées dans chaque fiche vin. La collection `Owners` est utilisée temporairement pour résoudre les UUID des propriétaires ; aucune table de correspondance n'est conservée. Si un vin reçu dans un delta référence un propriétaire absent de ce delta, ou un Owner dont l'enregistrement ne contient pas de champ de nom, une synchronisation complète ponctuelle est déclenchée pour résoudre son nom.
+- Modèle local persistant : les références `Wine` reçues de PLOUD, les casiers et leurs emplacements. La valeur brute `Wine.bo` est conservée à titre informatif. Le stock effectif est reconstitué avec les mouvements `Orders` et les bouteilles physiquement placées (`RackItems`) selon la formule `max(0, solde des mouvements, bouteilles en cave)`. Les diagnostics distinguent le stock non localisé (`unlocated_bottles`), les soldes de mouvements négatifs (`negative_movement_bottles`) et les excédents physiques (`physical_surplus_bottles`). Un stock non localisé signifie que le solde issu des mouvements dépasse les bouteilles affectées à des emplacements ; cela ne prouve pas qu'une bouteille a été retirée sans mouvement de sortie déclaré. Les données PLOUD ne sont jamais modifiées. Les caractéristiques, dont le domaine viticole, sont directement enregistrées dans chaque fiche vin. Les six collections de référence PLOUD sont indexées et conservées localement afin de résoudre les identifiants compacts lors des mises à jour incrémentales de vins, sans imposer une synchronisation complète. La collection `Owners` reste temporaire et sert uniquement à résoudre le nom du domaine viticole. Si un vin reçu dans un delta référence un propriétaire absent de ce delta, ou un Owner dont l'enregistrement ne contient pas de champ de nom, une synchronisation complète ponctuelle est déclenchée pour résoudre son nom.
 - Quatorze capteurs répartis entre inventaire, casiers et diagnostics ; aucune entité individuelle n'est créée pour chaque vin, casier ou emplacement.
 - Inventaire détaillé accessible à la demande avec l'action `ploc_cellar.get_inventory`.
 - Les photos principales et de couverture des vins sont téléchargées depuis les `Documents` PLOUD lorsqu’elles sont référencées, mises en cache localement et servies par une route Home Assistant authentifiée. Une modification du document invalide le cache ; les documents supprimés ou non référencés sont nettoyés, et la suppression de l’entrée efface son cache d’images.
@@ -27,7 +27,7 @@ Intégration personnalisée Home Assistant permettant de consulter une cave PLOC
 
 PLOUD stocke les associations mets-vins dans le champ `Wine.ml`. L'intégration expose cette valeur sous la forme de l'entier brut facultatif `Wine.meals` ; elle ne traduit, ne normalise et ne supprime aucun indicateur. Il s'agit d'un masque de bits : plusieurs catégories peuvent être présentes dans une même valeur en combinant leurs indicateurs par OU binaire.
 
-Indicateurs connus de l'énumération publique `Meals` :
+Indicateurs `Meals` identifiés dans les données PLOUD :
 
 | Valeur du bit | Catégorie de mets |
 |---:|---|
@@ -44,10 +44,11 @@ Indicateurs connus de l'énumération publique `Meals` :
 | `1024` | Plats et légumes |
 | `2048` | Fromage |
 | `4096` | Dessert |
+| `8192` | Épicés |
 
 Le frontend associe ces indicateurs à des libellés localisés dans la fenêtre de détail du vin. Une valeur `meals` absente ou nulle signifie que les données d'association ne sont pas disponibles ; elle ne doit pas être interprétée comme une liste explicitement vide.
 
-L'APK contient également une ressource `foodtype8192`, mais `8192` n'est pas défini dans l'énumération publique du serveur. Sa signification n'est pas confirmée et cet indicateur est volontairement absent de la correspondance. Le backend doit conserver les bits inconnus et le frontend doit les ignorer.
+L'application Android PLOUD identifie `8192` comme `foodtype8192` (plats épicés). Le frontend affiche cet indicateur confirmé sous le libellé **Épicés**. Les autres bits inconnus doivent toujours être conservés par le backend et ignorés par le frontend.
 
 Les règles détaillées de calcul du stock, de synchronisation et d'intégrité
 du stockage sont décrites dans la [spécification des algorithmes](docs/ALGORITHMES.md).
@@ -172,7 +173,7 @@ L'intégration envoie uniquement les paramètres nécessaires à la synchronisat
 
 ## Validation
 
-La CI vérifie le code avec Ruff et Hassfest, exécute Pyright en mode strict contre la dernière version stable de Home Assistant disponible sur PyPI ainsi que la suite unitaire pytest, et valide la structure HACS de l'intégration.
+La CI vérifie le code avec Ruff et Hassfest, puis exécute Pyright en mode strict et la suite pytest avec la version minimale déclarée de Home Assistant (2026.10.4) ainsi que la dernière version stable. La validation HACS de l'intégration est exécutée séparément.
 
 Ces contrôles statiques ne remplacent pas les essais de bout en bout avec une instance Home Assistant réelle et la cave PLOUD.
 

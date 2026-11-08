@@ -348,3 +348,21 @@ def test_legacy_wine_meals_are_restored_from_compact_reference_fields() -> None:
     restored = Cellar.from_storage(stored)
 
     assert restored.wines["wine"].meals == 2080
+
+
+def test_order_aggregate_is_refreshed_after_delta_mutations() -> None:
+    """A committed Orders delta rebuilds the aggregate used by stock_for."""
+    cellar = Cellar(
+        stock_reconstruction_complete=True,
+        wines={"wine": _wine("wine")},
+        orders={"order": Order("order", "wine", incoming=3, outgoing=1)},
+    )
+    assert cellar.stock_for(cellar.wines["wine"]).movement_balance == 2
+
+    cellar.orders["order-2"] = Order("order-2", "wine", incoming=4, outgoing=0)
+    cellar.refresh_bottles_in_cellar()
+
+    stock = cellar.stock_for(cellar.wines["wine"])
+    assert stock.purchased == 7
+    assert stock.consumed == 1
+    assert stock.movement_balance == 6

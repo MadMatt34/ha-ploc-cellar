@@ -4,9 +4,9 @@ from __future__ import annotations
 from typing import cast
 
 from aiohttp import web
-from homeassistant.components.http import HomeAssistantView
 from homeassistant.config_entries import ConfigEntryState
 from homeassistant.core import HomeAssistant
+from homeassistant.helpers.http import HomeAssistantView
 
 from .const import DOMAIN
 from .images import safe_image_path
