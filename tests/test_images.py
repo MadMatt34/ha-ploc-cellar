@@ -82,6 +82,7 @@ def test_sync_downloads_and_caches_a_referenced_image(
         device: str,
         document_id: str,
         last_sync_time: int,
+        max_bytes: int,
     ) -> bytes:
         downloads.append(document_id)
         return b"\xff\xd8\xffimage-data"
