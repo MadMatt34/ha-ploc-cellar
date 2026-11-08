@@ -237,3 +237,49 @@ def test_deleted_document_and_unreferenced_image_are_removed(
     )
     assert find_cached_image(tmp_path, document_id) is None
     assert list(tmp_path.iterdir()) == []
+
+
+def test_failed_replacement_keeps_previous_cached_image(
+    tmp_path: Path,
+    monkeypatch: Any,
+) -> None:
+    """A transient download failure must not evict the last valid image."""
+    document_id = "4fe6124e-6d59-45b5-9dcd-67f3fcdcda0a"
+    cellar = Cellar(wines={"wine-1": _wine(document_id)})
+
+    async def successful_download(*args: Any, **kwargs: Any) -> bytes:
+        return b"\\xff\\xd8\\xffold-image"
+
+    monkeypatch.setattr(images_module, "async_get_document", successful_download)
+    common = {
+        "hass": cast(Any, _FakeHass()),
+        "session": cast(Any, object()),
+        "directory": tmp_path,
+        "server": "https://ploud.example/v1",
+        "token": "token",
+        "device": "device",
+        "cellar": cellar,
+        "last_sync_time": 123,
+    }
+    asyncio.run(
+        async_sync_images(
+            **common,
+            objects={"Documents": [_document(document_id, 1)]},
+        )
+    )
+    previous = find_cached_image(tmp_path, document_id)
+    assert previous is not None
+
+    async def failed_download(*args: Any, **kwargs: Any) -> bytes:
+        raise images_module.PloudError("temporary upstream failure")
+
+    monkeypatch.setattr(images_module, "async_get_document", failed_download)
+    asyncio.run(
+        async_sync_images(
+            **common,
+            objects={"Documents": [_document(document_id, 2)]},
+        )
+    )
+
+    assert find_cached_image(tmp_path, document_id) == previous
+    assert previous.read_bytes() == b"\\xff\\xd8\\xffold-image"
