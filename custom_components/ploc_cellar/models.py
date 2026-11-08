@@ -138,6 +138,24 @@ class Cellar:
     references: dict[str, dict[str, JsonObject]] = field(
         default_factory=_empty_reference_index
     )
+    _order_totals: dict[str, tuple[int, int]] = field(
+        default_factory=dict, init=False, repr=False, compare=False
+    )
+
+    def __post_init__(self) -> None:
+        """Build the movement aggregate once for this snapshot."""
+        self.rebuild_order_totals()
+
+    def rebuild_order_totals(self) -> None:
+        """Aggregate incoming and outgoing quantities by Wine identifier."""
+        totals: dict[str, tuple[int, int]] = {}
+        for order in self.orders.values():
+            incoming, outgoing = totals.get(order.wine_id, (0, 0))
+            totals[order.wine_id] = (
+                incoming + order.incoming,
+                outgoing + order.outgoing,
+            )
+        self._order_totals = totals
 
     @property
     def total_bottles(self) -> int:
@@ -224,13 +242,7 @@ class Cellar:
                 physical_surplus_bottles=None,
             )
 
-        purchased = 0
-        consumed = 0
-        for order in self.orders.values():
-            if order.wine_id == wine.id:
-                purchased += order.incoming
-                consumed += order.outgoing
-
+        purchased, consumed = self._order_totals.get(wine.id, (0, 0))
         movement_balance = purchased - consumed
         calculated_stock = max(0, movement_balance)
         effective_stock = max(calculated_stock, wine.bottles_in_cellar)
@@ -311,7 +323,8 @@ class Cellar:
         )
 
     def refresh_bottles_in_cellar(self) -> None:
-        """Recalculate each wine's in-cellar quantity from assigned RackItems."""
+        """Refresh physical bottle counts and the per-wine movement aggregate."""
+        self.rebuild_order_totals()
         counts: dict[str, int] = {}
         for item in self.rack_items.values():
             if item.wine_id in self.wines:
