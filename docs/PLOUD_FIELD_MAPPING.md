@@ -90,7 +90,7 @@ as `Wine.meals`. It is a bitmask, so flags combine with bitwise OR.
 | `1024` | Dishes with vegetables |
 | `2048` | Cheese |
 | `4096` | Dessert |
-| `8192` | Épicés |
+| `8192` | Spicy dishes |
 
 For example, `10341` is the combination of `1 + 4 + 32 + 64 + 2048 + 8192`
 (Aperitif, Starter, Fish, White meat, Cheese and Spicy dishes). Missing or null
