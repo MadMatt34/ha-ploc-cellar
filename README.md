@@ -173,7 +173,7 @@ The integration sends only the parameters required for synchronization and an em
 
 ## Validation
 
-CI runs Ruff, Hassfest, strict Pyright type analysis against the latest stable Home Assistant release available from PyPI, the unit test suite with pytest, and HACS integration validation.
+CI runs Ruff and Hassfest, then executes strict Pyright and the pytest suite against both the declared minimum Home Assistant version (2026.10.4) and the latest stable release. HACS integration validation runs separately.
 
 These static checks do not replace end-to-end testing against a real Home Assistant instance and the PLOUD cellar.
 
