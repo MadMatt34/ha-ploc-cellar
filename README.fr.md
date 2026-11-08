@@ -43,7 +43,8 @@ Indicateurs connus de l'énumération publique `Meals` :
 | `512` | Viande rouge |
 | `1024` | Plats et légumes |
 | `2048` | Fromage |
-| `4096` | Dessert |\n| `8192` | Plats épicés |
+| `4096` | Dessert |
+| `8192` | Plats épicés |
 
 Le frontend associe ces indicateurs à des libellés localisés dans la fenêtre de détail du vin. Une valeur `meals` absente ou nulle signifie que les données d'association ne sont pas disponibles ; elle ne doit pas être interprétée comme une liste explicitement vide.
 
