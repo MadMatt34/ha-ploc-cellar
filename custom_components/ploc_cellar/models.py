@@ -28,6 +28,11 @@ def _empty_reference_index() -> dict[str, dict[str, JsonObject]]:
     return {}
 
 
+def _empty_order_totals() -> dict[str, tuple[int, int]]:
+    """Return a fresh, explicitly typed per-wine movement aggregate."""
+    return {}
+
+
 def normalize_identifier(value: str) -> str:
     """Trim an identifier and canonicalize UUIDs without changing opaque IDs."""
     normalized = value.strip()
@@ -139,7 +144,7 @@ class Cellar:
         default_factory=_empty_reference_index
     )
     _order_totals: dict[str, tuple[int, int]] = field(
-        default_factory=dict, init=False, repr=False, compare=False
+        default_factory=_empty_order_totals, init=False, repr=False, compare=False
     )
 
     def __post_init__(self) -> None:
