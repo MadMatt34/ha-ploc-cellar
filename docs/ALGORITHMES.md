@@ -415,7 +415,7 @@ automatiquement.
 
 PLOUD stocke les associations mets-vins dans le champ `Wine.ml`. L'intégration expose cette valeur sous la forme de l'entier brut facultatif `Wine.meals` ; elle ne traduit, ne normalise et ne supprime aucun indicateur. Il s'agit d'un masque de bits : plusieurs catégories peuvent être présentes dans une même valeur en combinant leurs indicateurs par OU binaire.
 
-Indicateurs connus de l'énumération publique `Meals` :
+Indicateurs `Meals` identifiés dans les données PLOUD :
 
 | Valeur du bit | Catégorie de mets |
 |---:|---|
@@ -432,7 +432,7 @@ Indicateurs connus de l'énumération publique `Meals` :
 | `1024` | Plats et légumes |
 | `2048` | Fromage |
 | `4096` | Dessert |
-| `8192` | Plats épicés |
+| `8192` | Épicés |
 
 Le frontend associe ces indicateurs à des libellés localisés dans la fenêtre de détail du vin. Une valeur `meals` absente ou nulle signifie que les données d'association ne sont pas disponibles ; elle ne doit pas être interprétée comme une liste explicitement vide.
 
