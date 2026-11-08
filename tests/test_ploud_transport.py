@@ -359,7 +359,7 @@ def test_get_document_rejects_oversized_content_length_before_streaming() -> Non
         _FakeResponse(content=b"ignored", headers={"Content-Length": "6"})
     )
 
-    with pytest.raises(PloudError, match="6-byte limit"):
+    with pytest.raises(PloudError, match="5-byte limit"):
         asyncio.run(
             async_get_document(
                 cast(aiohttp.ClientSession, session),
