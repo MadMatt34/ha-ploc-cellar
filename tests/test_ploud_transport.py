@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import asyncio
+from collections.abc import AsyncIterator
 from typing import Any, cast
 
 import aiohttp
@@ -21,7 +22,7 @@ class _FakeStream:
     def __init__(self, body: bytes) -> None:
         self.body = body
 
-    async def iter_chunked(self, size: int):
+    async def iter_chunked(self, size: int) -> AsyncIterator[bytes]:
         for offset in range(0, len(self.body), size):
             yield self.body[offset : offset + size]
 
