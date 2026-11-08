@@ -27,7 +27,7 @@ A Home Assistant custom integration for a **read-only** view of a PLOC wine cell
 
 PLOUD stores food-pairing associations in the `Wine.ml` field. The integration exposes this value as the optional raw integer `Wine.meals`; it does not translate, normalize or discard individual flags. It is a bitmask, so several categories can be present in one value by combining their flags with bitwise OR.
 
-Known public `Meals` flags:
+Identified PLOUD `Meals` flags:
 
 | Bit value | Food category |
 |---:|---|
