@@ -11,6 +11,7 @@ from homeassistant.exceptions import (
     HomeAssistantError,
 )
 from ploc_cellar import coordinator as coordinator_module
+from ploc_cellar.const import EVENT_SYNC_COMPLETED
 from ploc_cellar.coordinator import (
     PlocCellarCoordinator,
     UpdateFailed,
@@ -41,10 +42,23 @@ class _FakeStore:
         return self.read_back
 
 
+class _FakeBus:
+    """Capture Home Assistant events fired by the coordinator."""
+
+    def __init__(self) -> None:
+        self.events: list[tuple[str, dict[str, str]]] = []
+
+    def async_fire(self, event_type: str, event_data: dict[str, str]) -> None:
+        """Record an event and its payload."""
+        self.events.append((event_type, event_data))
+
+
 def _coordinator(cellar: Cellar, store: _FakeStore) -> PlocCellarCoordinator:
     """Create a coordinator with only the dependencies used by tested methods."""
     coordinator = object.__new__(PlocCellarCoordinator)
-    coordinator.hass = cast(Any, type("FakeHass", (), {"is_stopping": False})())
+    hass = type("FakeHass", (), {"is_stopping": False})()
+    hass.bus = _FakeBus()
+    coordinator.hass = cast(Any, hass)
     coordinator.store = cast(Any, store)
     coordinator.cellar = cellar
     coordinator._force_full_sync = False
@@ -296,6 +310,15 @@ def test_full_sync_commits_only_a_complete_snapshot(
     assert updated.stale is False
     assert updated.last_sync is not None
     assert store.saved == updated.to_storage()
+    assert coordinator.hass.bus.events == [
+        (
+            EVENT_SYNC_COMPLETED,
+            {
+                "config_entry_id": "test-entry",
+                "last_sync": updated.last_sync,
+            },
+        )
+    ]
 
 
 def test_partial_sync_commits_delta_and_preserves_reconstruction_state(
@@ -331,6 +354,15 @@ def test_partial_sync_commits_delta_and_preserves_reconstruction_state(
     assert updated.stale is False
     assert coordinator.cellar is updated
     assert store.saved == updated.to_storage()
+    assert coordinator.hass.bus.events == [
+        (
+            EVENT_SYNC_COMPLETED,
+            {
+                "config_entry_id": "test-entry",
+                "last_sync": updated.last_sync,
+            },
+        )
+    ]
 
 
 def test_invalid_full_snapshot_does_not_replace_cached_model(
