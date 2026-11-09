@@ -6,8 +6,11 @@ from datetime import UTC, datetime
 from types import SimpleNamespace
 from typing import cast
 
+from homeassistant.helpers.device_registry import DeviceInfo
 from ploc_cellar.coordinator import PlocCellarCoordinator
+from ploc_cellar.entity import PlocCellarEntityIdentity
 from ploc_cellar.models import Cellar, Order, Rack, RackItem, Wine
+from ploc_cellar import sensor as sensor_module
 from ploc_cellar.sensor import (
     SENSOR_DESCRIPTIONS,
     PlocCellarLastSyncSensor,
@@ -15,6 +18,18 @@ from ploc_cellar.sensor import (
     _parse_last_sync,
     async_setup_entry,
 )
+
+
+def _identity() -> PlocCellarEntityIdentity:
+    """Build a legacy identity for direct entity tests."""
+    return PlocCellarEntityIdentity(
+        device_info=DeviceInfo(
+            identifiers={("ploc_cellar", "ploc_cellar")},
+            translation_key="cellar",
+            manufacturer="PLOC",
+        ),
+        unique_id_suffix=None,
+    )
 
 
 def _wine(wine_id: str, bottles_in_cellar: int) -> Wine:
@@ -127,7 +142,7 @@ def test_metric_sensor_exposes_value_and_remains_available() -> None:
     coordinator = cast(
         PlocCellarCoordinator, SimpleNamespace(data=cellar)
     )
-    sensor = PlocCellarMetricSensor(coordinator, SENSOR_DESCRIPTIONS[0])
+    sensor = PlocCellarMetricSensor(coordinator, SENSOR_DESCRIPTIONS[0], _identity())
 
     assert sensor.native_value == 0
     assert sensor.available is True
@@ -144,7 +159,7 @@ def test_last_sync_sensor_exposes_timestamp_and_stale_attribute() -> None:
     coordinator = cast(
         PlocCellarCoordinator, SimpleNamespace(data=cellar)
     )
-    sensor = PlocCellarLastSyncSensor(coordinator)
+    sensor = PlocCellarLastSyncSensor(coordinator, _identity())
 
     assert sensor.native_value == datetime(2026, 11, 5, 10, 30, tzinfo=UTC)
     assert sensor.extra_state_attributes == {"stale": True}
@@ -168,6 +183,7 @@ def test_sensor_platform_sets_up_all_fourteen_entities() -> None:
         PlocCellarCoordinator, SimpleNamespace(data=Cellar())
     )
     entry = SimpleNamespace(runtime_data=coordinator)
+    monkeypatch.setattr(sensor_module, "get_entity_identity", lambda hass, config_entry: _identity())
     added: list[object] = []
 
     asyncio.run(
