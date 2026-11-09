@@ -36,7 +36,7 @@ def test_existing_entry_keeps_legacy_device_and_entity_unique_ids(
     """An installation already owning the legacy device keeps registry identity."""
     entry = SimpleNamespace(entry_id="legacy-entry", unique_id="legacy-uuid")
     registry = _DeviceRegistry(
-        SimpleNamespace(config_entries={"legacy-entry"})
+        SimpleNamespace(config_entry_id="legacy-entry")
     )
     monkeypatch.setattr(
         entity_module,
