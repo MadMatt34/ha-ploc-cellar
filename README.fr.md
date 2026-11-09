@@ -82,7 +82,7 @@ du stockage sont décrites dans la [spécification des algorithmes](docs/ALGORIT
 
 ### Installation avec HACS (recommandée)
 
-1. Dans Home Assistant, ouvrir **HACS → Intégrations → Dépôts personnalisés**.
+1. Dans HACS, ouvrir **Dépôts personnalisés**.
 2. Ajouter `MadMatt34/ha-ploc-cellar` et sélectionner la catégorie **Intégration**.
 3. Installer **Ploc Cellar** depuis HACS.
 4. Redémarrer Home Assistant, puis ouvrir **Paramètres → Appareils et services → Ajouter une intégration** et sélectionner **Ploc Cellar**.
