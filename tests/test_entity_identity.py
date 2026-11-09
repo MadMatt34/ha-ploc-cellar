@@ -101,3 +101,26 @@ def test_first_entry_on_a_new_installation_uses_its_own_identity(
     assert identity.unique_id("ploc_cellar_summary") == (
         "ploc_cellar_summary_first-device-uuid"
     )
+
+
+def test_entry_id_is_used_when_config_entry_has_no_unique_id(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The config entry ID provides a stable identity when unique_id is absent."""
+    entry = SimpleNamespace(entry_id="entry-without-unique-id", unique_id=None)
+    monkeypatch.setattr(
+        entity_module,
+        "async_get_device_registry",
+        lambda hass: cast(Any, _DeviceRegistry(None)),
+    )
+
+    identity = get_entity_identity(
+        cast(HomeAssistant, object()), cast(PlocCellarConfigEntry, entry)
+    )
+
+    assert identity.device_info["identifiers"] == {
+        (DOMAIN, "entry-without-unique-id")
+    }
+    assert identity.unique_id("ploc_cellar_summary") == (
+        "ploc_cellar_summary_entry-without-unique-id"
+    )
