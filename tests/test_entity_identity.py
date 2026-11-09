@@ -60,7 +60,7 @@ def test_additional_entry_gets_independent_device_and_entity_unique_ids(
     """A second entry cannot collide with the existing entry's registry IDs."""
     entry = SimpleNamespace(entry_id="second-entry", unique_id="second-device-uuid")
     registry = _DeviceRegistry(
-        SimpleNamespace(config_entries={"legacy-entry"})
+        SimpleNamespace(config_entry_id="legacy-entry")
     )
     monkeypatch.setattr(
         entity_module,
