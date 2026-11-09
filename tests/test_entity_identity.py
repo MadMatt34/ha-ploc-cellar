@@ -91,7 +91,9 @@ def test_first_entry_on_a_new_installation_uses_its_own_identity(
         lambda hass: cast(Any, _DeviceRegistry(None)),
     )
 
-    identity = get_entity_identity(object(), entry)
+    identity = get_entity_identity(
+        cast(HomeAssistant, object()), cast(PlocCellarConfigEntry, entry)
+    )
 
     assert identity.device_info["identifiers"] == {
         (DOMAIN, "first-device-uuid")
