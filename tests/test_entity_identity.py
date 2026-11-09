@@ -2,11 +2,15 @@
 from __future__ import annotations
 
 from types import SimpleNamespace
+from typing import Any, cast
 
+import pytest
 from homeassistant.helpers.device_registry import DeviceInfo
+from homeassistant.core import HomeAssistant
 from ploc_cellar import entity as entity_module
 from ploc_cellar.const import DOMAIN
 from ploc_cellar.entity import get_entity_identity
+from ploc_cellar.types import PlocCellarConfigEntry
 
 LEGACY_IDENTIFIER = "ploc_cellar"
 
@@ -14,21 +18,21 @@ LEGACY_IDENTIFIER = "ploc_cellar"
 class _DeviceRegistry:
     """Expose a legacy device for identity migration tests."""
 
-    def __init__(self, legacy_device: object | None) -> None:
+    def __init__(self, legacy_device: Any) -> None:
         self.legacy_device = legacy_device
 
     def async_get_device(
         self,
         identifiers: set[tuple[str, str]],
         connections: set[tuple[str, str]],
-    ) -> object | None:
+    ) -> Any:
         assert identifiers == {(DOMAIN, LEGACY_IDENTIFIER)}
         assert connections == set()
         return self.legacy_device
 
 
 def test_existing_entry_keeps_legacy_device_and_entity_unique_ids(
-    monkeypatch,
+    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """An installation already owning the legacy device keeps registry identity."""
     entry = SimpleNamespace(entry_id="legacy-entry", unique_id="legacy-uuid")
@@ -38,10 +42,10 @@ def test_existing_entry_keeps_legacy_device_and_entity_unique_ids(
     monkeypatch.setattr(
         entity_module,
         "async_get_device_registry",
-        lambda hass: registry,
+        lambda hass: cast(Any, registry),
     )
 
-    identity = get_entity_identity(object(), entry)
+    identity = get_entity_identity(cast(HomeAssistant, object()), cast(PlocCellarConfigEntry, entry))
 
     assert identity.device_info["identifiers"] == {
         (DOMAIN, LEGACY_IDENTIFIER)
@@ -81,7 +85,7 @@ def test_first_entry_on_a_new_installation_uses_its_own_identity(
     monkeypatch.setattr(
         entity_module,
         "async_get_device_registry",
-        lambda hass: _DeviceRegistry(None),
+        lambda hass: cast(Any, _DeviceRegistry(None)),
     )
 
     identity = get_entity_identity(object(), entry)
