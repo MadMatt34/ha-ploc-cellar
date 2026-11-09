@@ -134,11 +134,31 @@ def test_sync_rejects_http_errors(status: int) -> None:
         _run_sync(session)
 
 
-def test_sync_rejects_invalid_access_token() -> None:
-    """An HTTP 401 response is reported as an authentication error."""
-    session = _FakeSession(_FakeResponse(status=401, payload={}))
+@pytest.mark.parametrize(
+    ("status", "payload"),
+    [
+        (401, {}),
+        (403, {"error": 20}),
+        (403, {"error": "20"}),
+    ],
+)
+def test_sync_rejects_invalid_access_token(
+    status: int, payload: dict[str, object]
+) -> None:
+    """HTTP 401 and PLOUD's explicit HTTP 403 auth code request reauth."""
+    session = _FakeSession(_FakeResponse(status=status, payload=payload))
 
     with pytest.raises(PloudAuthError, match="access token"):
+        _run_sync(session)
+
+
+def test_sync_does_not_treat_unrelated_http_403_as_auth_failure() -> None:
+    """A forbidden response without PLOUD auth code 20 remains a transport error."""
+    session = _FakeSession(
+        _FakeResponse(status=403, payload={"error": "forbidden"})
+    )
+
+    with pytest.raises(PloudError, match="HTTP 403"):
         _run_sync(session)
 
 
