@@ -82,7 +82,7 @@ integrity guarantees, see the [algorithm specification in French](docs/ALGORITHM
 
 ### HACS custom repository (recommended)
 
-1. In Home Assistant, open **HACS → Integrations → Custom repositories**.
+1. In HACS, open **Custom repositories**.
 2. Add `MadMatt34/ha-ploc-cellar` and select the **Integration** category.
 3. Install **Ploc Cellar** from HACS.
 4. Restart Home Assistant, then open **Settings → Devices & services → Add integration** and select **Ploc Cellar**.
