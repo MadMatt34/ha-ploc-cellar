@@ -111,6 +111,67 @@ def test_inventory_service_returns_json_safe_empty_inventory() -> None:
     assert response["stale"] is False
 
 
+
+def test_inventory_service_dispatches_to_the_selected_config_entry() -> None:
+    """Two configured accounts return data from their own coordinator only."""
+    first_coordinator = _Coordinator()
+    first_coordinator.data = Cellar(
+        racks={"rack-a": Rack(id="rack-a", name="First cellar")}
+    )
+    second_coordinator = _Coordinator()
+    second_coordinator.data = Cellar(
+        racks={
+            "rack-b": Rack(id="rack-b", name="Second cellar"),
+            "rack-c": Rack(id="rack-c", name="Second cellar 2"),
+        }
+    )
+    entries = {
+        "entry-1": SimpleNamespace(
+            domain=DOMAIN,
+            state=ConfigEntryState.LOADED,
+            runtime_data=first_coordinator,
+        ),
+        "entry-2": SimpleNamespace(
+            domain=DOMAIN,
+            state=ConfigEntryState.LOADED,
+            runtime_data=second_coordinator,
+        ),
+    }
+    hass = SimpleNamespace(
+        services=_Services(),
+        http=_HTTP(),
+        config_entries=SimpleNamespace(async_get_entry=entries.get),
+    )
+    asyncio.run(async_setup(hass, {}))
+
+    def get_inventory(entry_id: str) -> dict[str, Any]:
+        """Call the response service for one selected config entry."""
+        return asyncio.run(
+            hass.services.handlers[SERVICE_GET_INVENTORY](
+                SimpleNamespace(
+                    data={
+                        "config_entry_id": entry_id,
+                        "search": "",
+                        "color": "",
+                    }
+                )
+            )
+        )
+
+    first_response = get_inventory("entry-1")
+    second_response = get_inventory("entry-2")
+
+    assert first_response["rack_count"] == 1
+    assert first_response["racks"] == [
+        {"id": "rack-a", "name": "First cellar"}
+    ]
+    assert second_response["rack_count"] == 2
+    assert second_response["racks"] == [
+        {"id": "rack-b", "name": "Second cellar"},
+        {"id": "rack-c", "name": "Second cellar 2"},
+    ]
+
+
 @pytest.mark.parametrize(
     "entry",
     [
