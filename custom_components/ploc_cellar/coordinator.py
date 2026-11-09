@@ -17,6 +17,7 @@ from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, Upda
 from .const import (
     CELLAR_DATA_VERSION,
     DOMAIN,
+    EVENT_SYNC_COMPLETED,
     ORDERS_STORAGE_VERSION,
     STORAGE_KEY,
     STORAGE_VERSION,
@@ -325,6 +326,13 @@ class PlocCellarCoordinator(DataUpdateCoordinator[Cellar]):
             self.cellar = updated_cellar
             if full_sync:
                 self._force_full_sync = False
+            self.hass.bus.async_fire(
+                EVENT_SYNC_COMPLETED,
+                {
+                    "config_entry_id": self.entry_id,
+                    "last_sync": updated_cellar.last_sync,
+                },
+            )
             return updated_cellar
         except PloudAuthError as err:
             self.cellar.stale = True
