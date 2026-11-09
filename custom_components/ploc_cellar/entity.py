@@ -41,7 +41,7 @@ def get_entity_identity(
     )
     preserve_legacy_identity = (
         legacy_device is not None
-        and entry.entry_id in legacy_device.config_entries
+        and legacy_device.config_entry_id == entry.entry_id
     )
 
     device_identifier = (
