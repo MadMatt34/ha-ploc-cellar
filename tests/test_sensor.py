@@ -9,10 +9,10 @@ from typing import cast
 import pytest
 
 from homeassistant.helpers.device_registry import DeviceInfo
+from ploc_cellar import sensor as sensor_module
 from ploc_cellar.coordinator import PlocCellarCoordinator
 from ploc_cellar.entity import PlocCellarEntityIdentity
 from ploc_cellar.models import Cellar, Order, Rack, RackItem, Wine
-from ploc_cellar import sensor as sensor_module
 from ploc_cellar.sensor import (
     SENSOR_DESCRIPTIONS,
     PlocCellarLastSyncSensor,
@@ -144,7 +144,9 @@ def test_metric_sensor_exposes_value_and_remains_available() -> None:
     coordinator = cast(
         PlocCellarCoordinator, SimpleNamespace(data=cellar)
     )
-    sensor = PlocCellarMetricSensor(coordinator, SENSOR_DESCRIPTIONS[0], _identity())
+    sensor = PlocCellarMetricSensor(
+        coordinator, SENSOR_DESCRIPTIONS[0], _identity()
+    )
 
     assert sensor.native_value == 0
     assert sensor.available is True
@@ -174,7 +176,7 @@ def test_last_sync_sensor_handles_missing_timestamp() -> None:
     coordinator = cast(
         PlocCellarCoordinator, SimpleNamespace(data=Cellar(last_sync=None))
     )
-    sensor = PlocCellarLastSyncSensor(coordinator)
+    sensor = PlocCellarLastSyncSensor(coordinator, _identity())
 
     assert sensor.native_value is None
 
@@ -187,7 +189,11 @@ def test_sensor_platform_sets_up_all_fourteen_entities(
         PlocCellarCoordinator, SimpleNamespace(data=Cellar())
     )
     entry = SimpleNamespace(runtime_data=coordinator)
-    monkeypatch.setattr(sensor_module, "get_entity_identity", lambda hass, config_entry: _identity())
+    monkeypatch.setattr(
+        sensor_module,
+        "get_entity_identity",
+        lambda hass, config_entry: _identity(),
+    )
     added: list[object] = []
 
     asyncio.run(
