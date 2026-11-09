@@ -46,9 +46,9 @@ class _FakeBus:
     """Capture Home Assistant events fired by the coordinator."""
 
     def __init__(self) -> None:
-        self.events: list[tuple[str, dict[str, str]]] = []
+        self.events: list[tuple[str, dict[str, str | None]]] = []
 
-    def async_fire(self, event_type: str, event_data: dict[str, str]) -> None:
+    def async_fire(self, event_type: str, event_data: dict[str, str | None]) -> None:
         """Record an event and its payload."""
         self.events.append((event_type, event_data))
 
