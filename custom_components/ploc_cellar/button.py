@@ -6,19 +6,13 @@ from dataclasses import dataclass
 
 from homeassistant.components.button import ButtonEntity
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from . import const
 from .coordinator import PlocCellarCoordinator
+from .entity import PlocCellarEntityIdentity, get_entity_identity
 from .models import Cellar
 from .types import PlocCellarConfigEntry
-
-_DEVICE_INFO = DeviceInfo(
-    identifiers={(const.DOMAIN, "ploc_cellar")},
-    translation_key="cellar",
-    manufacturer="PLOC",
-)
 
 
 @dataclass(frozen=True, slots=True)
@@ -51,19 +45,20 @@ class PlocCellarSyncButton(ButtonEntity):
     """Trigger one synchronization mode on the shared PLOUD coordinator."""
 
     _attr_has_entity_name = True
-    _attr_device_info = _DEVICE_INFO
 
     def __init__(
         self,
         coordinator: PlocCellarCoordinator,
         description: PlocCellarButtonDescription,
+        identity: PlocCellarEntityIdentity,
     ) -> None:
         """Initialize a translated synchronization button."""
         super().__init__()
         self.coordinator = coordinator
         self._description = description
+        self._attr_device_info = identity.device_info
         self._attr_translation_key = description.translation_key
-        self._attr_unique_id = description.unique_id
+        self._attr_unique_id = identity.unique_id(description.unique_id)
         self._attr_icon = description.icon
 
     async def async_press(self) -> None:
@@ -78,9 +73,10 @@ async def async_setup_entry(
 ) -> None:
     """Set up the two synchronization buttons on the cellar device."""
     coordinator = entry.runtime_data
+    identity = get_entity_identity(hass, entry)
     async_add_entities(
         [
-            PlocCellarSyncButton(coordinator, description)
+            PlocCellarSyncButton(coordinator, description, identity)
             for description in BUTTON_DESCRIPTIONS
         ]
     )
