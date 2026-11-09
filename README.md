@@ -97,7 +97,7 @@ The repository is distributed as a HACS custom integration; it is not presented 
 3. Go to **Settings → Devices & services → Add integration** and select **Ploc Cellar**.
 4. Enter your PLOC account email address and password.
 
-You do not need to enter a technical token, device identifier or PLOUD server. The integration uses a fixed PLOUD server endpoint.
+You do not need to enter a technical token, device identifier or PLOUD server. The integration uses a fixed PLOUD server endpoint. To add another PLOC account, repeat the integration setup and sign in with that account.
 
 ### Authentication and PLOUD activation
 
