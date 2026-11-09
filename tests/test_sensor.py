@@ -6,6 +6,8 @@ from datetime import UTC, datetime
 from types import SimpleNamespace
 from typing import cast
 
+import pytest
+
 from homeassistant.helpers.device_registry import DeviceInfo
 from ploc_cellar.coordinator import PlocCellarCoordinator
 from ploc_cellar.entity import PlocCellarEntityIdentity
@@ -177,7 +179,9 @@ def test_last_sync_sensor_handles_missing_timestamp() -> None:
     assert sensor.native_value is None
 
 
-def test_sensor_platform_sets_up_all_fourteen_entities() -> None:
+def test_sensor_platform_sets_up_all_fourteen_entities(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     """Platform setup adds thirteen metrics and the last-success timestamp."""
     coordinator = cast(
         PlocCellarCoordinator, SimpleNamespace(data=Cellar())
