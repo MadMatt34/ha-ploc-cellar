@@ -5,7 +5,6 @@ from types import SimpleNamespace
 from typing import Any, cast
 
 import pytest
-from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.core import HomeAssistant
 from ploc_cellar import entity as entity_module
 from ploc_cellar.const import DOMAIN
@@ -54,7 +53,7 @@ def test_existing_entry_keeps_legacy_device_and_entity_unique_ids(
 
 
 def test_additional_entry_gets_independent_device_and_entity_unique_ids(
-    monkeypatch,
+    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """A second entry cannot collide with the existing entry's registry IDs."""
     entry = SimpleNamespace(entry_id="second-entry", unique_id="second-device-uuid")
@@ -64,10 +63,12 @@ def test_additional_entry_gets_independent_device_and_entity_unique_ids(
     monkeypatch.setattr(
         entity_module,
         "async_get_device_registry",
-        lambda hass: registry,
+        lambda hass: cast(Any, registry),
     )
 
-    identity = get_entity_identity(object(), entry)
+    identity = get_entity_identity(
+        cast(HomeAssistant, object()), cast(PlocCellarConfigEntry, entry)
+    )
 
     assert identity.device_info["identifiers"] == {
         (DOMAIN, "second-device-uuid")
