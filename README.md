@@ -4,6 +4,31 @@ A Home Assistant custom integration for a **read-only** view of a PLOC wine cell
 
 [Version française](README.fr.md)
 
+[![Home Assistant](https://img.shields.io/badge/Home%20Assistant-2026.10.4%2B-blue)](https://www.home-assistant.io/)
+[![HACS](https://img.shields.io/badge/HACS-Custom%20repository-blue)](https://www.hacs.xyz/docs/faq/custom_repositories/)
+[![Validation](https://github.com/MadMatt34/ha-ploc-cellar/actions/workflows/validate.yaml/badge.svg)](https://github.com/MadMatt34/ha-ploc-cellar/actions/workflows/validate.yaml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+
+![Ploc Cellar](https://raw.githubusercontent.com/MadMatt34/ha-ploc-cellar/main/custom_components/ploc_cellar/brand/logo.png)
+
+## Documentation
+
+- [Requirements](#requirements)
+- [Features](#features)
+- [Food-pairing data](#food-pairing-data)
+- [Installation and first-time setup](#installation-and-first-time-setup)
+- [Synchronization options](#synchronization-options)
+- [Entities](#entities)
+- [Actions and inventory response](#actions)
+- [Synchronization event](#synchronization-event)
+- [Storage and privacy](#storage-and-privacy)
+- [Validation](#validation)
+- [Lovelace cards](#lovelace-cards)
+- [Troubleshooting](#troubleshooting)
+- [Uninstallation](#uninstallation)
+- [License and disclaimer](#license-and-disclaimer)
+
+
 ## Requirements
 
 - Home Assistant 2026.10.4 or newer.
@@ -54,6 +79,18 @@ For detailed inventory formulas, synchronization rules and storage
 integrity guarantees, see the [algorithm specification in French](docs/ALGORITHMES.md).
 
 ## Installation and first-time setup
+
+### HACS custom repository (recommended)
+
+1. In Home Assistant, open **HACS → Integrations → Custom repositories**.
+2. Add `MadMatt34/ha-ploc-cellar` and select the **Integration** category.
+3. Install **Ploc Cellar** from HACS.
+4. Restart Home Assistant, then open **Settings → Devices & services → Add integration** and select **Ploc Cellar**.
+
+The repository is distributed as a HACS custom integration; it is not presented as part of the default HACS catalog.
+
+### Manual installation
+
 
 1. Copy the `custom_components/ploc_cellar` folder into `<config>/custom_components/`.
 2. Restart Home Assistant.
@@ -161,6 +198,19 @@ The response contains:
 
 For each wine, `unlocated_bottles` is the difference between effective stock and physical bottles in rack positions; `negative_movement_bottles` is the absolute value of a negative incoming-minus-outgoing balance; and `physical_surplus_bottles` is the number of physical bottles above `max(0, movement_balance)`. These are separate diagnostics and may coexist for the same wine. Unlocated stock does not prove that a bottle was removed without declaring an outgoing movement: the bottle may never have been placed or may be stored outside the cellar. Raw `Wine.bo` values are informational and do not determine effective stock. No correction is sent to PLOUD. Filters do not change global totals. Each wine location contains its rack name and ID, plus row and column when available.
 
+## Synchronization event
+
+After a synchronization has been successfully validated, persisted and committed to the active inventory, the integration fires the Home Assistant event `ploc_cellar_sync_completed`. No event is fired for a failed synchronization.
+
+The event data contains:
+
+| Field | Meaning |
+|---|---|
+| `config_entry_id` | ID of the Ploc Cellar configuration entry whose inventory was updated. |
+| `last_sync` | Timestamp of the last successful synchronization. |
+
+The frontend cards subscribe to this event and refresh only when its `config_entry_id` matches the entry selected in the card editor. This keeps updates scoped to the correct cellar without entity-ID assumptions or polling.
+
 ## Storage and privacy
 
 Image files remain in the config entry's private cache and are served only to authenticated Home Assistant users. The cache is separate from the persisted inventory and does not cause any writes to PLOUD.
@@ -184,3 +234,30 @@ The optional Lovelace cards are maintained and released independently in the
 [Ploc Cellar Cards repository](https://github.com/MadMatt34/ha-ploc-cellar-frontend).
 That repository contains the card documentation, HACS Dashboard installation
 instructions and frontend development workflow.
+
+
+## Troubleshooting
+
+- **The integration cannot be added or reauthenticated:** check the PLOC account email address and password, then retry the authentication flow.
+- **Authentication succeeds but no cellar data appears:** confirm that PLOUD is activated for the Home Assistant application and that Home Assistant can reach the PLOC/PLOUD services.
+- **Stock-related sensors show `unknown`:** movement-derived values remain unavailable until a complete `Orders` snapshot has been validated. Physical rack and bottle counts can still be available.
+- **The last synchronization is marked stale:** the most recent synchronization failed; the last validated inventory is retained. Check **Settings → System → Logs** and retry a synchronization from the Ploc Cellar device.
+- **The cards do not update after synchronization:** verify that the frontend version is current and that the card uses the intended Ploc Cellar configuration entry.
+
+When opening an issue, include the Home Assistant version, integration version, relevant log messages and the steps needed to reproduce the problem. Never publish passwords, access tokens or other credentials.
+
+## Uninstallation
+
+1. Open **Settings → Devices & services → Ploc Cellar**.
+2. Open the integration/device menu and remove the Ploc Cellar configuration entry.
+3. If installed through HACS, uninstall **Ploc Cellar** from HACS.
+4. If installed manually, remove `custom_components/ploc_cellar` from the Home Assistant configuration directory.
+5. Restart Home Assistant.
+
+Removing the configuration entry also removes its private cached wine-image files.
+
+## License and disclaimer
+
+This project is distributed under the [MIT License](LICENSE).
+
+Ploc Cellar is an independent, unofficial project. It is not affiliated with, endorsed by or supported by PLOC or PLOUD.
