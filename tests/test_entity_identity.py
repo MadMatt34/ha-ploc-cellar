@@ -44,7 +44,9 @@ def test_existing_entry_keeps_legacy_device_and_entity_unique_ids(
         lambda hass: cast(Any, registry),
     )
 
-    identity = get_entity_identity(cast(HomeAssistant, object()), cast(PlocCellarConfigEntry, entry))
+    identity = get_entity_identity(
+        cast(HomeAssistant, object()), cast(PlocCellarConfigEntry, entry)
+    )
 
     assert identity.device_info["identifiers"] == {
         (DOMAIN, LEGACY_IDENTIFIER)
@@ -79,7 +81,7 @@ def test_additional_entry_gets_independent_device_and_entity_unique_ids(
 
 
 def test_first_entry_on_a_new_installation_uses_its_own_identity(
-    monkeypatch,
+    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """A fresh installation does not claim the legacy identity."""
     entry = SimpleNamespace(entry_id="first-entry", unique_id="first-device-uuid")
