@@ -97,7 +97,7 @@ Le dépôt est distribué comme intégration HACS personnalisée ; il n'est pas 
 3. Aller dans **Paramètres → Appareils et services → Ajouter une intégration**, puis sélectionner **Ploc Cellar**.
 4. Saisir l'adresse e-mail et le mot de passe du compte PLOC.
 
-Aucun jeton technique, identifiant d'appareil ou serveur PLOUD n'est à saisir. Le serveur PLOUD utilisé par l'intégration est fixe.
+Aucun jeton technique, identifiant d'appareil ou serveur PLOUD n'est à saisir. Le serveur PLOUD utilisé par l'intégration est fixe. Pour ajouter un autre compte PLOC, répéter l'ajout de l'intégration et se connecter avec les identifiants de ce compte.
 
 ### Authentification et activation PLOUD
 
