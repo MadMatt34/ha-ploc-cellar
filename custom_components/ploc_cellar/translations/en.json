@@ -3,7 +3,7 @@
     "step": {
       "user": {
         "title": "Connect to PLOC",
-        "description": "Sign in with your PLOC account email and password. The integration then activates PLOUD access for Home Assistant.",
+        "description": "Sign in with your PLOC account email and password. The integration then activates PLOUD access for Home Assistant. You can add multiple accounts; each one has its own device and inventory.",
         "data": {
           "password": "PLOC password",
           "username": "PLOC account email"
@@ -22,9 +22,6 @@
       "invalid_email": "Enter a valid email address.",
       "invalid_auth": "PLOC authentication or PLOUD activation failed. Check the Home Assistant log for the failing stage and technical details.",
       "cannot_connect": "Unable to reach the PLOC service. Check the Internet connection and try again."
-    },
-    "abort": {
-      "already_configured": "Ploc Cellar is already configured."
     }
   },
   "options": {
