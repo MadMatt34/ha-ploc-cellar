@@ -188,7 +188,6 @@ class PlocCellarLastSyncSensor(
     """Expose the last successful synchronization and its stale status."""
 
     _attr_has_entity_name = True
-    _attr_device_info = _DEVICE_INFO
     _attr_entity_category = EntityCategory.DIAGNOSTIC
     _attr_translation_key = "diagnostic_last_successful_sync"
     _attr_icon = "mdi:calendar-clock"
