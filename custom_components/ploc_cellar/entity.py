@@ -4,8 +4,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 from homeassistant.core import HomeAssistant
+from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.device_registry import (
-    DeviceInfo,
     async_get as async_get_device_registry,
 )
 
@@ -44,10 +44,11 @@ def get_entity_identity(
         and legacy_device.config_entry_id == entry.entry_id
     )
 
+    entry_identifier = entry.unique_id or entry.entry_id
     device_identifier = (
         LEGACY_DEVICE_IDENTIFIER
         if preserve_legacy_identity
-        else entry.unique_id
+        else entry_identifier
     )
     return PlocCellarEntityIdentity(
         device_info=DeviceInfo(
@@ -56,6 +57,6 @@ def get_entity_identity(
             manufacturer="PLOC",
         ),
         unique_id_suffix=(
-            None if preserve_legacy_identity else entry.unique_id
+            None if preserve_legacy_identity else entry_identifier
         ),
     )
