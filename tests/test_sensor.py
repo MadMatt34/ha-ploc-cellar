@@ -7,7 +7,6 @@ from types import SimpleNamespace
 from typing import cast
 
 import pytest
-
 from homeassistant.helpers.device_registry import DeviceInfo
 from ploc_cellar import sensor as sensor_module
 from ploc_cellar.coordinator import PlocCellarCoordinator
