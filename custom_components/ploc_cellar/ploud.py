@@ -916,7 +916,9 @@ async def async_sync(
                     f"PLOUD collection {name} contains an invalid record"
                 )
             records.append(record)
-            if normalized_name in {"wines", "racks", "rackitems", "orders", "deletedobjects"}:
+            if normalized_name in {
+                "wines", "racks", "rackitems", "orders", "deletedobjects"
+            }:
                 _LOGGER.debug(
                     "PLOUD sync record received: collection=%s record=%r",
                     name,
