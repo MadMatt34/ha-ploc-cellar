@@ -1093,6 +1093,12 @@ def apply_sync(
                 raise PloudError(
                     f"PLOUD returned an invalid wine ID for RackItem {identifier}"
                 )
+        elif previous is not None and rack_key is not None:
+            # PLOUD sends the rack reference with a complete RackItem record.
+            # When that record omits its wine reference, the physical position
+            # has been emptied; only field-level deltas without "rk" preserve
+            # the previous wine assignment.
+            wine_id = ""
 
         if row_key is not None:
             raw_row = raw[row_key]
