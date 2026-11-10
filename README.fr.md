@@ -13,6 +13,8 @@ Intégration personnalisée Home Assistant permettant de consulter une cave PLOC
 
 ## 📚 Navigation
 
+- [Backend/frontend compatibility matrix and release policy](https://github.com/MadMatt34/ha-ploc-cellar-frontend/blob/main/docs/COMPATIBILITY_AND_RELEASES.md)
+
 - [Prérequis](#prérequis)
 - [Fonctionnalités](#fonctionnalités)
 - [Données des accords mets et vins](#données-des-accords-mets-et-vins)
