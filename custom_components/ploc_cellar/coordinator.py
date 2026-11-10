@@ -384,6 +384,13 @@ class PlocCellarCoordinator(DataUpdateCoordinator[Cellar]):
             except (PloudError, OSError) as err:
                 # Image availability must never prevent inventory refreshes.
                 _LOGGER.warning("PLOUD wine image cache update failed: %s", err)
+            except Exception:
+                # Unexpected cache failures must not invalidate the already
+                # persisted inventory snapshot.
+                _LOGGER.exception(
+                    "Unexpected PLOUD wine image cache update error; "
+                    "inventory synchronization remains committed"
+                )
             if full_sync:
                 self._force_full_sync = False
             changes = _build_sync_changes(previous_cellar, updated_cellar)
