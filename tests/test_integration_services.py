@@ -24,6 +24,8 @@ from ploc_cellar.const import (
     DOMAIN,
     PLOUD_DEFAULT_SERVER,
     SERVICE_GET_INVENTORY,
+    STORAGE_KEY,
+    STORAGE_VERSION,
 )
 from ploc_cellar.models import Cellar, Rack, RackItem
 
@@ -319,7 +321,9 @@ def test_inventory_service_exposes_complete_rack_positions() -> None:
 
 
 
-def test_remove_entry_deletes_its_image_cache(tmp_path: Path) -> None:
+def test_remove_entry_deletes_its_image_cache(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     """Deleting a config entry removes only its own integration cache."""
     cache_root = tmp_path / ".storage" / DOMAIN / "entry-1"
     image_directory = cache_root / "images"
@@ -337,6 +341,21 @@ def test_remove_entry_deletes_its_image_cache(tmp_path: Path) -> None:
     )
     entry = SimpleNamespace(entry_id="entry-1")
 
+    removed_stores: list[tuple[int, str, bool]] = []
+
+    class _FakeStore:
+        def __init__(
+            self, hass: Any, version: int, key: str, *, atomic_writes: bool
+        ) -> None:
+            removed_stores.append((version, key, atomic_writes))
+
+        async def async_remove(self) -> None:
+            return None
+
+    import ploc_cellar as integration
+
+    monkeypatch.setattr(integration, "Store", _FakeStore)
     asyncio.run(async_remove_entry(hass, entry))
 
+    assert removed_stores == [(STORAGE_VERSION, f"{STORAGE_KEY}.entry-1", True)]
     assert not cache_root.exists()
