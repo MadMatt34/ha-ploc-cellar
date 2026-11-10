@@ -37,6 +37,7 @@ from .ploud import (
 from .types import PlocCellarConfigEntry
 
 _LOGGER = logging.getLogger(__name__)
+_IMAGE_SYNC_TIMEOUT_SECONDS = 10
 
 def _log_stock_diagnostics(stage: str, cellar: Cellar) -> None:
     """Log the stock inputs and derived diagnostics for every wine."""
@@ -371,7 +372,7 @@ class PlocCellarCoordinator(DataUpdateCoordinator[Cellar]):
             # cleanup remove files referenced by the previous snapshot.
             self.cellar = updated_cellar
             try:
-                async with asyncio.timeout(10):
+                async with asyncio.timeout(_IMAGE_SYNC_TIMEOUT_SECONDS):
                     await async_sync_images(
                         self.hass,
                         self.session,
@@ -387,8 +388,9 @@ class PlocCellarCoordinator(DataUpdateCoordinator[Cellar]):
                 # Inventory is already committed. Bound image work so a large
                 # or slow document batch cannot delay coordinator publication.
                 _LOGGER.warning(
-                    "PLOUD image cache update exceeded its 10-second budget; "
-                    "remaining images will be retried on a later sync"
+                    "PLOUD image cache update exceeded its %d-second budget; "
+                    "remaining images will be retried on a later sync",
+                    _IMAGE_SYNC_TIMEOUT_SECONDS
                 )
             except (PloudError, OSError) as err:
                 # Image availability must never prevent inventory refreshes.
