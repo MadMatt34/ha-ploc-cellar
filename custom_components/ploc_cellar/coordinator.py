@@ -384,6 +384,7 @@ class PlocCellarCoordinator(DataUpdateCoordinator[Cellar]):
         """Request a complete PLOUD snapshot without clearing current data first."""
         _LOGGER.info("Manual full PLOUD synchronization requested")
         self._force_full_sync = True
+        self._sync_trigger = "forced_full"
         while self._force_full_sync:
             await self.async_refresh()
             if not self.last_update_success:
@@ -395,7 +396,9 @@ class PlocCellarCoordinator(DataUpdateCoordinator[Cellar]):
 
     async def async_force_sync(self) -> Cellar:
         """Request an immediate refresh and report failure to the caller."""
+        self._sync_trigger = "forced_incremental"
         await self.async_refresh()
+        self._sync_trigger = "recurring"
         if not self.last_update_success:
             raise HomeAssistantError(
                 translation_domain=DOMAIN,
