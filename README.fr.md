@@ -200,7 +200,7 @@ Pour chaque vin, `unlocated_bottles` correspond à la différence entre le stock
 
 ## 📡 Événement de synchronisation
 
-Après validation et enregistrement réussi d'une synchronisation, lorsque le nouvel inventaire devient l'inventaire actif, l'intégration déclenche l'événement Home Assistant `ploc_cellar_sync_completed`. Aucun événement n'est émis lorsqu'une synchronisation échoue.
+Après validation, enregistrement et activation du nouvel inventaire, l'intégration déclenche l'événement Home Assistant `ploc_cellar_sync_completed`. Aucun événement n'est émis lorsqu'une synchronisation échoue.
 
 Les données de l'événement sont les suivantes :
 
@@ -208,9 +208,14 @@ Les données de l'événement sont les suivantes :
 |---|---|
 | `config_entry_id` | Identifiant de l'entrée de configuration Ploc Cellar dont l'inventaire a été mis à jour. |
 | `last_sync` | Date et heure de la dernière synchronisation réussie. |
+| `trigger` | Origine de la synchronisation : `recurring`, `forced_incremental` ou `forced_full`. Une synchronisation complète de récupération déclenchée en interne après un delta incomplet conserve le déclencheur initial. |
+| `sync_type` | Opération PLOUD réellement exécutée : `incremental` ou `full`. |
+| `changes` | Identifiants des objets effectivement ajoutés, modifiés et supprimés, regroupés sous `wines`, `racks`, `rack_items` et `orders`. |
+| `change_counts` | Nombre d'identifiants ajoutés, modifiés et supprimés pour chaque collection. |
+
+Chaque collection de `changes` contient trois tableaux : `added`, `updated` et `deleted`. Les modifications sont déterminées en comparant le modèle validé avant et après application de la synchronisation ; la simple réception d'un objet dans un delta PLOUD ne constitue pas un changement. Les instantanés complets sont comparés à l'ancien inventaire local : les listes décrivent donc les différences réelles, et non le nombre d'enregistrements téléchargés. Les tableaux ne contiennent que des identifiants afin de conserver un événement léger.
 
 Les cartes frontend s'abonnent à cet événement et ne s'actualisent que si son `config_entry_id` correspond à l'entrée sélectionnée dans l'éditeur de la carte. Les mises à jour restent ainsi propres à chaque cave, sans dépendre d'un identifiant d'entité ni d'un polling.
-
 ## 🔐 Stockage et confidentialité
 
 Les fichiers image restent dans le cache privé de l'entrée de configuration et ne sont accessibles qu'aux utilisateurs authentifiés de Home Assistant. Ce cache est indépendant de l'inventaire persistant et n'entraîne aucune écriture vers PLOUD.

@@ -208,9 +208,14 @@ The event data contains:
 |---|---|
 | `config_entry_id` | ID of the Ploc Cellar configuration entry whose inventory was updated. |
 | `last_sync` | Timestamp of the last successful synchronization. |
+| `trigger` | What initiated the synchronization: `recurring`, `forced_incremental` or `forced_full`. A recovery full snapshot requested internally after an incomplete delta retains the original trigger. |
+| `sync_type` | Actual PLOUD operation: `incremental` or `full`. |
+| `changes` | IDs of effectively added, updated and deleted objects, grouped under `wines`, `racks`, `rack_items` and `orders`. |
+| `change_counts` | Number of added, updated and deleted IDs for each collection. |
+
+Each `changes` collection contains three arrays: `added`, `updated` and `deleted`. Updates are determined by comparing the committed model before and after applying the synchronization; merely receiving an object in a PLOUD delta does not count as a change. Full snapshots are compared with the previous local snapshot, so their lists describe actual differences rather than the number of records downloaded. The arrays contain object IDs only, keeping the event lightweight.
 
 The frontend cards subscribe to this event and refresh only when its `config_entry_id` matches the entry selected in the card editor. This keeps updates scoped to the correct cellar without entity-ID assumptions or polling.
-
 ## 🔐 Storage and privacy
 
 Image files remain in the config entry's private cache and are served only to authenticated Home Assistant users. The cache is separate from the persisted inventory and does not cause any writes to PLOUD.

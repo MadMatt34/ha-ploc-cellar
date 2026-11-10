@@ -74,6 +74,7 @@ def _coordinator(
     coordinator.store = cast(Any, store or _Store())
     coordinator.cellar = cellar or Cellar()
     coordinator._force_full_sync = False
+    coordinator._sync_trigger = "recurring"
     coordinator.session = cast(Any, object())
     coordinator.entry_id = "test-entry"
     coordinator.image_directory = Path("/tmp/ploc-cellar-test-images")
@@ -131,6 +132,7 @@ def test_load_without_saved_snapshot_keeps_empty_cellar() -> None:
 
     assert coordinator.cellar.initialized is False
     assert coordinator._force_full_sync is False
+    assert coordinator._sync_trigger == "recurring"
 
 
 def test_load_restores_current_snapshot_without_rewriting_it() -> None:
