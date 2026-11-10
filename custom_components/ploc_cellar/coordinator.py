@@ -7,6 +7,7 @@ from copy import deepcopy
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from urllib.parse import quote
+from typing import Any
 
 from aiohttp import ClientSession
 from homeassistant.core import HomeAssistant
@@ -392,7 +393,7 @@ class PlocCellarCoordinator(DataUpdateCoordinator[Cellar]):
                 }
                 for collection, operations in changes.items()
             }
-            event_data: dict[str, JsonValue] = {
+            event_data: dict[str, Any] = {
                 "config_entry_id": self.entry_id,
                 "last_sync": updated_cellar.last_sync,
                 "trigger": sync_trigger,
