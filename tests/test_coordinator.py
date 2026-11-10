@@ -238,20 +238,24 @@ def test_manual_partial_sync_reports_failed_refresh() -> None:
     coordinator = object.__new__(PlocCellarCoordinator)
     coordinator.last_update_success = False
     coordinator.last_exception = RuntimeError("PLOUD unavailable")
+    coordinator._sync_trigger = "recurring"
 
     async def fake_refresh() -> None:
-        return None
+        assert coordinator._sync_trigger == "forced_incremental"
 
     coordinator.async_refresh = fake_refresh
 
     with pytest.raises(HomeAssistantError):
         asyncio.run(coordinator.async_force_sync())
 
+    assert coordinator._sync_trigger == "recurring"
+
 
 def test_manual_full_sync_retries_until_complete_snapshot() -> None:
     """The full-sync request remains active until the coordinator commits it."""
     coordinator = object.__new__(PlocCellarCoordinator)
     coordinator._force_full_sync = True
+    coordinator._sync_trigger = "recurring"
     coordinator.last_update_success = True
     coordinator.last_exception = None
     coordinator.data = Cellar()
@@ -259,6 +263,7 @@ def test_manual_full_sync_retries_until_complete_snapshot() -> None:
 
     async def fake_refresh() -> None:
         nonlocal calls
+        assert coordinator._sync_trigger == "forced_full"
         calls += 1
         coordinator._force_full_sync = False
 
