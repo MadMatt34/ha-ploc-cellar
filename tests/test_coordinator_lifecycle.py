@@ -132,6 +132,7 @@ def test_load_without_saved_snapshot_keeps_empty_cellar() -> None:
 
     assert coordinator.cellar.initialized is False
     assert coordinator._force_full_sync is False
+    assert coordinator._sync_trigger == "recurring"
 
 
 def test_load_restores_current_snapshot_without_rewriting_it() -> None:
