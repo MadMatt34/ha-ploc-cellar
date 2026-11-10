@@ -342,6 +342,74 @@ def test_full_sync_commits_only_a_complete_snapshot(
     ]
 
 
+def test_image_cache_is_not_pruned_when_inventory_persistence_fails(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """An uncommitted candidate must never trigger destructive image cleanup."""
+    original = Cellar(cursor=123, initialized=True)
+    store = _FakeStore()
+    store.save_error = OSError("disk full")
+    coordinator = _coordinator(original, store)
+    coordinator._force_full_sync = True
+    snapshot: PLOUDCollections = {
+        "Wines": [],
+        "Racks": [],
+        "RackItems": [],
+        "Orders": [],
+        "Owners": [],
+    }
+    image_sync_called = False
+
+    async def fake_sync(*args: Any, **kwargs: Any) -> tuple[PLOUDCollections, int]:
+        return snapshot, 456
+
+    async def fake_image_sync(*args: Any, **kwargs: Any) -> None:
+        nonlocal image_sync_called
+        image_sync_called = True
+
+    monkeypatch.setattr(coordinator_module, "async_sync", fake_sync)
+    monkeypatch.setattr(coordinator_module, "async_sync_images", fake_image_sync)
+
+    with pytest.raises(UpdateFailed, match="disk full"):
+        asyncio.run(coordinator._async_update_data())
+
+    assert image_sync_called is False
+    assert coordinator.cellar is original
+
+
+def test_unexpected_image_cache_error_does_not_invalidate_committed_inventory(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Image-cache failures cannot turn a verified inventory commit into a failure."""
+    original = Cellar(cursor=123, initialized=True)
+    store = _FakeStore()
+    coordinator = _coordinator(original, store)
+    coordinator._force_full_sync = True
+    snapshot: PLOUDCollections = {
+        "Wines": [],
+        "Racks": [],
+        "RackItems": [],
+        "Orders": [],
+        "Owners": [],
+    }
+
+    async def fake_sync(*args: Any, **kwargs: Any) -> tuple[PLOUDCollections, int]:
+        return snapshot, 456
+
+    async def failing_image_sync(*args: Any, **kwargs: Any) -> None:
+        raise RuntimeError("unexpected cache failure")
+
+    monkeypatch.setattr(coordinator_module, "async_sync", fake_sync)
+    monkeypatch.setattr(coordinator_module, "async_sync_images", failing_image_sync)
+
+    updated = asyncio.run(coordinator._async_update_data())
+
+    assert updated is coordinator.cellar
+    assert updated.stale is False
+    assert updated.cursor == 456
+    assert store.saved == updated.to_storage()
+
+
 def test_partial_sync_commits_delta_and_preserves_reconstruction_state(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
