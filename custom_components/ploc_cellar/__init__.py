@@ -111,6 +111,21 @@ def _build_inventory_response(
         [] if cellar.stock_reconstruction_complete else None
     )
 
+    # Build physical locations once instead of scanning every RackItem for
+    # each wine in both the diagnostics and inventory response.
+    locations_by_wine: dict[str, list[JsonValueType]] = {}
+    for item in cellar.rack_items.values():
+        if not item.wine_id or item.rack_id not in cellar.racks:
+            continue
+        locations_by_wine.setdefault(item.wine_id, []).append(
+            {
+                "rack": cellar.racks[item.rack_id].name,
+                "rack_id": item.rack_id,
+                "row": item.row,
+                "column": item.column,
+            }
+        )
+
     if wine_diagnostics is not None:
         for wine in sorted(
             cellar.wines.values(),
@@ -122,16 +137,7 @@ def _build_inventory_response(
             physical_surplus = stock.physical_surplus_bottles or 0
             if not (unlocated or negative or physical_surplus):
                 continue
-            locations: list[JsonValueType] = [
-                {
-                    "rack": cellar.racks[item.rack_id].name,
-                    "rack_id": item.rack_id,
-                    "row": item.row,
-                    "column": item.column,
-                }
-                for item in cellar.rack_items.values()
-                if item.wine_id == wine.id and item.rack_id in cellar.racks
-            ]
+            locations = locations_by_wine.get(wine.id, [])
             wine_details: JsonObjectType = {
                 "id": wine.id,
                 "name": wine.name,
@@ -223,16 +229,7 @@ def _build_inventory_response(
             continue
 
         stock = cellar.stock_for(wine)
-        locations: list[JsonValueType] = [
-            {
-                "rack": cellar.racks[item.rack_id].name,
-                "rack_id": item.rack_id,
-                "row": item.row,
-                "column": item.column,
-            }
-            for item in cellar.rack_items.values()
-            if item.wine_id == wine.id and item.rack_id in cellar.racks
-        ]
+        locations = locations_by_wine.get(wine.id, [])
         inventory.append(
             {
                 "id": wine.id,
