@@ -417,3 +417,35 @@ def test_rack_items_allow_missing_coordinates() -> None:
     )
 
     cellar.validate_rack_items()
+
+
+
+@pytest.mark.parametrize(
+    ("row", "column", "duplicate"),
+    [
+        (-1, 0, False),
+        (0, 1, True),
+    ],
+)
+def test_current_storage_rejects_invalid_rack_coordinates(
+    row: int,
+    column: int,
+    duplicate: bool,
+) -> None:
+    """Persisted snapshots cannot reintroduce negative or colliding positions."""
+    rack_items = {
+        "slot-a": RackItem(
+            id="slot-a", rack_id="rack", wine_id="", row=row, column=column
+        )
+    }
+    if duplicate:
+        rack_items["slot-b"] = RackItem(
+            id="slot-b", rack_id="rack", wine_id="", row=row, column=column
+        )
+    cellar = Cellar(
+        racks={"rack": Rack(id="rack", name="Cave")},
+        rack_items=rack_items,
+    )
+
+    with pytest.raises(ValueError, match="Invalid RackItem|Duplicate RackItem"):
+        Cellar.from_storage(cellar.to_storage())
