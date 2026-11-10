@@ -447,5 +447,5 @@ def test_current_storage_rejects_invalid_rack_coordinates(
         rack_items=rack_items,
     )
 
-    with pytest.raises(ValueError, match="Invalid RackItem|Duplicate RackItem"):
+    with pytest.raises(ValueError, match=r"Invalid RackItem|Duplicate RackItem"):
         Cellar.from_storage(cellar.to_storage())
