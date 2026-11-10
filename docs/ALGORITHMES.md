@@ -240,12 +240,23 @@ précédent. Un nouveau Rack doit fournir son nom ; sinon, le delta est considé
 incomplet. Une valeur explicitement vide ou nulle efface le nom ; une valeur
 d'un type incorrect rejette la réponse.
 
-Pour un `RackItem` déjà connu, l'absence de `rk`, `wi`, `rw` ou `cl`
-préserve la valeur précédente. Une chaîne vide ou une valeur nulle explicite
-sur `wi` signifie que la position est vide. Pour un nouveau RackItem, les
-champs `rk` et `wi` doivent être présents : leur omission ne signifie pas
-que l'emplacement est libre. Les coordonnées explicitement vides deviennent
-`None`; une coordonnée mal formée rejette la réponse.
+Pour un `RackItem` déjà connu, le traitement de `wi` dépend de la
+complétude des coordonnées de position :
+
+- Si `rk`, `rw` et `cl` sont tous présents mais que `wi` est absent,
+  le delta décrit une position complète désormais vide : le `wine_id`
+  précédent est effacé.
+- Si au moins l'un des champs `rk`, `rw` ou `cl` est absent, le delta de
+  position est incomplet : l'affectation du vin précédente est préservée,
+  même si `wi` est absent.
+- Si `wi` est présent avec une valeur, cette affectation est appliquée.
+  Une chaîne vide ou une valeur nulle explicite sur `wi` efface également
+  l'affectation.
+
+Pour un nouveau RackItem, les champs `rk` et `wi` doivent être présents :
+leur omission ne signifie pas que l'emplacement est libre. Les coordonnées
+explicitement vides deviennent `None`; une coordonnée mal formée rejette
+la réponse.
 
 Pour un `Order` déjà connu, les champs `wi`, `in` et `ot` absents sont
 conservés depuis l'objet précédent. Un nouvel Order doit fournir ces trois
