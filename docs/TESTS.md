@@ -14,7 +14,7 @@ All PLOC/PLOUD HTTP calls in unit tests use deterministic response/session doubl
 |---|---|
 | `test_auth.py` | Encrypted sign-in payload, PLOC account token, PLOUD activation, response validation and transport failures |
 | `test_config_flow_validation.py` | Email validation before authentication |
-| `test_config_flow.py` | Initial setup, duplicate-entry rejection, generated device identity, authentication errors and reauthentication |
+| `test_config_flow.py` | Initial setup, acceptance of additional config entries, per-entry device identity, authentication errors and reauthentication |
 | `test_language.py` | Automatic language selection and manual override precedence |
 | `test_ploud_transport.py` | Sync/document endpoints, request signatures, timeouts, HTTP/network errors, malformed JSON and collection validation |
 | `test_ploud.py` | PLOUD record parsing, identifiers, optional fields, Owner resolution and malformed records |
