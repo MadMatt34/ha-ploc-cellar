@@ -357,7 +357,6 @@ class Cellar:
             ):
                 if coordinate is not None and (
                     isinstance(coordinate, bool)
-                    or not isinstance(coordinate, int)
                     or coordinate < 0
                 ):
                     raise ValueError(
