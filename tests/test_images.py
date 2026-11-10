@@ -311,3 +311,17 @@ def test_empty_reference_set_prunes_the_last_cached_image(
 
     assert not cached.exists()
     assert list(tmp_path.iterdir()) == []
+
+
+
+def test_deleted_document_ids_accepts_supported_identifier_aliases() -> None:
+    """Deleted document IDs use the same key aliases as other PLOUD records."""
+    for identifier_key in ("id", "Id", "ID"):
+        deleted = images_module._deleted_document_ids(
+            {
+                "DeletedObjects": [
+                    {identifier_key: "document-1", "ty": 115}
+                ]
+            }
+        )
+        assert deleted == {"document-1"}
