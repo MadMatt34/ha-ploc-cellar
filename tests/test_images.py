@@ -284,3 +284,30 @@ def test_failed_replacement_keeps_previous_cached_image(
 
     assert find_cached_image(tmp_path, document_id) == previous
     assert previous.read_bytes() == b"\xff\xd8\xffold-image"
+
+
+def test_empty_reference_set_prunes_the_last_cached_image(
+    tmp_path: Path,
+) -> None:
+    """Removing the final Wine reference also removes its orphaned image."""
+    document_id = "4fe6124e-6d59-45b5-9dcd-67f3fcdcda0a"
+    prefix = images_module._cache_prefix(document_id)
+    cached = tmp_path / f"{prefix}-version.jpg"
+    cached.write_bytes(b"\\xff\\xd8\\xffimage-data")
+
+    asyncio.run(
+        async_sync_images(
+            cast(Any, _FakeHass()),
+            cast(Any, object()),
+            directory=tmp_path,
+            server="https://ploud.example/v1",
+            token="token",
+            device="device",
+            cellar=Cellar(),
+            objects={},
+            last_sync_time=123,
+        )
+    )
+
+    assert not cached.exists()
+    assert list(tmp_path.iterdir()) == []
