@@ -1,6 +1,7 @@
 """Cellar coordinator and persistent Home Assistant storage."""
 from __future__ import annotations
 
+import asyncio
 import hashlib
 import logging
 from copy import deepcopy
@@ -370,16 +371,24 @@ class PlocCellarCoordinator(DataUpdateCoordinator[Cellar]):
             # cleanup remove files referenced by the previous snapshot.
             self.cellar = updated_cellar
             try:
-                await async_sync_images(
-                    self.hass,
-                    self.session,
-                    directory=self.image_directory,
-                    server=self.server,
-                    token=self.token,
-                    device=self.device,
-                    cellar=updated_cellar,
-                    objects=objects,
-                    last_sync_time=next_cursor,
+                async with asyncio.timeout(10):
+                    await async_sync_images(
+                        self.hass,
+                        self.session,
+                        directory=self.image_directory,
+                        server=self.server,
+                        token=self.token,
+                        device=self.device,
+                        cellar=updated_cellar,
+                        objects=objects,
+                        last_sync_time=next_cursor,
+                    )
+            except TimeoutError:
+                # Inventory is already committed. Bound image work so a large
+                # or slow document batch cannot delay coordinator publication.
+                _LOGGER.warning(
+                    "PLOUD image cache update exceeded its 10-second budget; "
+                    "remaining images will be retried on a later sync"
                 )
             except (PloudError, OSError) as err:
                 # Image availability must never prevent inventory refreshes.
