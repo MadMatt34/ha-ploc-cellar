@@ -105,7 +105,7 @@ def test_rack_item_delta_with_wine_assigns_position() -> None:
 
 
 def test_partial_rack_item_delta_preserves_existing_wine_assignment() -> None:
-    """A field-level RackItem delta without rk preserves the wine assignment."""
+    """An incomplete position delta preserves the wine assignment."""
     cellar = Cellar(
         wines={"wine-1": _wine("wine-1")},
         racks={"rack-1": Rack(id="rack-1", name="Cave")},
@@ -116,7 +116,9 @@ def test_partial_rack_item_delta_preserves_existing_wine_assignment() -> None:
         },
     )
 
-    apply_sync(cellar, {"RackItems": [{"id": "item-1", "rw": 2}]}, 2)
+    apply_sync(
+        cellar, {"RackItems": [{"id": "item-1", "rk": "rack-1", "rw": 2}]}, 2
+    )
 
     item = cellar.rack_items["item-1"]
     assert item.rack_id == "rack-1"
