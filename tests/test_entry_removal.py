@@ -19,14 +19,20 @@ class _FakeStore:
         self.removed = True
 
 
+class _FakeConfig:
+    """Build paths under a deterministic Home Assistant configuration root."""
+
+    @staticmethod
+    def path(*parts: str) -> str:
+        return str(Path("/config").joinpath(*parts))
+
+
 class _FakeHass:
     """Provide the path and executor APIs used by entry cleanup."""
 
     def __init__(self) -> None:
+        self.config: Any = _FakeConfig()
         self.removed_paths: list[Path] = []
-
-    def config_path(self, *parts: str) -> str:
-        return str(Path("/config").joinpath(*parts))
 
     async def async_add_executor_job(self, function: Any, *args: Any) -> Any:
         self.removed_paths.append(Path(args[0]))
@@ -60,13 +66,7 @@ def test_remove_entry_deletes_its_store_and_image_cache(
         lambda path: removed_image_caches.append(path),
     )
 
-    class Config:
-        @staticmethod
-        def path(*parts: str) -> str:
-            return str(Path("/config").joinpath(*parts))
-
     hass = _FakeHass()
-    hass.config = Config()
     entry = type("Entry", (), {"entry_id": "entry-to-remove"})()
 
     asyncio.run(ploc_cellar.async_remove_entry(cast(Any, hass), cast(Any, entry)))
