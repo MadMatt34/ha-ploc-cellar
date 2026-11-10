@@ -366,3 +366,54 @@ def test_order_aggregate_is_refreshed_after_delta_mutations() -> None:
     assert stock.purchased == 7
     assert stock.consumed == 1
     assert stock.movement_balance == 6
+
+
+
+def test_rack_items_reject_negative_coordinates() -> None:
+    """Physical rack coordinates cannot be negative."""
+    cellar = Cellar(
+        racks={"rack": Rack(id="rack", name="Cave")},
+        rack_items={
+            "slot": RackItem(
+                id="slot", rack_id="rack", wine_id="", row=-1, column=0
+            )
+        },
+    )
+
+    with pytest.raises(ValueError, match="Invalid RackItem row"):
+        cellar.validate_rack_items()
+
+
+def test_rack_items_reject_duplicate_coordinates_within_one_rack() -> None:
+    """Two physical positions cannot occupy the same grid cell."""
+    cellar = Cellar(
+        racks={"rack": Rack(id="rack", name="Cave")},
+        rack_items={
+            "slot-a": RackItem(
+                id="slot-a", rack_id="rack", wine_id="", row=0, column=1
+            ),
+            "slot-b": RackItem(
+                id="slot-b", rack_id="rack", wine_id="", row=0, column=1
+            ),
+        },
+    )
+
+    with pytest.raises(ValueError, match="Duplicate RackItem coordinates"):
+        cellar.validate_rack_items()
+
+
+def test_rack_items_allow_missing_coordinates() -> None:
+    """Partially or fully unmapped positions remain valid and unplaced."""
+    cellar = Cellar(
+        racks={"rack": Rack(id="rack", name="Cave")},
+        rack_items={
+            "slot-a": RackItem(
+                id="slot-a", rack_id="rack", wine_id="", row=None, column=1
+            ),
+            "slot-b": RackItem(
+                id="slot-b", rack_id="rack", wine_id="", row=None, column=None
+            ),
+        },
+    )
+
+    cellar.validate_rack_items()
