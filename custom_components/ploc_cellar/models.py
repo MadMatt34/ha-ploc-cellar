@@ -805,7 +805,13 @@ def _validate_current_storage(
         rack_id = item["rack_id"]
         row = item.get("row")
         column = item.get("column")
-        if row is None or column is None:
+        if (
+            not isinstance(rack_id, str)
+            or isinstance(row, bool)
+            or not isinstance(row, int)
+            or isinstance(column, bool)
+            or not isinstance(column, int)
+        ):
             continue
         coordinate_key = (rack_id, row, column)
         if coordinate_key in occupied_coordinates:
