@@ -265,4 +265,7 @@ Removing the configuration entry also removes its private cached wine-image file
 
 This project is distributed under the [MIT License](LICENSE).
 
+This integration relies on PLOUD interfaces that are **not part of a public, documented API**. Its implementation was developed through independent technical research, including analysis of PLOUD-related repositories, comparison of application backup files, examination of the official mobile application's behavior and other observations and tests. These findings are reverse-engineering work, not an official API specification; the private interfaces may change at any time and without notice. The owner of PLOC was contacted to discuss this work and the availability of an official interface, but no response had been received when this documentation was written.
+
+
 Ploc Cellar is an independent, unofficial project. It is not affiliated with, endorsed by or supported by PLOC or PLOUD.
