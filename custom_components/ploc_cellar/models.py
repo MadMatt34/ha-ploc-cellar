@@ -561,6 +561,9 @@ class Cellar:
             # Older caches did not retain lookup collections or compact Wine IDs.
             # A full snapshot is required to enrich their existing Wine records.
             cellar.cursor = 1
+        # Validate geometry for legacy as well as current persisted snapshots,
+        # while preserving unresolved rack and wine references for recovery.
+        cellar.validate_rack_items(allow_unresolved=True)
         return cellar
 
 
