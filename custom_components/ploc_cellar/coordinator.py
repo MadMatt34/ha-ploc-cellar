@@ -99,6 +99,7 @@ def _build_sync_changes(
         changes[name] = {"added": added, "updated": updated, "deleted": deleted}
     return changes
 
+
 class PlocCellarCoordinator(DataUpdateCoordinator[Cellar]):
     """Fetch PLOUD deltas and publish the shared cellar model."""
 
@@ -221,6 +222,8 @@ class PlocCellarCoordinator(DataUpdateCoordinator[Cellar]):
 
     async def _async_update_data(self) -> Cellar:
         """Apply a PLOUD delta and persist it before publishing the new model."""
+        sync_trigger = self._sync_trigger
+        previous_cellar = self.cellar
         try:
             cursor = (
                 1
