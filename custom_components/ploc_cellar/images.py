@@ -81,7 +81,11 @@ def _deleted_document_ids(objects: PLOUDCollections) -> set[str]:
         )
         if kind not in {"115", "document", "documents"}:
             continue
-        identifier = _document_id(record.get("id"))
+        raw_identifier = next(
+            (record[key] for key in ("id", "Id", "ID") if key in record),
+            None,
+        )
+        identifier = _document_id(raw_identifier)
         if identifier is not None:
             deleted.add(identifier)
     return deleted
