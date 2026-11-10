@@ -15,9 +15,10 @@ from ploc_cellar.const import EVENT_SYNC_COMPLETED
 from ploc_cellar.coordinator import (
     PlocCellarCoordinator,
     UpdateFailed,
+    _build_sync_changes,
     _validate_full_sync,
 )
-from ploc_cellar.models import Cellar, JsonValue, RackItem
+from ploc_cellar.models import Cellar, JsonValue, Rack, RackItem
 from ploc_cellar.ploud import PloudAuthError, PLOUDCollections, PloudError
 
 
@@ -46,9 +47,9 @@ class _FakeBus:
     """Capture Home Assistant events fired by the coordinator."""
 
     def __init__(self) -> None:
-        self.events: list[tuple[str, dict[str, str | None]]] = []
+        self.events: list[tuple[str, dict[str, Any]]] = []
 
-    def async_fire(self, event_type: str, event_data: dict[str, str | None]) -> None:
+    def async_fire(self, event_type: str, event_data: dict[str, Any]) -> None:
         """Record an event and its payload."""
         self.events.append((event_type, event_data))
 
@@ -316,6 +317,20 @@ def test_full_sync_commits_only_a_complete_snapshot(
             {
                 "config_entry_id": "test-entry",
                 "last_sync": updated.last_sync,
+                "trigger": "recurring",
+                "sync_type": "incremental",
+                "changes": {
+                    "wines": {"added": [], "updated": [], "deleted": []},
+                    "racks": {"added": [], "updated": [], "deleted": []},
+                    "rack_items": {"added": [], "updated": [], "deleted": []},
+                    "orders": {"added": [], "updated": [], "deleted": []},
+                },
+                "change_counts": {
+                    "wines": {"added": 0, "updated": 0, "deleted": 0},
+                    "racks": {"added": 0, "updated": 0, "deleted": 0},
+                    "rack_items": {"added": 0, "updated": 0, "deleted": 0},
+                    "orders": {"added": 0, "updated": 0, "deleted": 0},
+                },
             },
         )
     ]
@@ -422,3 +437,21 @@ def test_authentication_failure_requests_config_entry_reauth(
 
     assert coordinator.cellar is original
     assert coordinator.cellar.stale is True
+
+
+def test_sync_change_summary_detects_additions_updates_and_deletions() -> None:
+    """The event diff compares committed object state, not received records."""
+    before = Cellar(racks={
+        "kept": Rack(id="kept", name="Before"),
+        "removed": Rack(id="removed", name="Removed"),
+    })
+    after = Cellar(racks={
+        "kept": Rack(id="kept", name="After"),
+        "added": Rack(id="added", name="Added"),
+    })
+
+    assert _build_sync_changes(before, after)["racks"] == {
+        "added": ["added"],
+        "updated": ["kept"],
+        "deleted": ["removed"],
+    }
