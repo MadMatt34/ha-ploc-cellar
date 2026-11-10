@@ -318,7 +318,7 @@ def test_full_sync_commits_only_a_complete_snapshot(
                 "config_entry_id": "test-entry",
                 "last_sync": updated.last_sync,
                 "trigger": "recurring",
-                "sync_type": "incremental",
+                "sync_type": "full",
                 "changes": {
                     "wines": {"added": [], "updated": [], "deleted": []},
                     "racks": {"added": [], "updated": [], "deleted": []},
@@ -375,6 +375,20 @@ def test_partial_sync_commits_delta_and_preserves_reconstruction_state(
             {
                 "config_entry_id": "test-entry",
                 "last_sync": updated.last_sync,
+                "trigger": "recurring",
+                "sync_type": "incremental",
+                "changes": {
+                    "wines": {"added": [], "updated": [], "deleted": []},
+                    "racks": {"added": [], "updated": [], "deleted": []},
+                    "rack_items": {"added": [], "updated": [], "deleted": []},
+                    "orders": {"added": [], "updated": [], "deleted": []},
+                },
+                "change_counts": {
+                    "wines": {"added": 0, "updated": 0, "deleted": 0},
+                    "racks": {"added": 0, "updated": 0, "deleted": 0},
+                    "rack_items": {"added": 0, "updated": 0, "deleted": 0},
+                    "orders": {"added": 0, "updated": 0, "deleted": 0},
+                },
             },
         )
     ]
