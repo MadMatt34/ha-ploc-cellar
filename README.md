@@ -261,7 +261,9 @@ When opening an issue, include the Home Assistant version, integration version, 
 4. If installed manually, remove `custom_components/ploc_cellar` from the Home Assistant configuration directory.
 5. Restart Home Assistant.
 
-Removing the configuration entry also removes its private cached wine-image files.
+Removing the configuration entry also removes its persistent cellar snapshot and private cached wine-image files.
+
+When debug logging is enabled for this integration, PLOUD synchronization logs include raw wine, rack, rack-position and order records to support diagnostics. These records may contain personal or cellar-specific information; redact them before sharing logs publicly.
 
 ## ⚖️ License and disclaimer
 
