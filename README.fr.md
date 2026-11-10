@@ -262,7 +262,9 @@ Pour ouvrir un ticket, joindre la version de Home Assistant, la version de l'int
 4. En cas d'installation manuelle, supprimer le dossier `custom_components/ploc_cellar` du répertoire de configuration Home Assistant.
 5. Redémarrer Home Assistant.
 
-La suppression de l'entrée de configuration efface également les fichiers privés d'images mis en cache pour cette entrée.
+La suppression de l'entrée de configuration efface également l'instantané persistant de la cave et les fichiers privés d'images mis en cache pour cette entrée.
+
+Lorsque les journaux de débogage de cette intégration sont activés, les synchronisations PLOUD consignent les enregistrements bruts des vins, casiers, emplacements et commandes afin de faciliter le diagnostic. Ces données peuvent contenir des informations personnelles ou propres à la cave : pensez à les anonymiser avant tout partage public.
 
 ## ⚖️ Licence et avertissement
 
