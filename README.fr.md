@@ -268,4 +268,6 @@ La suppression de l'entrée de configuration efface également les fichiers priv
 
 Ce projet est distribué sous [licence MIT](LICENSE).
 
+Cette intégration s'appuie sur des interfaces PLOUD qui **ne constituent pas une API publique et documentée**. Elle a été développée à partir d'un travail d'analyse technique indépendant : étude des dépôts liés à PLOUD, comparaison de fichiers de sauvegarde, analyse du comportement de l'application mobile officielle, ainsi que d'autres observations et expérimentations. Il s'agit d'un travail de rétro-ingénierie, et non d'une spécification officielle d'API ; ces interfaces privées peuvent évoluer ou devenir incompatibles à tout moment et sans préavis. Le propriétaire de PLOC a été contacté afin d'échanger sur ce travail et sur l'existence éventuelle d'une interface officielle, mais aucune réponse n'avait été reçue au moment de la rédaction de cette documentation.
+
 Ploc Cellar est un projet indépendant et non officiel. Il n'est ni affilié à PLOC ou PLOUD, ni approuvé ou pris en charge par ces services.
