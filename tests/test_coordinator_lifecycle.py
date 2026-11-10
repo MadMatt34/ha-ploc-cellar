@@ -74,6 +74,7 @@ def _coordinator(
     coordinator.store = cast(Any, store or _Store())
     coordinator.cellar = cellar or Cellar()
     coordinator._force_full_sync = False
+    coordinator._sync_trigger = "recurring"
     coordinator.session = cast(Any, object())
     coordinator.entry_id = "test-entry"
     coordinator.image_directory = Path("/tmp/ploc-cellar-test-images")
