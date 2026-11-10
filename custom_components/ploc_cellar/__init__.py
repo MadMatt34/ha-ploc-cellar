@@ -17,6 +17,7 @@ from homeassistant.core import (
 from homeassistant.exceptions import HomeAssistantError, ServiceValidationError
 from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
+from homeassistant.helpers.storage import Store
 from homeassistant.helpers.typing import ConfigType
 from homeassistant.util.json import JsonObjectType, JsonValueType
 
@@ -33,6 +34,8 @@ from .const import (
     MIN_SCAN_INTERVAL_MINUTES,
     PLOUD_DEFAULT_SERVER,
     SERVICE_GET_INVENTORY,
+    STORAGE_KEY,
+    STORAGE_VERSION,
 )
 from .coordinator import PlocCellarCoordinator
 from .images import remove_image_cache
@@ -422,6 +425,14 @@ async def async_remove_entry(
     hass: HomeAssistant,
     entry: PlocCellarConfigEntry,
 ) -> None:
-    """Remove the integration-owned image cache when its config entry is deleted."""
+    """Remove entry-scoped inventory storage and image cache on deletion."""
+    store: Store[dict[str, Any]] = Store(
+        hass,
+        STORAGE_VERSION,
+        f"{STORAGE_KEY}.{entry.entry_id}",
+        atomic_writes=True,
+    )
+    await store.async_remove()
+
     cache_root = Path(hass.config.path(".storage", DOMAIN, entry.entry_id))
     await hass.async_add_executor_job(remove_image_cache, cache_root)
