@@ -139,6 +139,7 @@ class PlocCellarCoordinator(DataUpdateCoordinator[Cellar]):
         )
         self.cellar = Cellar()
         self._force_full_sync = False
+        self._sync_trigger = "recurring"
 
     async def _async_save_verified(self, data: dict[str, JsonValue]) -> None:
         """Persist a snapshot atomically and verify it can be read back.
