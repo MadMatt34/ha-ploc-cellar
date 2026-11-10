@@ -7,6 +7,7 @@ from types import SimpleNamespace
 from typing import Any
 
 import ploc_cellar as integration
+from ploc_cellar.const import STORAGE_KEY, STORAGE_VERSION
 
 
 class _FakeHass:
