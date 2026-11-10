@@ -916,6 +916,14 @@ async def async_sync(
                     f"PLOUD collection {name} contains an invalid record"
                 )
             records.append(record)
+            if normalized_name in {
+                "wines", "racks", "rackitems", "orders", "deletedobjects"
+            }:
+                _LOGGER.debug(
+                    "PLOUD sync record received: collection=%s record=%r",
+                    name,
+                    record,
+                )
         collections[name] = records
 
     # The protocol cursor is the sync-start Unix timestamp in milliseconds.
@@ -939,6 +947,14 @@ def apply_sync(
     owner_names: dict[str, str | None] = {}
     owner_records_seen: set[str] = set()
 
+    _LOGGER.debug(
+        "Applying PLOUD %s payload: collection_counts=%s, existing_counts="
+        "(wines=%d, racks=%d, rack_items=%d, orders=%d)",
+        "full snapshot" if full_snapshot else "incremental delta",
+        {name: len(records) for name, records in objects.items()},
+        len(cellar.wines), len(cellar.racks), len(cellar.rack_items),
+        len(cellar.orders),
+    )
     _merge_reference_collections(cellar, objects, full_snapshot=full_snapshot)
 
     # Owner names are transient to this response only. The resolved winery
@@ -987,6 +1003,10 @@ def apply_sync(
             )
         ):
             unresolved_owner_ids.add(wine.owner_id)
+        _LOGGER.debug(
+            "PLOUD Wine applied: id=%s raw=%r previous=%r parsed=%r",
+            identifier, raw, previous, wine,
+        )
         # Keep every Wine reference, including zero-total-stock wines. A later
         # RackItem delta may assign one to a cellar position without repeating
         # its Wine object in the same response.
@@ -1073,6 +1093,17 @@ def apply_sync(
                 raise PloudError(
                     f"PLOUD returned an invalid wine ID for RackItem {identifier}"
                 )
+        elif (
+            previous is not None
+            and rack_key is not None
+            and row_key is not None
+            and column_key is not None
+        ):
+            # PLOUD sends the rack and position coordinates with a complete
+            # RackItem record. When that record omits its wine reference, the
+            # physical position has been emptied; partial field-level deltas
+            # preserve the previous wine assignment.
+            wine_id = ""
 
         if row_key is not None:
             raw_row = raw[row_key]
@@ -1101,6 +1132,10 @@ def apply_sync(
                     )
 
         item = RackItem(identifier, rack_id, wine_id, row, column)
+        _LOGGER.debug(
+            "PLOUD RackItem applied: id=%s raw=%r previous=%r applied=%r",
+            identifier, raw, previous, item,
+        )
         cellar.rack_items[item.id] = item
 
     seen_order_ids: set[str] = set()
@@ -1162,12 +1197,17 @@ def apply_sync(
             or outgoing < 0
         ):
             raise PloudError(f"PLOUD returned an invalid Order record: {identifier}")
-        cellar.orders[identifier] = Order(
+        order = Order(
             id=identifier,
             wine_id=wine_id,
             incoming=incoming,
             outgoing=outgoing,
         )
+        _LOGGER.debug(
+            "PLOUD Order applied: id=%s raw=%r previous=%r applied=%r",
+            identifier, raw, previous, order,
+        )
+        cellar.orders[identifier] = order
 
     for raw in _collection(objects, PLOUD_COLLECTION_DELETED):
         object_id = _deleted_id(raw)
@@ -1175,6 +1215,10 @@ def apply_sync(
             continue
 
         normalized_kind = _deleted_kind(raw)
+        _LOGGER.debug(
+            "PLOUD deletion received: id=%s kind=%r raw=%r",
+            object_id, normalized_kind, raw,
+        )
         if normalized_kind == "owner" or (
             not normalized_kind
             and any(
@@ -1243,6 +1287,13 @@ def apply_sync(
     # RackItems, not Wine.bo, define the quantity physically stored in the
     # cellar. Refresh after applying both collections and all deletions.
     cellar.refresh_bottles_in_cellar()
+    _LOGGER.debug(
+        "PLOUD payload applied: wines=%d, racks=%d, rack_items=%d, orders=%d, "
+        "removed_wines=%s, removed_racks=%s, deleted_owners=%s, unresolved_owners=%s",
+        len(cellar.wines), len(cellar.racks), len(cellar.rack_items),
+        len(cellar.orders), sorted(removed_wine_ids), sorted(removed_rack_ids),
+        sorted(deleted_owner_ids), sorted(unresolved_owner_ids),
+    )
     cellar.cursor = next_cursor
     cellar.initialized = True
     return unresolved_owner_ids

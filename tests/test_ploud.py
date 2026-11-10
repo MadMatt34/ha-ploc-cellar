@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 import pytest
-from ploc_cellar.models import Cellar, Order, Rack, Wine
+from ploc_cellar.models import Cellar, Order, Rack, RackItem, Wine
 from ploc_cellar.ploud import (
     PLOUDCollections,
     PloudError,
@@ -52,6 +52,98 @@ def test_partial_rack_update_preserves_existing_name() -> None:
     apply_sync(cellar, objects, 2)
 
     assert cellar.racks["rack-1"].name == "Cave principale"
+
+
+def test_rack_item_delta_without_wine_clears_existing_assignment() -> None:
+    """A complete RackItem delta without wi represents an empty position."""
+    cellar = Cellar(
+        wines={"wine-1": _wine("wine-1")},
+        racks={"rack-1": Rack(id="rack-1", name="Cave")},
+        rack_items={
+            "item-1": RackItem(
+                id="item-1", rack_id="rack-1", wine_id="wine-1", row=1, column=1
+            )
+        },
+    )
+
+    apply_sync(
+        cellar,
+        {"RackItems": [{"id": "item-1", "rk": "rack-1", "rw": 1, "cl": 1}]},
+        2,
+    )
+
+    assert cellar.rack_items["item-1"].wine_id == ""
+    assert cellar.wines["wine-1"].bottles_in_cellar == 0
+    assert cellar.occupied_positions == 0
+
+
+def test_rack_item_delta_with_wine_assigns_position() -> None:
+    """A RackItem delta containing wi assigns the position to that wine."""
+    cellar = Cellar(
+        wines={"wine-1": _wine("wine-1")},
+        racks={"rack-1": Rack(id="rack-1", name="Cave")},
+        rack_items={
+            "item-1": RackItem(
+                id="item-1", rack_id="rack-1", wine_id="", row=1, column=1
+            )
+        },
+    )
+
+    apply_sync(
+        cellar,
+        {
+            "RackItems": [
+                {"id": "item-1", "rk": "rack-1", "wi": "wine-1", "rw": 1, "cl": 1}
+            ]
+        },
+        2,
+    )
+
+    assert cellar.rack_items["item-1"].wine_id == "wine-1"
+    assert cellar.wines["wine-1"].bottles_in_cellar == 1
+    assert cellar.occupied_positions == 1
+
+
+def test_partial_rack_item_delta_preserves_existing_wine_assignment() -> None:
+    """An incomplete position delta preserves the wine assignment."""
+    cellar = Cellar(
+        wines={"wine-1": _wine("wine-1")},
+        racks={"rack-1": Rack(id="rack-1", name="Cave")},
+        rack_items={
+            "item-1": RackItem(
+                id="item-1", rack_id="rack-1", wine_id="wine-1", row=1, column=1
+            )
+        },
+    )
+
+    apply_sync(
+        cellar, {"RackItems": [{"id": "item-1", "rk": "rack-1", "rw": 2}]}, 2
+    )
+
+    item = cellar.rack_items["item-1"]
+    assert item.rack_id == "rack-1"
+    assert item.wine_id == "wine-1"
+    assert item.row == 2
+    assert cellar.wines["wine-1"].bottles_in_cellar == 1
+
+
+def test_full_snapshot_rack_item_without_wine_is_empty() -> None:
+    """A full snapshot RackItem without wi remains an empty physical position."""
+    cellar = Cellar()
+    apply_sync(
+        cellar,
+        {
+            "Wines": [{"id": "wine-1", "name": "Vin de test", "bottles": 1}],
+            "Racks": [{"id": "rack-1", "nm": "Cave"}],
+            "RackItems": [{"id": "item-1", "rk": "rack-1", "rw": 1, "cl": 1}],
+        },
+        2,
+        full_snapshot=True,
+    )
+
+    assert cellar.rack_items["item-1"].wine_id == ""
+    assert cellar.occupied_positions == 0
+    assert cellar.empty_positions == 1
 
 
 def test_new_rack_without_name_requires_full_sync() -> None:

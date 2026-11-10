@@ -5,9 +5,23 @@ import asyncio
 from typing import cast
 
 import pytest
+from homeassistant.helpers.device_registry import DeviceInfo
 from ploc_cellar.button import BUTTON_DESCRIPTIONS, PlocCellarSyncButton
 from ploc_cellar.coordinator import PlocCellarCoordinator
+from ploc_cellar.entity import PlocCellarEntityIdentity
 from ploc_cellar.models import Cellar
+
+
+def _identity() -> PlocCellarEntityIdentity:
+    """Build a legacy identity for direct entity tests."""
+    return PlocCellarEntityIdentity(
+        device_info=DeviceInfo(
+            identifiers={("ploc_cellar", "ploc_cellar")},
+            translation_key="cellar",
+            manufacturer="PLOC",
+        ),
+        unique_id_suffix=None,
+    )
 
 
 class _FakeCoordinator:
@@ -38,7 +52,7 @@ def test_manual_buttons_call_the_matching_coordinator_methods() -> None:
     fake = _FakeCoordinator()
     coordinator = cast(PlocCellarCoordinator, fake)
     buttons = [
-        PlocCellarSyncButton(coordinator, description)
+        PlocCellarSyncButton(coordinator, description, _identity())
         for description in BUTTON_DESCRIPTIONS
     ]
 
@@ -65,7 +79,7 @@ def test_manual_button_propagates_synchronization_failure() -> None:
     fake = _FakeCoordinator()
     fake.failure = RuntimeError("PLOUD unavailable")
     button = PlocCellarSyncButton(
-        cast(PlocCellarCoordinator, fake), BUTTON_DESCRIPTIONS[0]
+        cast(PlocCellarCoordinator, fake), BUTTON_DESCRIPTIONS[0], _identity()
     )
 
     with pytest.raises(RuntimeError, match="PLOUD unavailable"):

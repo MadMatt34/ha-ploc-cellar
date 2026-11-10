@@ -36,6 +36,34 @@ from .types import PlocCellarConfigEntry
 
 _LOGGER = logging.getLogger(__name__)
 
+def _log_stock_diagnostics(stage: str, cellar: Cellar) -> None:
+    """Log the stock inputs and derived diagnostics for every wine."""
+    if not _LOGGER.isEnabledFor(logging.DEBUG):
+        return
+
+    _LOGGER.debug(
+        "Stock diagnostics snapshot (%s): wines=%d, rack_items=%d, orders=%d, "
+        "stock_reconstruction_complete=%s",
+        stage,
+        len(cellar.wines),
+        len(cellar.rack_items),
+        len(cellar.orders),
+        cellar.stock_reconstruction_complete,
+    )
+    for wine in cellar.wines.values():
+        stock = cellar.stock_for(wine)
+        _LOGGER.debug(
+            "Stock diagnostics wine (%s): id=%s, name=%r, bottles=%d, "
+            "physical=%d, purchased=%s, consumed=%s, movement_balance=%s, "
+            "calculated_stock=%s, effective_stock=%d, unlocated=%s, "
+            "negative_movement=%s, physical_surplus=%s",
+            stage, wine.id, wine.name, wine.bottles, wine.bottles_in_cellar,
+            stock.purchased, stock.consumed, stock.movement_balance,
+            stock.calculated_stock, stock.effective_stock,
+            stock.unlocated_bottles, stock.negative_movement_bottles,
+            stock.physical_surplus_bottles,
+        )
+
 
 def _validate_full_sync(objects: PLOUDCollections) -> None:
     """Require the complete set of collections needed for a full cellar sync."""
@@ -195,6 +223,7 @@ class PlocCellarCoordinator(DataUpdateCoordinator[Cellar]):
                     f"{name}={len(records)}" for name, records in objects.items()
                 ) or "no supported collections",
             )
+            _log_stock_diagnostics("before sync application", self.cellar)
             if full_sync:
                 _validate_full_sync(objects)
 
@@ -283,6 +312,7 @@ class PlocCellarCoordinator(DataUpdateCoordinator[Cellar]):
                     len(unresolved_owner_ids),
                 )
 
+            _log_stock_diagnostics("after sync application", updated_cellar)
             _LOGGER.info(
                 "PLOUD %s sync applied: %d wines in cellar, %d bottles in "
                 "cellar; %s wine references with stock, %s total bottles; "

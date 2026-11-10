@@ -45,7 +45,7 @@ A Home Assistant custom integration for a **read-only** view of a PLOC wine cell
 - Wine primary and cover photos are downloaded from PLOUD `Documents` for referenced wines, cached locally and served through an authenticated Home Assistant endpoint. Changed documents invalidate the cache; unreferenced or deleted documents are pruned, and removing the config entry deletes its image cache.
 - UUIDs are normalized to their canonical lowercase form across Wine, Rack, RackItem, Order, Owner and deletion references; opaque non-UUID identifiers are trimmed without changing case.
 - Differential and full synchronization are available through the two buttons on the **Ploc Cellar** device.
-- One Ploc Cellar config entry is allowed per Home Assistant instance.
+- Multiple Ploc Cellar config entries are supported. Each entry uses a PLOC/PLOUD account, Home Assistant device, coordinator, persistent inventory and image cache isolated from the others.
 - No write operations are sent to PLOUD.
 
 ## 🍽️ Food-pairing data
@@ -97,7 +97,7 @@ The repository is distributed as a HACS custom integration; it is not presented 
 3. Go to **Settings → Devices & services → Add integration** and select **Ploc Cellar**.
 4. Enter your PLOC account email address and password.
 
-You do not need to enter a technical token, device identifier or PLOUD server. The integration uses a fixed PLOUD server endpoint.
+You do not need to enter a technical token, device identifier or PLOUD server. The integration uses a fixed PLOUD server endpoint. To add another PLOC account, repeat the integration setup and sign in with that account.
 
 ### Authentication and PLOUD activation
 
@@ -106,8 +106,8 @@ Home Assistant automatically performs the following operations:
 1. Signs in to the PLOC account through `POST https://api.ploc.co/a/v3/signin`. The request uses the encryption and signature scheme employed by the PLOC application.
 2. Activates PLOUD for the **Home Assistant** application through `POST https://api.ploc.co/v1/ploud/activate`, using the PLOC session token obtained in the previous step.
 3. Retrieves the PLOUD access token returned by the activation endpoint.
-4. Generates a UUID device identifier dedicated to this installation.
-5. Stores the PLOUD access token and device identifier in the Home Assistant config entry. The language is not fixed in that entry: it is resolved automatically from the country configured in Home Assistant.
+4. Generates a UUID device identifier dedicated to this config entry.
+5. Stores the PLOUD access token and device identifier in that Home Assistant config entry. Each account therefore has its own PLOUD device identifier. The language is not fixed in the entry: it is resolved automatically from the country configured in Home Assistant.
 6. Runs the first read-only synchronization against the fixed PLOUD server.
 
 The full UUID is stored locally. PLOUD requests send only its first five characters in the `Device` field and use that short identifier when calculating the request signature, matching the Android client's behavior.
@@ -129,7 +129,7 @@ Saving the options reloads the config entry. The PLOUD server endpoint cannot be
 
 ## 📊 Entities
 
-All 14 sensors and two synchronization buttons are linked to the same **Ploc Cellar** device and use the same PLOUD coordinator. The integration does not create one entity per wine, rack or position.
+Each config entry creates its own **Ploc Cellar** device with 14 sensors, two synchronization buttons and a dedicated PLOUD coordinator. Inventories, entity identities and caches remain isolated between accounts. The integration does not create one entity per wine, rack or position.
 
 | Family | Entity name | Meaning |
 |---|---|---|
@@ -215,7 +215,7 @@ The frontend cards subscribe to this event and refresh only when its `config_ent
 
 Image files remain in the config entry's private cache and are served only to authenticated Home Assistant users. The cache is separate from the persisted inventory and does not cause any writes to PLOUD.
 
-The PLOUD access token and device UUID are stored in the Home Assistant config entry. The password and PLOC session token are not stored.
+The PLOUD access token and device UUID are stored separately in each Home Assistant config entry. The password and PLOC session token are not stored.
 
 The local inventory and its matching synchronization cursor are stored through Home Assistant's persistent `Store`. Received changes are applied to a candidate model and saved before replacing the in-memory model, so a failed storage write does not advance the active cursor.
 

@@ -137,21 +137,22 @@ def test_user_step_creates_entry_with_generated_device_uuid(
     }
 
 
-def test_user_step_aborts_when_already_configured(
+def test_user_step_allows_an_additional_config_entry(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """The one-config-entry rule is enforced before showing the form."""
+    """An existing Ploc Cellar entry does not block another PLOC account."""
     flow = _new_flow()
     monkeypatch.setattr(ConfigFlow, "_async_current_entries", lambda self: [object()])
     monkeypatch.setattr(
         ConfigFlow,
-        "async_abort",
-        lambda self, *, reason: {"type": "abort", "reason": reason},
+        "async_show_form",
+        lambda self, **kwargs: {"type": "form", **kwargs},
     )
 
     result = asyncio.run(flow.async_step_user())
 
-    assert result == {"type": "abort", "reason": "already_configured"}
+    assert result["type"] == "form"
+    assert result["step_id"] == "user"
 
 
 def test_reauthentication_step_reuses_existing_entry_and_language(

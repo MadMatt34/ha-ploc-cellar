@@ -12,13 +12,11 @@ from homeassistant.components.sensor import (
 )
 from homeassistant.const import EntityCategory
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from homeassistant.util import dt as dt_util
 
 from .const import (
-    DOMAIN,
     SENSOR_BOTTLES_STOCK_TOTAL_UNIQUE_ID,
     SENSOR_DIAGNOSTIC_BOTTLES_NEGATIVE_MOVEMENTS_UNIQUE_ID,
     SENSOR_DIAGNOSTIC_BOTTLES_PHYSICAL_SURPLUS_UNIQUE_ID,
@@ -35,6 +33,7 @@ from .const import (
     SENSOR_WINES_REFERENCES_UNIQUE_ID,
 )
 from .coordinator import PlocCellarCoordinator
+from .entity import PlocCellarEntityIdentity, get_entity_identity
 from .models import Cellar
 from .types import PlocCellarConfigEntry
 
@@ -49,12 +48,6 @@ class PlocCellarSensorDescription:
     icon: str
     entity_category: EntityCategory | None = None
 
-
-_DEVICE_INFO = DeviceInfo(
-    identifiers={(DOMAIN, "ploc_cellar")},
-    translation_key="cellar",
-    manufacturer="PLOC",
-)
 
 SENSOR_DESCRIPTIONS: tuple[PlocCellarSensorDescription, ...] = (
     PlocCellarSensorDescription(
@@ -160,19 +153,20 @@ class PlocCellarMetricSensor(
     """Expose one inventory, rack or stock-diagnostic metric."""
 
     _attr_has_entity_name = True
-    _attr_device_info = _DEVICE_INFO
     _attr_state_class = SensorStateClass.MEASUREMENT
 
     def __init__(
         self,
         coordinator: PlocCellarCoordinator,
         description: PlocCellarSensorDescription,
+        identity: PlocCellarEntityIdentity,
     ) -> None:
         """Initialize the sensor from its static description."""
         super().__init__(coordinator)
         self._description = description
+        self._attr_device_info = identity.device_info
         self._attr_translation_key = description.translation_key
-        self._attr_unique_id = description.unique_id
+        self._attr_unique_id = identity.unique_id(description.unique_id)
         self._attr_icon = description.icon
         if description.entity_category is not None:
             self._attr_entity_category = description.entity_category
@@ -194,16 +188,22 @@ class PlocCellarLastSyncSensor(
     """Expose the last successful synchronization and its stale status."""
 
     _attr_has_entity_name = True
-    _attr_device_info = _DEVICE_INFO
     _attr_entity_category = EntityCategory.DIAGNOSTIC
     _attr_translation_key = "diagnostic_last_successful_sync"
-    _attr_unique_id = SENSOR_DIAGNOSTIC_LAST_SUCCESSFUL_SYNC_UNIQUE_ID
     _attr_icon = "mdi:calendar-clock"
     _attr_device_class = SensorDeviceClass.TIMESTAMP
 
-    def __init__(self, coordinator: PlocCellarCoordinator) -> None:
+    def __init__(
+        self,
+        coordinator: PlocCellarCoordinator,
+        identity: PlocCellarEntityIdentity,
+    ) -> None:
         """Initialize the timestamp sensor with its stable entity ID."""
         super().__init__(coordinator)
+        self._attr_device_info = identity.device_info
+        self._attr_unique_id = identity.unique_id(
+            SENSOR_DIAGNOSTIC_LAST_SUCCESSFUL_SYNC_UNIQUE_ID
+        )
 
     @property
     def available(self) -> bool:  # pyright: ignore[reportIncompatibleVariableOverride]
@@ -229,9 +229,10 @@ async def async_setup_entry(
 ) -> None:
     """Set up all inventory and diagnostic sensors on the cellar device."""
     coordinator = entry.runtime_data
+    identity = get_entity_identity(hass, entry)
     entities: list[SensorEntity] = [
-        PlocCellarMetricSensor(coordinator, description)
+        PlocCellarMetricSensor(coordinator, description, identity)
         for description in SENSOR_DESCRIPTIONS
     ]
-    entities.append(PlocCellarLastSyncSensor(coordinator))
+    entities.append(PlocCellarLastSyncSensor(coordinator, identity))
     async_add_entities(entities)

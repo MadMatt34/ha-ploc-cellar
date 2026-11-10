@@ -45,7 +45,7 @@ Intégration personnalisée Home Assistant permettant de consulter une cave PLOC
 - Les photos principales et de couverture des vins sont téléchargées depuis les `Documents` PLOUD lorsqu’elles sont référencées, mises en cache localement et servies par une route Home Assistant authentifiée. Une modification du document invalide le cache ; les documents supprimés ou non référencés sont nettoyés, et la suppression de l’entrée efface son cache d’images.
 - Deux boutons sur l'appareil Cave Ploc déclenchent une synchronisation différentielle ou une synchronisation complète.
 - Les UUID sont normalisés sous leur forme canonique minuscule pour les vins, casiers, positions, mouvements, propriétaires et suppressions ; les identifiants non UUID sont débarrassés des espaces périphériques sans changement de casse.
-- Une seule entrée de configuration Ploc Cellar par instance Home Assistant.
+- Plusieurs entrées de configuration Ploc Cellar sont autorisées. Chaque entrée utilise un compte PLOC/PLOUD, un appareil Home Assistant, un coordinateur, un inventaire persistant et un cache d'images indépendants.
 - Aucune opération d'écriture n'est envoyée à PLOUD.
 
 ## Données des accords mets et vins
@@ -97,7 +97,7 @@ Le dépôt est distribué comme intégration HACS personnalisée ; il n'est pas 
 3. Aller dans **Paramètres → Appareils et services → Ajouter une intégration**, puis sélectionner **Ploc Cellar**.
 4. Saisir l'adresse e-mail et le mot de passe du compte PLOC.
 
-Aucun jeton technique, identifiant d'appareil ou serveur PLOUD n'est à saisir. Le serveur PLOUD utilisé par l'intégration est fixe.
+Aucun jeton technique, identifiant d'appareil ou serveur PLOUD n'est à saisir. Le serveur PLOUD utilisé par l'intégration est fixe. Pour ajouter un autre compte PLOC, répéter l'ajout de l'intégration et se connecter avec les identifiants de ce compte.
 
 ### Authentification et activation PLOUD
 
@@ -106,8 +106,8 @@ Home Assistant effectue automatiquement les opérations suivantes :
 1. Authentification au compte PLOC via `POST https://api.ploc.co/a/v3/signin`. La requête utilise le chiffrement et la signature employés par l'application PLOC.
 2. Activation de PLOUD pour l'application **Home Assistant** via `POST https://api.ploc.co/v1/ploud/activate`, avec le jeton de session PLOC obtenu à l'étape précédente.
 3. Récupération du jeton d'accès PLOUD retourné par l'activation.
-4. Génération d'un identifiant d'appareil UUID propre à cette installation.
-5. Enregistrement du jeton d'accès PLOUD et de l'identifiant d'appareil dans l'entrée de configuration Home Assistant. La langue n'est pas figée dans cette entrée : elle est déterminée automatiquement à partir du pays configuré dans Home Assistant.
+4. Génération d'un identifiant d'appareil UUID propre à cette entrée de configuration.
+5. Enregistrement du jeton d'accès PLOUD et de l'identifiant d'appareil dans cette entrée de configuration Home Assistant. Chaque compte dispose ainsi de son propre identifiant PLOUD. La langue n'est pas figée dans l'entrée : elle est déterminée automatiquement à partir du pays configuré dans Home Assistant.
 6. Première synchronisation en lecture seule avec le serveur PLOUD fixe.
 
 L'identifiant UUID complet est conservé localement. Pour les requêtes PLOUD, seul son préfixe de cinq caractères est envoyé dans le champ `Device` et utilisé pour calculer la signature, conformément au comportement du client Android.
@@ -129,7 +129,7 @@ L'enregistrement des options recharge l'entrée de configuration. L'adresse du s
 
 ## 📊 Entités
 
-Les 14 capteurs et les deux boutons de synchronisation sont rattachés au même appareil **Cave Ploc** et utilisent le même coordinateur PLOUD. L’intégration ne crée pas d’entité individuelle pour chaque vin, casier ou emplacement.
+Chaque entrée de configuration crée son propre appareil **Cave Ploc**, avec 14 capteurs, deux boutons de synchronisation et un coordinateur PLOUD dédiés. Les inventaires, les identifiants d'entités et les caches restent indépendants entre les comptes. L’intégration ne crée pas d’entité individuelle pour chaque vin, casier ou emplacement.
 
 | Famille | Nom de l’entité | Signification |
 |---|---|---|
@@ -215,7 +215,7 @@ Les cartes frontend s'abonnent à cet événement et ne s'actualisent que si son
 
 Les fichiers image restent dans le cache privé de l'entrée de configuration et ne sont accessibles qu'aux utilisateurs authentifiés de Home Assistant. Ce cache est indépendant de l'inventaire persistant et n'entraîne aucune écriture vers PLOUD.
 
-Le jeton d'accès PLOUD et l'identifiant UUID de l'appareil sont conservés dans l'entrée de configuration Home Assistant. Le mot de passe et le jeton de session PLOC ne sont pas stockés.
+Le jeton d'accès PLOUD et l'identifiant UUID de l'appareil sont conservés séparément dans chaque entrée de configuration Home Assistant. Le mot de passe et le jeton de session PLOC ne sont pas stockés.
 
 L'inventaire local et son curseur de synchronisation associé sont enregistrés avec le `Store` persistant de Home Assistant. Les changements reçus sont appliqués à une copie du modèle puis enregistrés avant de remplacer le modèle en mémoire : un échec d'écriture ne fait donc pas avancer le curseur actif.
 
