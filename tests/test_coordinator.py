@@ -260,7 +260,6 @@ def test_manual_full_sync_retries_until_complete_snapshot() -> None:
     """The full-sync request remains active until the coordinator commits it."""
     coordinator = object.__new__(PlocCellarCoordinator)
     coordinator._force_full_sync = True
-    coordinator._sync_trigger = "recurring"
     coordinator.last_update_success = True
     coordinator.last_exception = None
     coordinator.data = Cellar()
