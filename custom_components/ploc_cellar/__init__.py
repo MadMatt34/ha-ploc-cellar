@@ -7,7 +7,6 @@ from pathlib import Path
 from typing import Any, cast
 
 import probatio
-import voluptuous as vol
 from homeassistant.components import websocket_api
 from homeassistant.config_entries import ConfigEntryState
 from homeassistant.const import ATTR_CONFIG_ENTRY_ID, Platform
@@ -57,11 +56,11 @@ CONFIG_SCHEMA: Callable[[dict[str, Any]], dict[str, Any]] = cast(
 
 GET_INVENTORY_SCHEMA: Any = cast(
     Any,
-    vol.Schema(
+    probatio.Schema(
         {
-            vol.Required(ATTR_CONFIG_ENTRY_ID): cv.string,
-            vol.Optional(CONF_SEARCH, default=""): cv.string,
-            vol.Optional(CONF_COLOR, default=""): cv.string,
+            probatio.Required(ATTR_CONFIG_ENTRY_ID): cv.string,
+            probatio.Optional(CONF_SEARCH, default=""): cv.string,
+            probatio.Optional(CONF_COLOR, default=""): cv.string,
         }
     ),
 )
@@ -371,7 +370,7 @@ def websocket_subscribe_sync(
 
 
 async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
-    """Register the inventory service and authenticated image endpoint."""
+    """Register the inventory service, sync WebSocket command and image endpoint."""
     hass.http.register_view(PlocCellarImageView(hass))
     websocket_api.async_register_command(hass, websocket_subscribe_sync)
 
