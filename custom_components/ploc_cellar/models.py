@@ -346,10 +346,30 @@ class Cellar:
         return sum(bool(item.wine_id) for item in self.rack_items.values())
 
     def validate_rack_items(self, *, allow_unresolved: bool = False) -> None:
-        """Validate RackItem identity and, when requested, all object references."""
+        """Validate RackItem identity, coordinates and object references."""
+        occupied_coordinates: set[tuple[str, int, int]] = set()
         for item_id, item in self.rack_items.items():
             if not item_id or item.id != item_id:
                 raise ValueError(f"Invalid RackItem identifier: {item_id!r}")
+            for coordinate_name, coordinate in (
+                ("row", item.row),
+                ("column", item.column),
+            ):
+                if coordinate is not None and (
+                    isinstance(coordinate, bool)
+                    or coordinate < 0
+                ):
+                    raise ValueError(
+                        f"Invalid RackItem {coordinate_name}: {item_id!r}"
+                    )
+            if item.row is not None and item.column is not None:
+                coordinate_key = (item.rack_id, item.row, item.column)
+                if coordinate_key in occupied_coordinates:
+                    raise ValueError(
+                        "Duplicate RackItem coordinates in rack "
+                        f"{item.rack_id!r}: row={item.row}, column={item.column}"
+                    )
+                occupied_coordinates.add(coordinate_key)
             if not allow_unresolved and (
                 not item.rack_id or item.rack_id not in self.racks
             ):
@@ -540,6 +560,9 @@ class Cellar:
             # Older caches did not retain lookup collections or compact Wine IDs.
             # A full snapshot is required to enrich their existing Wine records.
             cellar.cursor = 1
+        # Validate geometry for legacy as well as current persisted snapshots,
+        # while preserving unresolved rack and wine references for recovery.
+        cellar.validate_rack_items(allow_unresolved=True)
         return cellar
 
 
@@ -770,12 +793,35 @@ def _validate_current_storage(
         for field_name in ("row", "column"):
             value = item.get(field_name)
             if value is not None and (
-                isinstance(value, bool) or not isinstance(value, int)
+                isinstance(value, bool)
+                or not isinstance(value, int)
+                or value < 0
             ):
                 raise ValueError(
                     f"Invalid RackItem {field_name} in current cellar storage: "
                     f"{identifier}"
                 )
+
+    occupied_coordinates: set[tuple[str, int, int]] = set()
+    for identifier, item in collections["rack_items"].items():
+        rack_id = item["rack_id"]
+        row = item.get("row")
+        column = item.get("column")
+        if (
+            not isinstance(rack_id, str)
+            or isinstance(row, bool)
+            or not isinstance(row, int)
+            or isinstance(column, bool)
+            or not isinstance(column, int)
+        ):
+            continue
+        coordinate_key = (rack_id, row, column)
+        if coordinate_key in occupied_coordinates:
+            raise ValueError(
+                "Duplicate RackItem coordinates in current cellar storage: "
+                f"{identifier}"
+            )
+        occupied_coordinates.add(coordinate_key)
 
     for identifier, order in collections["orders"].items():
         if not {"id", "wine_id", "incoming", "outgoing"}.issubset(order):

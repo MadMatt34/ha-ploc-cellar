@@ -13,6 +13,8 @@ A Home Assistant custom integration for a **read-only** view of a PLOC wine cell
 
 ## 📚 Documentation
 
+- [Backend/frontend compatibility matrix and release policy](https://github.com/MadMatt34/ha-ploc-cellar-frontend/blob/main/docs/COMPATIBILITY_AND_RELEASES.md)
+
 - [Requirements](#requirements)
 - [Features](#features)
 - [Food-pairing data](#food-pairing-data)
@@ -259,10 +261,14 @@ When opening an issue, include the Home Assistant version, integration version, 
 4. If installed manually, remove `custom_components/ploc_cellar` from the Home Assistant configuration directory.
 5. Restart Home Assistant.
 
-Removing the configuration entry also removes its private cached wine-image files.
+Removing the configuration entry also removes its persistent cellar snapshot and private cached wine-image files.
+
+When debug logging is enabled for this integration, PLOUD synchronization logs include raw wine, rack, rack-position and order records to support diagnostics. These records may contain personal or cellar-specific information; redact them before sharing logs publicly.
 
 ## ⚖️ License and disclaimer
 
 This project is distributed under the [MIT License](LICENSE).
+
+This integration relies on PLOUD interfaces that are **not part of a public, documented API**. Its implementation was developed through independent technical research, including analysis of PLOUD-related repositories, comparison of application backup files, examination of the official mobile application's behavior and other observations and tests. These findings are reverse-engineering work, not an official API specification; the private interfaces may change at any time and without notice. The owner of PLOC was contacted to discuss this work and the availability of an official interface, but no response had been received when this documentation was written.
 
 Ploc Cellar is an independent, unofficial project. It is not affiliated with, endorsed by or supported by PLOC or PLOUD.

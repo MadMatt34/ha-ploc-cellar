@@ -1,6 +1,7 @@
 """Cellar coordinator and persistent Home Assistant storage."""
 from __future__ import annotations
 
+import asyncio
 import hashlib
 import logging
 from copy import deepcopy
@@ -36,6 +37,7 @@ from .ploud import (
 from .types import PlocCellarConfigEntry
 
 _LOGGER = logging.getLogger(__name__)
+_IMAGE_SYNC_TIMEOUT_SECONDS = 10
 
 def _log_stock_diagnostics(stage: str, cellar: Cellar) -> None:
     """Log the stock inputs and derived diagnostics for every wine."""
@@ -363,26 +365,43 @@ class PlocCellarCoordinator(DataUpdateCoordinator[Cellar]):
                 len(updated_cellar.racks),
                 updated_cellar.occupied_positions,
             )
+            updated_cellar.last_sync = datetime.now(UTC).isoformat()
+            updated_cellar.stale = False
+            await self._async_save_verified(updated_cellar.to_storage())
+            # The persisted inventory is now committed. Only then may image
+            # cleanup remove files referenced by the previous snapshot.
+            self.cellar = updated_cellar
             try:
-                await async_sync_images(
-                    self.hass,
-                    self.session,
-                    directory=self.image_directory,
-                    server=self.server,
-                    token=self.token,
-                    device=self.device,
-                    cellar=updated_cellar,
-                    objects=objects,
-                    last_sync_time=next_cursor,
+                async with asyncio.timeout(_IMAGE_SYNC_TIMEOUT_SECONDS):
+                    await async_sync_images(
+                        self.hass,
+                        self.session,
+                        directory=self.image_directory,
+                        server=self.server,
+                        token=self.token,
+                        device=self.device,
+                        cellar=updated_cellar,
+                        objects=objects,
+                        last_sync_time=next_cursor,
+                    )
+            except TimeoutError:
+                # Inventory is already committed. Bound image work so a large
+                # or slow document batch cannot delay coordinator publication.
+                _LOGGER.warning(
+                    "PLOUD image cache update exceeded its %d-second budget; "
+                    "remaining images will be retried on a later sync",
+                    _IMAGE_SYNC_TIMEOUT_SECONDS
                 )
             except (PloudError, OSError) as err:
                 # Image availability must never prevent inventory refreshes.
                 _LOGGER.warning("PLOUD wine image cache update failed: %s", err)
-
-            updated_cellar.last_sync = datetime.now(UTC).isoformat()
-            updated_cellar.stale = False
-            await self._async_save_verified(updated_cellar.to_storage())
-            self.cellar = updated_cellar
+            except Exception:
+                # Unexpected cache failures must not invalidate the already
+                # persisted inventory snapshot.
+                _LOGGER.exception(
+                    "Unexpected PLOUD wine image cache update error; "
+                    "inventory synchronization remains committed"
+                )
             if full_sync:
                 self._force_full_sync = False
             changes = _build_sync_changes(previous_cellar, updated_cellar)

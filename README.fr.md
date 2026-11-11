@@ -13,6 +13,8 @@ Intégration personnalisée Home Assistant permettant de consulter une cave PLOC
 
 ## 📚 Navigation
 
+- [Backend/frontend compatibility matrix and release policy](https://github.com/MadMatt34/ha-ploc-cellar-frontend/blob/main/docs/COMPATIBILITY_AND_RELEASES.md)
+
 - [Prérequis](#prérequis)
 - [Fonctionnalités](#fonctionnalités)
 - [Données des accords mets et vins](#données-des-accords-mets-et-vins)
@@ -260,10 +262,14 @@ Pour ouvrir un ticket, joindre la version de Home Assistant, la version de l'int
 4. En cas d'installation manuelle, supprimer le dossier `custom_components/ploc_cellar` du répertoire de configuration Home Assistant.
 5. Redémarrer Home Assistant.
 
-La suppression de l'entrée de configuration efface également les fichiers privés d'images mis en cache pour cette entrée.
+La suppression de l'entrée de configuration efface également l'instantané persistant de la cave et les fichiers privés d'images mis en cache pour cette entrée.
+
+Lorsque les journaux de débogage de cette intégration sont activés, les synchronisations PLOUD consignent les enregistrements bruts des vins, casiers, emplacements et commandes afin de faciliter le diagnostic. Ces données peuvent contenir des informations personnelles ou propres à la cave : pensez à les anonymiser avant tout partage public.
 
 ## ⚖️ Licence et avertissement
 
 Ce projet est distribué sous [licence MIT](LICENSE).
+
+Cette intégration s'appuie sur des interfaces PLOUD qui **ne constituent pas une API publique et documentée**. Elle a été développée à partir d'un travail d'analyse technique indépendant : étude des dépôts liés à PLOUD, comparaison de fichiers de sauvegarde, analyse du comportement de l'application mobile officielle, ainsi que d'autres observations et expérimentations. Il s'agit d'un travail de rétro-ingénierie, et non d'une spécification officielle d'API ; ces interfaces privées peuvent évoluer ou devenir incompatibles à tout moment et sans préavis. Le propriétaire de PLOC a été contacté afin d'échanger sur ce travail et sur l'existence éventuelle d'une interface officielle, mais aucune réponse n'avait été reçue au moment de la rédaction de cette documentation.
 
 Ploc Cellar est un projet indépendant et non officiel. Il n'est ni affilié à PLOC ou PLOUD, ni approuvé ou pris en charge par ces services.

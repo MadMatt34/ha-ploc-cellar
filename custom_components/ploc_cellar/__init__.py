@@ -17,6 +17,7 @@ from homeassistant.core import (
 from homeassistant.exceptions import HomeAssistantError, ServiceValidationError
 from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
+from homeassistant.helpers.storage import Store
 from homeassistant.helpers.typing import ConfigType
 from homeassistant.util.json import JsonObjectType, JsonValueType
 
@@ -33,6 +34,8 @@ from .const import (
     MIN_SCAN_INTERVAL_MINUTES,
     PLOUD_DEFAULT_SERVER,
     SERVICE_GET_INVENTORY,
+    STORAGE_KEY,
+    STORAGE_VERSION,
 )
 from .coordinator import PlocCellarCoordinator
 from .images import remove_image_cache
@@ -111,6 +114,21 @@ def _build_inventory_response(
         [] if cellar.stock_reconstruction_complete else None
     )
 
+    # Build physical locations once instead of scanning every RackItem for
+    # each wine in both the diagnostics and inventory response.
+    locations_by_wine: dict[str, list[JsonValueType]] = {}
+    for item in cellar.rack_items.values():
+        if not item.wine_id or item.rack_id not in cellar.racks:
+            continue
+        locations_by_wine.setdefault(item.wine_id, []).append(
+            {
+                "rack": cellar.racks[item.rack_id].name,
+                "rack_id": item.rack_id,
+                "row": item.row,
+                "column": item.column,
+            }
+        )
+
     if wine_diagnostics is not None:
         for wine in sorted(
             cellar.wines.values(),
@@ -122,16 +140,7 @@ def _build_inventory_response(
             physical_surplus = stock.physical_surplus_bottles or 0
             if not (unlocated or negative or physical_surplus):
                 continue
-            locations: list[JsonValueType] = [
-                {
-                    "rack": cellar.racks[item.rack_id].name,
-                    "rack_id": item.rack_id,
-                    "row": item.row,
-                    "column": item.column,
-                }
-                for item in cellar.rack_items.values()
-                if item.wine_id == wine.id and item.rack_id in cellar.racks
-            ]
+            locations = locations_by_wine.get(wine.id, [])
             wine_details: JsonObjectType = {
                 "id": wine.id,
                 "name": wine.name,
@@ -223,16 +232,7 @@ def _build_inventory_response(
             continue
 
         stock = cellar.stock_for(wine)
-        locations: list[JsonValueType] = [
-            {
-                "rack": cellar.racks[item.rack_id].name,
-                "rack_id": item.rack_id,
-                "row": item.row,
-                "column": item.column,
-            }
-            for item in cellar.rack_items.values()
-            if item.wine_id == wine.id and item.rack_id in cellar.racks
-        ]
+        locations = locations_by_wine.get(wine.id, [])
         inventory.append(
             {
                 "id": wine.id,
@@ -425,6 +425,14 @@ async def async_remove_entry(
     hass: HomeAssistant,
     entry: PlocCellarConfigEntry,
 ) -> None:
-    """Remove the integration-owned image cache when its config entry is deleted."""
+    """Remove entry-scoped inventory storage and image cache on deletion."""
+    store: Store[dict[str, Any]] = Store(
+        hass,
+        STORAGE_VERSION,
+        f"{STORAGE_KEY}.{entry.entry_id}",
+        atomic_writes=True,
+    )
+    await store.async_remove()
+
     cache_root = Path(hass.config.path(".storage", DOMAIN, entry.entry_id))
     await hass.async_add_executor_job(remove_image_cache, cache_root)
