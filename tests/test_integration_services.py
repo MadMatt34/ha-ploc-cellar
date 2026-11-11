@@ -263,6 +263,7 @@ def test_inventory_service_dispatches_to_the_selected_config_entry() -> None:
     hass = SimpleNamespace(
         services=_Services(),
         http=_HTTP(),
+        data={},
         config_entries=SimpleNamespace(async_get_entry=entries.get),
     )
     asyncio.run(async_setup(hass, {}))
@@ -308,6 +309,7 @@ def test_services_reject_missing_wrong_or_unloaded_entries(entry: object) -> Non
     hass = SimpleNamespace(
         services=_Services(),
         http=_HTTP(),
+        data={},
         config_entries=SimpleNamespace(async_get_entry=lambda entry_id: entry),
     )
     asyncio.run(async_setup(hass, {}))
