@@ -24,6 +24,7 @@ from ploc_cellar.const import (
     DOMAIN,
     PLOUD_DEFAULT_SERVER,
     SERVICE_GET_INVENTORY,
+    SIGNAL_SYNC_COMPLETED,
     STORAGE_KEY,
     STORAGE_VERSION,
 )
@@ -39,6 +40,16 @@ class _Coordinator:
     def image_url(self, document_id: str) -> None:
         """Test coordinator has no cached image documents."""
         return None
+
+
+class _WebSocketAPI:
+    """Capture integration-owned WebSocket command registrations."""
+
+    def __init__(self) -> None:
+        self.handlers: list[Any] = []
+
+    def async_register_command(self, hass: Any, handler: Any) -> None:
+        self.handlers.append(handler)
 
 
 class _HTTP:
@@ -78,6 +89,7 @@ def _hass(coordinator: _Coordinator) -> SimpleNamespace:
     return SimpleNamespace(
         services=_Services(),
         http=_HTTP(),
+        websocket_api=_WebSocketAPI(),
         config_entries=SimpleNamespace(
             async_get_entry=lambda entry_id: entry if entry_id == "entry-1" else None
         ),
@@ -92,6 +104,107 @@ def test_async_setup_registers_only_the_inventory_service() -> None:
     assert asyncio.run(async_setup(hass, {})) is True
     assert set(hass.services.handlers) == {SERVICE_GET_INVENTORY}
     assert len(hass.http.views) == 1
+    assert len(hass.websocket_api.handlers) == 1
+
+
+
+def test_sync_websocket_subscription_is_scoped_and_sends_no_inventory_data(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Authenticated standard-user subscriptions receive only scoped invalidations."""
+    import ploc_cellar as integration
+
+    first = _Coordinator()
+    second = _Coordinator()
+    entries = {
+        "entry-1": SimpleNamespace(
+            domain=DOMAIN, state=ConfigEntryState.LOADED, runtime_data=first
+        ),
+        "entry-2": SimpleNamespace(
+            domain=DOMAIN, state=ConfigEntryState.LOADED, runtime_data=second
+        ),
+    }
+    hass = SimpleNamespace(
+        services=_Services(),
+        http=_HTTP(),
+        websocket_api=_WebSocketAPI(),
+        config_entries=SimpleNamespace(async_get_entry=entries.get),
+    )
+    connected: dict[str, Any] = {}
+
+    def connect(_hass: Any, signal: str, callback: Any) -> Any:
+        connected[signal] = callback
+        return lambda: connected.pop(signal, None)
+
+    monkeypatch.setattr(integration, "async_dispatcher_connect", connect)
+    assert asyncio.run(async_setup(hass, {})) is True
+    handler = hass.websocket_api.handlers[0]
+
+    class _Connection:
+        def __init__(self) -> None:
+            self.subscriptions: dict[int, Any] = {}
+            self.messages: list[dict[str, Any]] = []
+            self.results: list[int] = []
+            self.errors: list[tuple[Any, ...]] = []
+
+        def send_message(self, message: dict[str, Any]) -> None:
+            self.messages.append(message)
+
+        def send_result(self, message_id: int) -> None:
+            self.results.append(message_id)
+
+        def send_error(self, *args: Any) -> None:
+            self.errors.append(args)
+
+    connection = _Connection()
+    handler(
+        hass,
+        connection,
+        {"id": 7, "type": f"{DOMAIN}/subscribe_sync", "config_entry_id": "entry-1"},
+    )
+
+    signal = f"{SIGNAL_SYNC_COMPLETED}_entry-1"
+    assert set(connected) == {signal}
+    assert connection.results == [7]
+    assert connection.errors == []
+    assert 7 in connection.subscriptions
+
+    connected[signal]()
+    assert connection.messages == [
+        {"id": 7, "type": "event", "event": {}}
+    ]
+    assert "entry-2" not in str(connection.messages)
+    assert "wines" not in str(connection.messages)
+
+    connection.subscriptions[7]()
+    assert connected == {}
+
+
+def test_sync_websocket_subscription_rejects_unloaded_entry() -> None:
+    """A client cannot subscribe to a missing or unloaded configuration entry."""
+    hass = SimpleNamespace(
+        services=_Services(),
+        http=_HTTP(),
+        websocket_api=_WebSocketAPI(),
+        config_entries=SimpleNamespace(async_get_entry=lambda _entry_id: None),
+    )
+    asyncio.run(async_setup(hass, {}))
+    connection = SimpleNamespace(
+        subscriptions={},
+        send_message=lambda _message: None,
+        send_result=lambda _message_id: None,
+        send_error=lambda *args: errors.append(args),
+    )
+    errors: list[tuple[Any, ...]] = []
+
+    hass.websocket_api.handlers[0](
+        hass,
+        connection,
+        {"id": 8, "type": f"{DOMAIN}/subscribe_sync", "config_entry_id": "missing"},
+    )
+
+    assert errors
+    assert connection.subscriptions == {}
 
 
 def test_inventory_service_returns_json_safe_empty_inventory() -> None:
