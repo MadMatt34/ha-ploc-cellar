@@ -23,7 +23,7 @@ All PLOC/PLOUD HTTP calls in unit tests use deterministic response/session doubl
 | `test_models.py` | Stock calculations, diagnostics, serialization and model integrity |
 | `test_models_storage_edges.py` | Invalid storage fields, cross-reference integrity and serialization edge cases |
 | `test_storage_migrations.py` | Legacy schema migration and identifier normalization |
-| `test_coordinator.py` | Successful-sync event metadata and dispatcher notifications, persistence-before-notification ordering, full/incremental sync, recovery and image-cache behavior | Verified persistence, incremental/full sync, recovery, rollback and authentication failure |
+| `test_coordinator.py` | Successful-sync event metadata and dispatcher notifications, persistence-before-notification ordering, verified persistence, incremental/full sync, recovery, rollback and image-cache behavior |
 | `test_coordinator_lifecycle.py` | Coordinator setup, refresh, cancellation, unload and lifecycle cleanup |
 | `test_services.py` | Inventory filtering, stock diagnostics and response values |
 | `test_service_contract.py` | Exact JSON response contract and frontend-facing compatibility |
