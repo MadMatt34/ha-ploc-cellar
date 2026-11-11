@@ -154,8 +154,8 @@ def test_sync_websocket_subscription_is_scoped_and_sends_no_inventory_data(
             self.results: list[int] = []
             self.errors: list[tuple[Any, ...]] = []
 
-        def send_message(self, message: dict[str, Any]) -> None:
-            self.messages.append(message)
+        def send_event(self, message_id: int, event: dict[str, Any]) -> None:
+            self.messages.append({"id": message_id, "type": "event", "event": event})
 
         def send_result(self, message_id: int) -> None:
             self.results.append(message_id)
