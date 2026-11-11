@@ -60,7 +60,7 @@ def _verify_event_loop_thread(_self: Any, _method: str) -> None:
 
 def _async_run_hass_job(_self: Any, job: Any, *args: Any) -> Any:
     """Run synchronous dispatcher callbacks in the test event loop."""
-    return job(*args)
+    return job.target(*args)
 
 def _coordinator(cellar: Cellar, store: _FakeStore) -> PlocCellarCoordinator:
     """Create a coordinator with only the dependencies used by tested methods."""
