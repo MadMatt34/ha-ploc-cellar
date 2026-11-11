@@ -353,6 +353,7 @@ def test_full_sync_commits_only_a_complete_snapshot(
             },
         )
     ]
+    assert coordinator.hass.data["test_notifications"] == [True]
 
 
 def test_image_cache_is_not_pruned_when_inventory_persistence_fails(
@@ -480,6 +481,7 @@ def test_partial_sync_commits_delta_and_preserves_reconstruction_state(
             },
         )
     ]
+    assert coordinator.hass.data["test_notifications"] == [True]
 
 
 def test_invalid_full_snapshot_does_not_replace_cached_model(
