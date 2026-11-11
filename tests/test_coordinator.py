@@ -43,22 +43,10 @@ class _FakeStore:
         return self.read_back
 
 
-class _FakeBus:
-    """Capture Home Assistant events fired by the coordinator."""
-
-    def __init__(self) -> None:
-        self.events: list[tuple[str, dict[str, Any]]] = []
-
-    def async_fire(self, event_type: str, event_data: dict[str, Any]) -> None:
-        """Record an event and its payload."""
-        self.events.append((event_type, event_data))
-
-
 def _coordinator(cellar: Cellar, store: _FakeStore) -> PlocCellarCoordinator:
     """Create a coordinator with only the dependencies used by tested methods."""
     coordinator = object.__new__(PlocCellarCoordinator)
     hass = type("FakeHass", (), {"is_stopping": False, "data": {}})()
-    hass.bus = _FakeBus()
     coordinator.hass = cast(Any, hass)
     coordinator.store = cast(Any, store)
     coordinator.cellar = cellar
@@ -355,6 +343,7 @@ def test_image_cache_is_not_pruned_when_inventory_persistence_fails(
 
     assert image_sync_called is False
     assert coordinator.cellar is original
+    assert coordinator.notifications == []
 
 
 def test_unexpected_image_cache_error_does_not_invalidate_committed_inventory(
