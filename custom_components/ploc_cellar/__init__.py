@@ -7,7 +7,7 @@ from pathlib import Path
 from typing import Any, cast
 
 import probatio
-from homeassistant.components import websocket_api
+from homeassistant.components.websocket_api import async_register_command
 from homeassistant.components.websocket_api.connection import ActiveConnection
 from homeassistant.components.websocket_api.const import ERR_NOT_FOUND
 from homeassistant.components.websocket_api.decorators import websocket_command
@@ -376,7 +376,7 @@ def websocket_subscribe_sync(
 async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
     """Register the inventory service, sync WebSocket command and image endpoint."""
     hass.http.register_view(PlocCellarImageView(hass))
-    cast(Any, websocket_api.async_register_command)(hass, websocket_subscribe_sync)
+    cast(Any, async_register_command)(hass, websocket_subscribe_sync)
 
     async def get_inventory(call: ServiceCall) -> JsonObjectType:
         """Return the current stocked inventory on demand."""
