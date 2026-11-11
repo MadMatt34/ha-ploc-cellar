@@ -389,6 +389,7 @@ def test_image_cache_is_not_pruned_when_inventory_persistence_fails(
 
     assert image_sync_called is False
     assert coordinator.cellar is original
+    assert coordinator.hass.bus.events == []
     assert coordinator.hass.data["test_notifications"] == []
 
 
