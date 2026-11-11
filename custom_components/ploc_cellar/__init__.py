@@ -11,7 +11,6 @@ from homeassistant.components.websocket_api import async_register_command
 from homeassistant.components.websocket_api.connection import ActiveConnection
 from homeassistant.components.websocket_api.const import ERR_NOT_FOUND
 from homeassistant.components.websocket_api.decorators import websocket_command
-from homeassistant.components.websocket_api.messages import event_message
 from homeassistant.config_entries import ConfigEntryState
 from homeassistant.const import ATTR_CONFIG_ENTRY_ID, Platform
 from homeassistant.core import (
@@ -363,7 +362,7 @@ def websocket_subscribe_sync(
     @callback
     def forward_sync_completed() -> None:
         """Send an empty invalidation message; inventory remains service-only."""
-        connection.send_message(event_message(msg["id"], {}))
+        connection.send_event(msg["id"], {})
 
     connection.subscriptions[msg["id"]] = async_dispatcher_connect(
         hass,
