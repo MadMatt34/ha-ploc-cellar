@@ -42,16 +42,6 @@ class _Coordinator:
         return None
 
 
-class _WebSocketAPI:
-    """Capture integration-owned WebSocket command registrations."""
-
-    def __init__(self) -> None:
-        self.handlers: list[Any] = []
-
-    def async_register_command(self, hass: Any, handler: Any) -> None:
-        self.handlers.append(handler)
-
-
 class _HTTP:
     """Record authenticated views registered by the integration."""
 
@@ -89,7 +79,7 @@ def _hass(coordinator: _Coordinator) -> SimpleNamespace:
     return SimpleNamespace(
         services=_Services(),
         http=_HTTP(),
-        websocket_api=_WebSocketAPI(),
+        data={},
         config_entries=SimpleNamespace(
             async_get_entry=lambda entry_id: entry if entry_id == "entry-1" else None
         ),
@@ -104,7 +94,7 @@ def test_async_setup_registers_only_the_inventory_service() -> None:
     assert asyncio.run(async_setup(hass, {})) is True
     assert set(hass.services.handlers) == {SERVICE_GET_INVENTORY}
     assert len(hass.http.views) == 1
-    assert len(hass.websocket_api.handlers) == 1
+    assert list(hass.data["websocket_api"]) == [f"{DOMAIN}/subscribe_sync"]
 
 
 
@@ -144,7 +134,7 @@ def test_sync_websocket_subscription_is_scoped_and_sends_no_inventory_data(
 
     monkeypatch.setattr(integration, "async_dispatcher_connect", connect)
     assert asyncio.run(async_setup(hass, {})) is True
-    handler = hass.websocket_api.handlers[0]
+    handler = hass.data["websocket_api"][f"{DOMAIN}/subscribe_sync"][0]
 
     class _Connection:
         def __init__(self) -> None:
@@ -215,7 +205,7 @@ def test_sync_websocket_subscription_rejects_unloaded_entry() -> None:
     )
     errors: list[tuple[Any, ...]] = []
 
-    hass.websocket_api.handlers[0](
+    hass.data["websocket_api"][f"{DOMAIN}/subscribe_sync"][0](
         hass,
         connection,
         {"id": 8, "type": f"{DOMAIN}/subscribe_sync", "config_entry_id": "missing"},
