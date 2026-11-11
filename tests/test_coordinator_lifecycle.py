@@ -71,7 +71,13 @@ def _coordinator(
     hass = type(
         "FakeHass",
         (),
-        {"is_stopping": False, "config": fake_config, "bus": _FakeBus(), "data": {}, "verify_event_loop_thread": _verify_event_loop_thread},
+        {
+            "is_stopping": False,
+            "config": fake_config,
+            "bus": _FakeBus(),
+            "data": {},
+            "verify_event_loop_thread": _verify_event_loop_thread,
+        },
     )()
     coordinator.hass = cast(Any, hass)
     coordinator.store = cast(Any, store or _Store())
