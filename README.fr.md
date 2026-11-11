@@ -22,7 +22,7 @@ Intégration personnalisée Home Assistant permettant de consulter une cave PLOC
 - [Options de synchronisation](#options-de-synchronisation)
 - [Entités](#entités)
 - [Actions et réponse d'inventaire](#actions)
-- [Événement de synchronisation](#événement-de-synchronisation)
+- [Notification de synchronisation](#notification-de-synchronisation)
 - [Stockage et confidentialité](#stockage-et-confidentialité)
 - [Validation](#validation)
 - [Cartes Lovelace](#cartes-lovelace)
