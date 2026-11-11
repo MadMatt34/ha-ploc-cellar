@@ -148,6 +148,7 @@ def test_sync_websocket_subscription_is_scoped_and_sends_no_inventory_data(
 
     class _Connection:
         def __init__(self) -> None:
+            self.user = SimpleNamespace(is_admin=False)
             self.subscriptions: dict[int, Any] = {}
             self.messages: list[dict[str, Any]] = []
             self.results: list[int] = []
