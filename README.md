@@ -22,7 +22,7 @@ A Home Assistant custom integration for a **read-only** view of a PLOC wine cell
 - [Synchronization options](#synchronization-options)
 - [Entities](#entities)
 - [Actions and inventory response](#actions)
-- [Synchronization event](#synchronization-event)
+- [Synchronization notification](#synchronization-notification)
 - [Storage and privacy](#storage-and-privacy)
 - [Validation](#validation)
 - [Lovelace cards](#lovelace-cards)
