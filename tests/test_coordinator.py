@@ -54,10 +54,14 @@ def _coordinator(cellar: Cellar, store: _FakeStore) -> PlocCellarCoordinator:
     coordinator.session = cast(Any, object())
     coordinator.entry_id = "test-entry"
     notifications: list[bool] = []
+    def on_sync_completed() -> None:
+        assert store.saved is not None
+        notifications.append(True)
+
     async_dispatcher_connect(
         hass,
         f"{SIGNAL_SYNC_COMPLETED}_{coordinator.entry_id}",
-        lambda: notifications.append(True),
+        on_sync_completed,
     )
     hass.data["test_notifications"] = notifications
     coordinator.image_directory = Path("/tmp/ploc-cellar-test-images")
