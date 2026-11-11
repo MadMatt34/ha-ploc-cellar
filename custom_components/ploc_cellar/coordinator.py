@@ -7,7 +7,6 @@ import logging
 from copy import deepcopy
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
-from typing import Any
 from urllib.parse import quote
 
 from aiohttp import ClientSession
@@ -20,8 +19,8 @@ from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, Upda
 from .const import (
     CELLAR_DATA_VERSION,
     DOMAIN,
-    SIGNAL_SYNC_COMPLETED,
     ORDERS_STORAGE_VERSION,
+    SIGNAL_SYNC_COMPLETED,
     STORAGE_KEY,
     STORAGE_VERSION,
 )
