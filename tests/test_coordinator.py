@@ -477,7 +477,7 @@ def test_authentication_failure_requests_config_entry_reauth(
 def test_slow_image_cache_does_not_block_inventory_publication(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """The committed inventory and sync event publish after the image budget."""
+    """The committed inventory and sync notification publish after the image budget."""
     store = _FakeStore()
     coordinator = _coordinator(Cellar(), store)
     snapshot: PLOUDCollections = {
