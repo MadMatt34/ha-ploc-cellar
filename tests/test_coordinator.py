@@ -10,15 +10,15 @@ from homeassistant.exceptions import (
     ConfigEntryAuthFailed,
     HomeAssistantError,
 )
-from ploc_cellar import coordinator as coordinator_module
 from homeassistant.helpers.dispatcher import async_dispatcher_connect
+from ploc_cellar import coordinator as coordinator_module
 from ploc_cellar.const import SIGNAL_SYNC_COMPLETED
 from ploc_cellar.coordinator import (
     PlocCellarCoordinator,
     UpdateFailed,
     _validate_full_sync,
 )
-from ploc_cellar.models import Cellar, JsonValue, Rack, RackItem
+from ploc_cellar.models import Cellar, JsonValue, RackItem
 from ploc_cellar.ploud import PloudAuthError, PLOUDCollections, PloudError
 
 
