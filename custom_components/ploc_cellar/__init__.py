@@ -7,10 +7,10 @@ from pathlib import Path
 from typing import Any, cast
 
 import probatio
-from homeassistant.components.websocket_api import async_register_command
+from homeassistant.components.websocket_api import async_register_command  # pyright: ignore[reportUnknownVariableType]
 from homeassistant.components.websocket_api.connection import ActiveConnection
 from homeassistant.components.websocket_api.const import ERR_NOT_FOUND
-from homeassistant.components.websocket_api.decorators import websocket_command
+from homeassistant.components.websocket_api.decorators import websocket_command  # pyright: ignore[reportUnknownVariableType]
 from homeassistant.config_entries import ConfigEntryState
 from homeassistant.const import ATTR_CONFIG_ENTRY_ID, Platform
 from homeassistant.core import (
