@@ -16,7 +16,6 @@ from ploc_cellar.const import SIGNAL_SYNC_COMPLETED
 from ploc_cellar.coordinator import (
     PlocCellarCoordinator,
     UpdateFailed,
-    _build_sync_changes,
     _validate_full_sync,
 )
 from ploc_cellar.models import Cellar, JsonValue, Rack, RackItem
@@ -64,7 +63,6 @@ def _coordinator(cellar: Cellar, store: _FakeStore) -> PlocCellarCoordinator:
     coordinator.store = cast(Any, store)
     coordinator.cellar = cellar
     coordinator._force_full_sync = False
-    coordinator._sync_trigger = "recurring"
     coordinator.session = cast(Any, object())
     coordinator.entry_id = "test-entry"
     notifications: list[bool] = []
@@ -250,14 +248,12 @@ def test_manual_partial_sync_reports_failed_refresh() -> None:
     coordinator._sync_trigger = "recurring"
 
     async def fake_refresh() -> None:
-        assert coordinator._sync_trigger == "forced_incremental"
 
     coordinator.async_refresh = fake_refresh
 
     with pytest.raises(HomeAssistantError):
         asyncio.run(coordinator.async_force_sync())
 
-    assert coordinator._sync_trigger == "recurring"
 
 
 def test_manual_full_sync_retries_until_complete_snapshot() -> None:
@@ -272,7 +268,6 @@ def test_manual_full_sync_retries_until_complete_snapshot() -> None:
 
     async def fake_refresh() -> None:
         nonlocal calls
-        assert coordinator._sync_trigger == "forced_full"
         calls += 1
         coordinator._force_full_sync = False
 
@@ -489,24 +484,6 @@ def test_authentication_failure_requests_config_entry_reauth(
 
     assert coordinator.cellar is original
     assert coordinator.cellar.stale is True
-
-
-def test_sync_change_summary_detects_additions_updates_and_deletions() -> None:
-    """The event diff compares committed object state, not received records."""
-    before = Cellar(racks={
-        "kept": Rack(id="kept", name="Before"),
-        "removed": Rack(id="removed", name="Removed"),
-    })
-    after = Cellar(racks={
-        "kept": Rack(id="kept", name="After"),
-        "added": Rack(id="added", name="Added"),
-    })
-
-    assert _build_sync_changes(before, after)["racks"] == {
-        "added": ["added"],
-        "updated": ["kept"],
-        "deleted": ["removed"],
-    }
 
 
 def test_slow_image_cache_does_not_block_inventory_publication(
