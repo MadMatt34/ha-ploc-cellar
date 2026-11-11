@@ -12,13 +12,14 @@ from homeassistant.exceptions import (
 )
 from homeassistant.helpers.dispatcher import async_dispatcher_connect
 from ploc_cellar import coordinator as coordinator_module
-from ploc_cellar.const import SIGNAL_SYNC_COMPLETED
+from ploc_cellar.const import EVENT_SYNC_COMPLETED, SIGNAL_SYNC_COMPLETED
 from ploc_cellar.coordinator import (
     PlocCellarCoordinator,
     UpdateFailed,
+    _build_sync_changes,
     _validate_full_sync,
 )
-from ploc_cellar.models import Cellar, JsonValue, RackItem
+from ploc_cellar.models import Cellar, JsonValue, Rack, RackItem
 from ploc_cellar.ploud import PloudAuthError, PLOUDCollections, PloudError
 
 
@@ -43,17 +44,31 @@ class _FakeStore:
         return self.read_back
 
 
+class _FakeBus:
+    """Capture Home Assistant events fired by the coordinator."""
+
+    def __init__(self) -> None:
+        self.events: list[tuple[str, dict[str, Any]]] = []
+
+    def async_fire(self, event_type: str, event_data: dict[str, Any]) -> None:
+        """Record an event and its payload."""
+        self.events.append((event_type, event_data))
+
+
 def _coordinator(cellar: Cellar, store: _FakeStore) -> PlocCellarCoordinator:
     """Create a coordinator with only the dependencies used by tested methods."""
     coordinator = object.__new__(PlocCellarCoordinator)
     hass = type("FakeHass", (), {"is_stopping": False, "data": {}})()
+    hass.bus = _FakeBus()
     coordinator.hass = cast(Any, hass)
     coordinator.store = cast(Any, store)
     coordinator.cellar = cellar
     coordinator._force_full_sync = False
+    coordinator._sync_trigger = "recurring"
     coordinator.session = cast(Any, object())
     coordinator.entry_id = "test-entry"
     notifications: list[bool] = []
+
     def on_sync_completed() -> None:
         assert store.saved is not None
         notifications.append(True)
@@ -237,21 +252,24 @@ def test_manual_partial_sync_reports_failed_refresh() -> None:
     coordinator = object.__new__(PlocCellarCoordinator)
     coordinator.last_update_success = False
     coordinator.last_exception = RuntimeError("PLOUD unavailable")
+    coordinator._sync_trigger = "recurring"
 
     async def fake_refresh() -> None:
-        return None
+        assert coordinator._sync_trigger == "forced_incremental"
 
     coordinator.async_refresh = fake_refresh
 
     with pytest.raises(HomeAssistantError):
         asyncio.run(coordinator.async_force_sync())
 
+    assert coordinator._sync_trigger == "recurring"
 
 
 def test_manual_full_sync_retries_until_complete_snapshot() -> None:
     """The full-sync request remains active until the coordinator commits it."""
     coordinator = object.__new__(PlocCellarCoordinator)
     coordinator._force_full_sync = True
+    coordinator._sync_trigger = "recurring"
     coordinator.last_update_success = True
     coordinator.last_exception = None
     coordinator.data = Cellar()
@@ -259,6 +277,7 @@ def test_manual_full_sync_retries_until_complete_snapshot() -> None:
 
     async def fake_refresh() -> None:
         nonlocal calls
+        assert coordinator._sync_trigger == "forced_full"
         calls += 1
         coordinator._force_full_sync = False
 
@@ -311,7 +330,29 @@ def test_full_sync_commits_only_a_complete_snapshot(
     assert updated.stale is False
     assert updated.last_sync is not None
     assert store.saved == updated.to_storage()
-    assert coordinator.hass.data["test_notifications"] == [True]
+    assert coordinator.hass.bus.events == [
+        (
+            EVENT_SYNC_COMPLETED,
+            {
+                "config_entry_id": "test-entry",
+                "last_sync": updated.last_sync,
+                "trigger": "recurring",
+                "sync_type": "full",
+                "changes": {
+                    "wines": {"added": [], "updated": [], "deleted": []},
+                    "racks": {"added": [], "updated": [], "deleted": []},
+                    "rack_items": {"added": [], "updated": [], "deleted": []},
+                    "orders": {"added": [], "updated": [], "deleted": []},
+                },
+                "change_counts": {
+                    "wines": {"added": 0, "updated": 0, "deleted": 0},
+                    "racks": {"added": 0, "updated": 0, "deleted": 0},
+                    "rack_items": {"added": 0, "updated": 0, "deleted": 0},
+                    "orders": {"added": 0, "updated": 0, "deleted": 0},
+                },
+            },
+        )
+    ]
 
 
 def test_image_cache_is_not_pruned_when_inventory_persistence_fails(
@@ -416,7 +457,29 @@ def test_partial_sync_commits_delta_and_preserves_reconstruction_state(
     assert updated.stale is False
     assert coordinator.cellar is updated
     assert store.saved == updated.to_storage()
-    assert coordinator.notifications == [True]
+    assert coordinator.hass.bus.events == [
+        (
+            EVENT_SYNC_COMPLETED,
+            {
+                "config_entry_id": "test-entry",
+                "last_sync": updated.last_sync,
+                "trigger": "recurring",
+                "sync_type": "incremental",
+                "changes": {
+                    "wines": {"added": [], "updated": [], "deleted": []},
+                    "racks": {"added": [], "updated": [], "deleted": []},
+                    "rack_items": {"added": [], "updated": [], "deleted": []},
+                    "orders": {"added": [], "updated": [], "deleted": []},
+                },
+                "change_counts": {
+                    "wines": {"added": 0, "updated": 0, "deleted": 0},
+                    "racks": {"added": 0, "updated": 0, "deleted": 0},
+                    "rack_items": {"added": 0, "updated": 0, "deleted": 0},
+                    "orders": {"added": 0, "updated": 0, "deleted": 0},
+                },
+            },
+        )
+    ]
 
 
 def test_invalid_full_snapshot_does_not_replace_cached_model(
@@ -478,10 +541,28 @@ def test_authentication_failure_requests_config_entry_reauth(
     assert coordinator.cellar.stale is True
 
 
+def test_sync_change_summary_detects_additions_updates_and_deletions() -> None:
+    """The event diff compares committed object state, not received records."""
+    before = Cellar(racks={
+        "kept": Rack(id="kept", name="Before"),
+        "removed": Rack(id="removed", name="Removed"),
+    })
+    after = Cellar(racks={
+        "kept": Rack(id="kept", name="After"),
+        "added": Rack(id="added", name="Added"),
+    })
+
+    assert _build_sync_changes(before, after)["racks"] == {
+        "added": ["added"],
+        "updated": ["kept"],
+        "deleted": ["removed"],
+    }
+
+
 def test_slow_image_cache_does_not_block_inventory_publication(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """The committed inventory and sync notification publish after the image budget."""
+    """The committed inventory and sync event publish after the image budget."""
     store = _FakeStore()
     coordinator = _coordinator(Cellar(), store)
     snapshot: PLOUDCollections = {
@@ -516,4 +597,6 @@ def test_slow_image_cache_does_not_block_inventory_publication(
     assert updated is coordinator.cellar
     assert updated.initialized is True
     assert store.saved == updated.to_storage()
-    assert coordinator.notifications == [True]
+    assert len(coordinator.hass.bus.events) == 1
+    assert coordinator.hass.bus.events[0][0] == EVENT_SYNC_COMPLETED
+    assert coordinator.hass.data["test_notifications"] == [True]
