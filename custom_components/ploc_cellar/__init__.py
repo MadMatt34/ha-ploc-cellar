@@ -6,17 +6,24 @@ from datetime import timedelta
 from pathlib import Path
 from typing import Any, cast
 
+import probatio
 import voluptuous as vol
+from homeassistant.components.websocket_api import async_register_command  # pyright: ignore[reportUnknownVariableType]
+from homeassistant.components.websocket_api.connection import ActiveConnection
+from homeassistant.components.websocket_api.const import ERR_NOT_FOUND
+from homeassistant.components.websocket_api.decorators import websocket_command  # pyright: ignore[reportUnknownVariableType]
 from homeassistant.config_entries import ConfigEntryState
 from homeassistant.const import ATTR_CONFIG_ENTRY_ID, Platform
 from homeassistant.core import (
     HomeAssistant,
     ServiceCall,
     SupportsResponse,
+    callback,
 )
 from homeassistant.exceptions import HomeAssistantError, ServiceValidationError
 from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
+from homeassistant.helpers.dispatcher import async_dispatcher_connect
 from homeassistant.helpers.storage import Store
 from homeassistant.helpers.typing import ConfigType
 from homeassistant.util.json import JsonObjectType, JsonValueType
@@ -34,6 +41,7 @@ from .const import (
     MIN_SCAN_INTERVAL_MINUTES,
     PLOUD_DEFAULT_SERVER,
     SERVICE_GET_INVENTORY,
+    SIGNAL_SYNC_COMPLETED,
     STORAGE_KEY,
     STORAGE_VERSION,
 )
@@ -328,9 +336,47 @@ def _build_inventory_response(
     }
 
 
+@callback
+@cast(Any, websocket_command)(
+    {
+        probatio.Required("type"): f"{DOMAIN}/subscribe_sync",
+        probatio.Required(ATTR_CONFIG_ENTRY_ID): cv.string,
+    }
+)
+def websocket_subscribe_sync(
+    hass: HomeAssistant,
+    connection: ActiveConnection,
+    msg: dict[str, Any],
+) -> None:
+    """Subscribe to successful sync notifications for one loaded cellar."""
+    config_entry_id = msg[ATTR_CONFIG_ENTRY_ID]
+    try:
+        _get_coordinator(hass, config_entry_id)
+    except ServiceValidationError:
+        connection.send_error(
+            msg["id"],
+            ERR_NOT_FOUND,
+            "Ploc Cellar configuration entry is not loaded",
+        )
+        return
+
+    @callback
+    def forward_sync_completed() -> None:
+        """Send an empty invalidation message; inventory remains service-only."""
+        connection.send_event(msg["id"], {})
+
+    connection.subscriptions[msg["id"]] = async_dispatcher_connect(
+        hass,
+        f"{SIGNAL_SYNC_COMPLETED}_{config_entry_id}",
+        forward_sync_completed,
+    )
+    connection.send_result(msg["id"])
+
+
 async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
-    """Register the inventory service and authenticated image endpoint."""
+    """Register the inventory service, sync WebSocket command and image endpoint."""
     hass.http.register_view(PlocCellarImageView(hass))
+    cast(Any, async_register_command)(hass, websocket_subscribe_sync)
 
     async def get_inventory(call: ServiceCall) -> JsonObjectType:
         """Return the current stocked inventory on demand."""

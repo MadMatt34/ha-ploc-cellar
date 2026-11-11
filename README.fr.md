@@ -22,7 +22,7 @@ Intégration personnalisée Home Assistant permettant de consulter une cave PLOC
 - [Options de synchronisation](#options-de-synchronisation)
 - [Entités](#entités)
 - [Actions et réponse d'inventaire](#actions)
-- [Événement de synchronisation](#événement-de-synchronisation)
+- [Événement et notification de synchronisation](#événement-et-notification-de-synchronisation)
 - [Stockage et confidentialité](#stockage-et-confidentialité)
 - [Validation](#validation)
 - [Cartes Lovelace](#cartes-lovelace)
@@ -200,9 +200,9 @@ La réponse contient :
 
 Pour chaque vin, `unlocated_bottles` correspond à la différence entre le stock effectif et les bouteilles physiquement placées ; `negative_movement_bottles` est la valeur absolue d'un solde entrées-sorties négatif ; `physical_surplus_bottles` compte les bouteilles physiquement présentes au-delà de `max(0, movement_balance)`. Ces diagnostics sont distincts et peuvent coexister pour une même référence. Un stock non localisé ne prouve pas qu'une bouteille a été retirée sans déclarer sa sortie : elle peut ne jamais avoir été rangée ou être conservée hors de la cave. Les valeurs brutes `Wine.bo` restent informatives et ne déterminent pas le stock effectif. Aucune correction n'est envoyée à PLOUD. Les filtres ne modifient pas les totaux globaux. Chaque emplacement associé à un vin contient le nom et l'identifiant du casier, ainsi que la rangée et la colonne lorsqu'elles sont disponibles.
 
-## 📡 Événement de synchronisation
+## 📡 Événement et notification de synchronisation
 
-Après validation, enregistrement et activation du nouvel inventaire, l'intégration déclenche l'événement Home Assistant `ploc_cellar_sync_completed`. Aucun événement n'est émis lorsqu'une synchronisation échoue.
+Après validation, enregistrement et activation du nouvel inventaire, l'intégration continue d'émettre l'événement Home Assistant `ploc_cellar_sync_completed`. Aucun événement n'est émis lorsqu'une synchronisation échoue. Cet événement public est conservé pour assurer la compatibilité avec les automatisations existantes des administrateurs.
 
 Les données de l'événement sont les suivantes :
 
@@ -217,7 +217,10 @@ Les données de l'événement sont les suivantes :
 
 Chaque collection de `changes` contient trois tableaux : `added`, `updated` et `deleted`. Les modifications sont déterminées en comparant le modèle validé avant et après application de la synchronisation ; la simple réception d'un objet dans un delta PLOUD ne constitue pas un changement. Les instantanés complets sont comparés à l'ancien inventaire local : les listes décrivent donc les différences réelles, et non le nombre d'enregistrements téléchargés. Les tableaux ne contiennent que des identifiants afin de conserver un événement léger.
 
-Les cartes frontend s'abonnent à cet événement et ne s'actualisent que si son `config_entry_id` correspond à l'entrée sélectionnée dans l'éditeur de la carte. Les mises à jour restent ainsi propres à chaque cave, sans dépendre d'un identifiant d'entité ni d'un polling.
+Home Assistant réserve l'abonnement aux événements personnalisés aux administrateurs. Les cartes frontend n'utilisent donc plus cet événement pour se rafraîchir : elles s'abonnent à la commande WebSocket `ploc_cellar/subscribe_sync` avec le `config_entry_id` de la cave. Le backend valide que l'entrée existe et est chargée, puis utilise un signal interne distinct par entrée. La commande est accessible aux utilisateurs authentifiés non administrateurs.
+
+La notification WebSocket est volontairement vide (`{}`) : elle indique uniquement qu'un nouvel inventaire a été validé et enregistré, sans transmettre de données de cave, d'identifiants d'objets ni de détails de synchronisation. La carte relit ensuite l'inventaire via `ploc_cellar.get_inventory`. Home Assistant nettoie l'abonnement lors du désabonnement ou de la fermeture de la connexion WebSocket. Aucun polling ni identifiant d'entité généré n'est nécessaire.
+
 ## 🔐 Stockage et confidentialité
 
 Les fichiers image restent dans le cache privé de l'entrée de configuration et ne sont accessibles qu'aux utilisateurs authentifiés de Home Assistant. Ce cache est indépendant de l'inventaire persistant et n'entraîne aucune écriture vers PLOUD.

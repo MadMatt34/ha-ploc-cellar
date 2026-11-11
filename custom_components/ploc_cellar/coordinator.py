@@ -13,6 +13,7 @@ from urllib.parse import quote
 from aiohttp import ClientSession
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ConfigEntryAuthFailed, HomeAssistantError
+from homeassistant.helpers.dispatcher import async_dispatcher_send
 from homeassistant.helpers.storage import Store
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
@@ -21,6 +22,7 @@ from .const import (
     DOMAIN,
     EVENT_SYNC_COMPLETED,
     ORDERS_STORAGE_VERSION,
+    SIGNAL_SYNC_COMPLETED,
     STORAGE_KEY,
     STORAGE_VERSION,
 )
@@ -421,6 +423,10 @@ class PlocCellarCoordinator(DataUpdateCoordinator[Cellar]):
                 "change_counts": change_counts,
             }
             self.hass.bus.async_fire(EVENT_SYNC_COMPLETED, event_data)
+            async_dispatcher_send(
+                self.hass,
+                f"{SIGNAL_SYNC_COMPLETED}_{self.entry_id}",
+            )
             return updated_cellar
         except PloudAuthError as err:
             self.cellar.stale = True

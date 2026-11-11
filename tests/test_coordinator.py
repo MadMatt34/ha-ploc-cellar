@@ -10,8 +10,9 @@ from homeassistant.exceptions import (
     ConfigEntryAuthFailed,
     HomeAssistantError,
 )
+from homeassistant.helpers.dispatcher import async_dispatcher_connect
 from ploc_cellar import coordinator as coordinator_module
-from ploc_cellar.const import EVENT_SYNC_COMPLETED
+from ploc_cellar.const import EVENT_SYNC_COMPLETED, SIGNAL_SYNC_COMPLETED
 from ploc_cellar.coordinator import (
     PlocCellarCoordinator,
     UpdateFailed,
@@ -54,10 +55,26 @@ class _FakeBus:
         self.events.append((event_type, event_data))
 
 
+def _verify_event_loop_thread(_self: Any, _method: str) -> None:
+    """Stand in for Home Assistant event-loop thread validation."""
+
+def _async_run_hass_job(_self: Any, job: Any, *args: Any) -> Any:
+    """Run synchronous dispatcher callbacks in the test event loop."""
+    return job.target(*args)
+
 def _coordinator(cellar: Cellar, store: _FakeStore) -> PlocCellarCoordinator:
     """Create a coordinator with only the dependencies used by tested methods."""
     coordinator = object.__new__(PlocCellarCoordinator)
-    hass = type("FakeHass", (), {"is_stopping": False})()
+    hass = type(
+        "FakeHass",
+        (),
+        {
+            "is_stopping": False,
+            "data": {},
+            "verify_event_loop_thread": _verify_event_loop_thread,
+            "async_run_hass_job": _async_run_hass_job,
+        },
+    )()
     hass.bus = _FakeBus()
     coordinator.hass = cast(Any, hass)
     coordinator.store = cast(Any, store)
@@ -66,6 +83,18 @@ def _coordinator(cellar: Cellar, store: _FakeStore) -> PlocCellarCoordinator:
     coordinator._sync_trigger = "recurring"
     coordinator.session = cast(Any, object())
     coordinator.entry_id = "test-entry"
+    notifications: list[bool] = []
+
+    def on_sync_completed() -> None:
+        assert store.saved is not None
+        notifications.append(True)
+
+    async_dispatcher_connect(
+        hass,
+        f"{SIGNAL_SYNC_COMPLETED}_{coordinator.entry_id}",
+        on_sync_completed,
+    )
+    hass.data["test_notifications"] = notifications
     coordinator.image_directory = Path("/tmp/ploc-cellar-test-images")
     coordinator.server = "https://ploud.example"
     coordinator.token = "token"
@@ -340,6 +369,7 @@ def test_full_sync_commits_only_a_complete_snapshot(
             },
         )
     ]
+    assert coordinator.hass.data["test_notifications"] == [True]
 
 
 def test_image_cache_is_not_pruned_when_inventory_persistence_fails(
@@ -375,6 +405,8 @@ def test_image_cache_is_not_pruned_when_inventory_persistence_fails(
 
     assert image_sync_called is False
     assert coordinator.cellar is original
+    assert coordinator.hass.bus.events == []
+    assert coordinator.hass.data["test_notifications"] == []
 
 
 def test_unexpected_image_cache_error_does_not_invalidate_committed_inventory(
@@ -466,6 +498,7 @@ def test_partial_sync_commits_delta_and_preserves_reconstruction_state(
             },
         )
     ]
+    assert coordinator.hass.data["test_notifications"] == [True]
 
 
 def test_invalid_full_snapshot_does_not_replace_cached_model(
@@ -585,3 +618,4 @@ def test_slow_image_cache_does_not_block_inventory_publication(
     assert store.saved == updated.to_storage()
     assert len(coordinator.hass.bus.events) == 1
     assert coordinator.hass.bus.events[0][0] == EVENT_SYNC_COMPLETED
+    assert coordinator.hass.data["test_notifications"] == [True]
