@@ -27,8 +27,7 @@ All PLOC/PLOUD HTTP calls in unit tests use deterministic response/session doubl
 | `test_coordinator_lifecycle.py` | Coordinator setup, refresh, cancellation, unload and lifecycle cleanup |
 | `test_services.py` | Inventory filtering, stock diagnostics and response values |
 | `test_service_contract.py` | Exact JSON response contract and frontend-facing compatibility |
-| `test_integration_services.py` | Inventory service dispatch, loaded-entry validation, per-entry WebSocket subscriptions, empty notification payloads, non-admin-compatible command registration and subscription cleanup |
-| `test_integration_services.py` (inventory service) | Service registration/dispatch, config-entry setup, platform forwarding and unload |
+| `test_integration_services.py` | Inventory service registration/dispatch, config-entry setup/unload, loaded-entry validation, per-entry WebSocket subscriptions, empty notification payloads and non-admin-compatible command registration |
 | `test_sensor.py` | Sensor values, availability, stale timestamp attributes, registry migration and entity creation |
 | `test_button.py` | Differential/full synchronization button behavior and failure propagation |
 | `test_images.py` | Image metadata, download/cache, replacement and deletion lifecycle |
