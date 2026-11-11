@@ -58,6 +58,10 @@ class _FakeBus:
 def _verify_event_loop_thread(_self: Any, _method: str) -> None:
     """Stand in for Home Assistant event-loop thread validation."""
 
+def _async_run_hass_job(_self: Any, job: Any, *args: Any) -> Any:
+    """Run synchronous dispatcher callbacks in the test event loop."""
+    return job(*args)
+
 def _coordinator(cellar: Cellar, store: _FakeStore) -> PlocCellarCoordinator:
     """Create a coordinator with only the dependencies used by tested methods."""
     coordinator = object.__new__(PlocCellarCoordinator)
@@ -68,6 +72,7 @@ def _coordinator(cellar: Cellar, store: _FakeStore) -> PlocCellarCoordinator:
             "is_stopping": False,
             "data": {},
             "verify_event_loop_thread": _verify_event_loop_thread,
+            "async_run_hass_job": _async_run_hass_job,
         },
     )()
     hass.bus = _FakeBus()
