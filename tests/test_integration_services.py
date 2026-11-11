@@ -117,7 +117,7 @@ def test_sync_websocket_subscription_is_scoped_and_sends_no_inventory_data(
     hass = SimpleNamespace(
         services=_Services(),
         http=_HTTP(),
-        websocket_api=_WebSocketAPI(),
+        data={},
         config_entries=SimpleNamespace(async_get_entry=entries.get),
     )
     connected: dict[str, list[Any]] = {}
