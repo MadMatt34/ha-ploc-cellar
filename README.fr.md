@@ -22,7 +22,7 @@ Intégration personnalisée Home Assistant permettant de consulter une cave PLOC
 - [Options de synchronisation](#options-de-synchronisation)
 - [Entités](#entités)
 - [Actions et réponse d'inventaire](#actions)
-- [Notification de synchronisation](#notification-de-synchronisation)
+- [Événement et notification de synchronisation](#événement-et-notification-de-synchronisation)
 - [Stockage et confidentialité](#stockage-et-confidentialité)
 - [Validation](#validation)
 - [Cartes Lovelace](#cartes-lovelace)
@@ -200,15 +200,26 @@ La réponse contient :
 
 Pour chaque vin, `unlocated_bottles` correspond à la différence entre le stock effectif et les bouteilles physiquement placées ; `negative_movement_bottles` est la valeur absolue d'un solde entrées-sorties négatif ; `physical_surplus_bottles` compte les bouteilles physiquement présentes au-delà de `max(0, movement_balance)`. Ces diagnostics sont distincts et peuvent coexister pour une même référence. Un stock non localisé ne prouve pas qu'une bouteille a été retirée sans déclarer sa sortie : elle peut ne jamais avoir été rangée ou être conservée hors de la cave. Les valeurs brutes `Wine.bo` restent informatives et ne déterminent pas le stock effectif. Aucune correction n'est envoyée à PLOUD. Les filtres ne modifient pas les totaux globaux. Chaque emplacement associé à un vin contient le nom et l'identifiant du casier, ainsi que la rangée et la colonne lorsqu'elles sont disponibles.
 
-## 📡 Notification de synchronisation
+## 📡 Événement et notification de synchronisation
 
-Après validation, persistance et activation du nouvel inventaire, l'intégration émet un signal interne propre à l'entrée de configuration. Elle ne déclenche plus d'événement personnalisé sur le bus d'événements Home Assistant.
+Après validation, enregistrement et activation du nouvel inventaire, l'intégration continue d'émettre l'événement Home Assistant `ploc_cellar_sync_completed`. Aucun événement n'est émis lorsqu'une synchronisation échoue. Cet événement public est conservé pour assurer la compatibilité avec les automatisations existantes des administrateurs.
 
-Les cartes frontend s'abonnent à la commande WebSocket `ploc_cellar/subscribe_sync` en fournissant le `config_entry_id` de la cave. Le backend vérifie que cette entrée Ploc Cellar existe et est chargée, puis crée un abonnement au signal de cette seule entrée. Un utilisateur Home Assistant authentifié non administrateur peut utiliser cette commande ; elle ne nécessite pas de permission administrateur.
+Les données de l'événement sont les suivantes :
 
-Chaque notification WebSocket est volontairement vide (`{}`). Elle indique uniquement qu'un nouvel inventaire a été validé et enregistré. Elle ne transmet ni données de cave, ni identifiants d'objets, ni détails de synchronisation. La carte relit ensuite l'inventaire via le service de réponse `ploc_cellar.get_inventory`. Aucun message n'est envoyé lorsqu'une synchronisation échoue ou n'est pas validée.
+| Champ | Signification |
+|---|---|
+| `config_entry_id` | Identifiant de l'entrée de configuration Ploc Cellar dont l'inventaire a été mis à jour. |
+| `last_sync` | Date et heure de la dernière synchronisation réussie. |
+| `trigger` | Origine de la synchronisation : `recurring`, `forced_incremental` ou `forced_full`. Une synchronisation complète de récupération déclenchée en interne après un delta incomplet conserve le déclencheur initial. |
+| `sync_type` | Opération PLOUD réellement exécutée : `incremental` ou `full`. |
+| `changes` | Identifiants des objets effectivement ajoutés, modifiés et supprimés, regroupés sous `wines`, `racks`, `rack_items` et `orders`. |
+| `change_counts` | Nombre d'identifiants ajoutés, modifiés et supprimés pour chaque collection. |
 
-Home Assistant supprime automatiquement l'abonnement lorsque le client se désabonne ou que sa connexion WebSocket se ferme. Les signaux étant isolés par `config_entry_id`, une synchronisation ne notifie que les cartes abonnées à la cave concernée.
+Chaque collection de `changes` contient trois tableaux : `added`, `updated` et `deleted`. Les modifications sont déterminées en comparant le modèle validé avant et après application de la synchronisation ; la simple réception d'un objet dans un delta PLOUD ne constitue pas un changement. Les instantanés complets sont comparés à l'ancien inventaire local : les listes décrivent donc les différences réelles, et non le nombre d'enregistrements téléchargés. Les tableaux ne contiennent que des identifiants afin de conserver un événement léger.
+
+Home Assistant réserve l'abonnement aux événements personnalisés aux administrateurs. Les cartes frontend n'utilisent donc plus cet événement pour se rafraîchir : elles s'abonnent à la commande WebSocket `ploc_cellar/subscribe_sync` avec le `config_entry_id` de la cave. Le backend valide que l'entrée existe et est chargée, puis utilise un signal interne distinct par entrée. La commande est accessible aux utilisateurs authentifiés non administrateurs.
+
+La notification WebSocket est volontairement vide (`{}`) : elle indique uniquement qu'un nouvel inventaire a été validé et enregistré, sans transmettre de données de cave, d'identifiants d'objets ni de détails de synchronisation. La carte relit ensuite l'inventaire via `ploc_cellar.get_inventory`. Home Assistant nettoie l'abonnement lors du désabonnement ou de la fermeture de la connexion WebSocket. Aucun polling ni identifiant d'entité généré n'est nécessaire.
 
 ## 🔐 Stockage et confidentialité
 
