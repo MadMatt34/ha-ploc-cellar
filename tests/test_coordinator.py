@@ -245,9 +245,9 @@ def test_manual_partial_sync_reports_failed_refresh() -> None:
     coordinator = object.__new__(PlocCellarCoordinator)
     coordinator.last_update_success = False
     coordinator.last_exception = RuntimeError("PLOUD unavailable")
-    coordinator._sync_trigger = "recurring"
 
     async def fake_refresh() -> None:
+        return None
 
     coordinator.async_refresh = fake_refresh
 
