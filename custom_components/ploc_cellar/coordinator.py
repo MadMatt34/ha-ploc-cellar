@@ -227,8 +227,6 @@ class PlocCellarCoordinator(DataUpdateCoordinator[Cellar]):
 
     async def _async_update_data(self) -> Cellar:
         """Apply a PLOUD delta and persist it before publishing the new model."""
-        sync_trigger = self._sync_trigger
-        previous_cellar = self.cellar
         try:
             cursor = (
                 1
@@ -405,22 +403,6 @@ class PlocCellarCoordinator(DataUpdateCoordinator[Cellar]):
                 )
             if full_sync:
                 self._force_full_sync = False
-            changes = _build_sync_changes(previous_cellar, updated_cellar)
-            change_counts = {
-                collection: {
-                    operation: len(identifiers)
-                    for operation, identifiers in operations.items()
-                }
-                for collection, operations in changes.items()
-            }
-            event_data: dict[str, Any] = {
-                "config_entry_id": self.entry_id,
-                "last_sync": updated_cellar.last_sync,
-                "trigger": sync_trigger,
-                "sync_type": "full" if full_sync else "incremental",
-                "changes": changes,
-                "change_counts": change_counts,
-            }
             async_dispatcher_send(
                 self.hass,
                 f"{SIGNAL_SYNC_COMPLETED}_{self.entry_id}",
