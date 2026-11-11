@@ -3,7 +3,7 @@
 The backend suite validates the integration at three levels:
 
 1. **Pure model and protocol tests** cover parsing, normalization, stock reconstruction, deletion semantics, storage migrations and PLOUD transport contracts without network access.
-2. **Coordinator, image and service tests** cover incremental/full synchronization, transactional persistence, image cache lifecycle and boundaries, authenticated views, diagnostics and the JSON inventory response.
+2. **Coordinator, image, service and WebSocket tests** cover incremental/full synchronization, transactional persistence, image cache lifecycle and boundaries, authenticated views, diagnostics, the JSON inventory response and entry-scoped sync notifications for non-admin users.
 3. **Home Assistant contract checks** run Ruff, Hassfest, strict Pyright, the unit suite and HACS validation.
 
 All PLOC/PLOUD HTTP calls in unit tests use deterministic response/session doubles. Tests do not contact a real PLOC account or mutate a cellar.
@@ -27,7 +27,8 @@ All PLOC/PLOUD HTTP calls in unit tests use deterministic response/session doubl
 | `test_coordinator_lifecycle.py` | Coordinator setup, refresh, cancellation, unload and lifecycle cleanup |
 | `test_services.py` | Inventory filtering, stock diagnostics and response values |
 | `test_service_contract.py` | Exact JSON response contract and frontend-facing compatibility |
-| `test_integration_services.py` | Service registration/dispatch, config-entry setup, platform forwarding and unload |
+| `test_integration_services.py` | Inventory service dispatch, loaded-entry validation, per-entry WebSocket subscriptions, empty notification payloads, non-admin-compatible command registration and subscription cleanup |
+| `test_integration_services.py` (inventory service) | Service registration/dispatch, config-entry setup, platform forwarding and unload |
 | `test_sensor.py` | Sensor values, availability, stale timestamp attributes, registry migration and entity creation |
 | `test_button.py` | Differential/full synchronization button behavior and failure propagation |
 | `test_images.py` | Image metadata, download/cache, replacement and deletion lifecycle |
