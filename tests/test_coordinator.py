@@ -59,7 +59,7 @@ def _coordinator(cellar: Cellar, store: _FakeStore) -> PlocCellarCoordinator:
         f"{SIGNAL_SYNC_COMPLETED}_{coordinator.entry_id}",
         lambda: notifications.append(True),
     )
-    coordinator.notifications = notifications
+    hass.data["test_notifications"] = notifications
     coordinator.image_directory = Path("/tmp/ploc-cellar-test-images")
     coordinator.server = "https://ploud.example"
     coordinator.token = "token"
@@ -307,7 +307,7 @@ def test_full_sync_commits_only_a_complete_snapshot(
     assert updated.stale is False
     assert updated.last_sync is not None
     assert store.saved == updated.to_storage()
-    assert coordinator.notifications == [True]
+    assert coordinator.hass.data["test_notifications"] == [True]
 
 
 def test_image_cache_is_not_pruned_when_inventory_persistence_fails(
@@ -343,7 +343,7 @@ def test_image_cache_is_not_pruned_when_inventory_persistence_fails(
 
     assert image_sync_called is False
     assert coordinator.cellar is original
-    assert coordinator.notifications == []
+    assert coordinator.hass.data["test_notifications"] == []
 
 
 def test_unexpected_image_cache_error_does_not_invalidate_committed_inventory(
