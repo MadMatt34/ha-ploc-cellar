@@ -41,6 +41,20 @@ class _Store:
         return deepcopy(self.stored)
 
 
+class _FakeBus:
+    """Capture Home Assistant events fired by the coordinator."""
+
+    def __init__(self) -> None:
+        self.events: list[tuple[str, dict[str, str | None]]] = []
+
+    def async_fire(
+        self,
+        event_type: str,
+        event_data: dict[str, str | None],
+    ) -> None:
+        self.events.append((event_type, event_data))
+
+
 def _coordinator(
     cellar: Cellar | None = None,
     store: _Store | None = None,
@@ -54,12 +68,13 @@ def _coordinator(
     hass = type(
         "FakeHass",
         (),
-        {"is_stopping": False, "config": fake_config},
+        {"is_stopping": False, "config": fake_config, "bus": _FakeBus(), "data": {}},
     )()
     coordinator.hass = cast(Any, hass)
     coordinator.store = cast(Any, store or _Store())
     coordinator.cellar = cellar or Cellar()
     coordinator._force_full_sync = False
+    coordinator._sync_trigger = "recurring"
     coordinator.session = cast(Any, object())
     coordinator.entry_id = "test-entry"
     coordinator.image_directory = Path("/tmp/ploc-cellar-test-images")
@@ -117,6 +132,7 @@ def test_load_without_saved_snapshot_keeps_empty_cellar() -> None:
 
     assert coordinator.cellar.initialized is False
     assert coordinator._force_full_sync is False
+    assert coordinator._sync_trigger == "recurring"
 
 
 def test_load_restores_current_snapshot_without_rewriting_it() -> None:
