@@ -97,7 +97,7 @@ def _hass(coordinator: _Coordinator) -> SimpleNamespace:
 
 
 def test_async_setup_registers_only_the_inventory_service() -> None:
-    """Register only inventory; synchronization is exposed through entity buttons."""
+    """Register the inventory service and scoped synchronization subscription."""
     coordinator = _Coordinator()
     hass = _hass(coordinator)
 
@@ -130,11 +130,17 @@ def test_sync_websocket_subscription_is_scoped_and_sends_no_inventory_data(
         websocket_api=_WebSocketAPI(),
         config_entries=SimpleNamespace(async_get_entry=entries.get),
     )
-    connected: dict[str, Any] = {}
+    connected: dict[str, list[Any]] = {}
 
     def connect(_hass: Any, signal: str, callback: Any) -> Any:
-        connected[signal] = callback
-        return lambda: connected.pop(signal, None)
+        connected.setdefault(signal, []).append(callback)
+
+        def unsubscribe() -> None:
+            connected[signal].remove(callback)
+            if not connected[signal]:
+                del connected[signal]
+
+        return unsubscribe
 
     monkeypatch.setattr(integration, "async_dispatcher_connect", connect)
     assert asyncio.run(async_setup(hass, {})) is True
@@ -163,20 +169,31 @@ def test_sync_websocket_subscription_is_scoped_and_sends_no_inventory_data(
         {"id": 7, "type": f"{DOMAIN}/subscribe_sync", "config_entry_id": "entry-1"},
     )
 
-    signal = f"{SIGNAL_SYNC_COMPLETED}_entry-1"
-    assert set(connected) == {signal}
+    signal_one = f"{SIGNAL_SYNC_COMPLETED}_entry-1"
+    signal_two = f"{SIGNAL_SYNC_COMPLETED}_entry-2"
+    second_connection = _Connection()
+    handler(
+        hass,
+        second_connection,
+        {"id": 9, "type": f"{DOMAIN}/subscribe_sync", "config_entry_id": "entry-2"},
+    )
+
+    assert set(connected) == {signal_one, signal_two}
     assert connection.results == [7]
+    assert second_connection.results == [9]
     assert connection.errors == []
     assert 7 in connection.subscriptions
+    assert 9 in second_connection.subscriptions
 
-    connected[signal]()
-    assert connection.messages == [
-        {"id": 7, "type": "event", "event": {}}
-    ]
-    assert "entry-2" not in str(connection.messages)
-    assert "wines" not in str(connection.messages)
+    connected[signal_one][0]()
+    assert connection.messages == [{"id": 7, "type": "event", "event": {}}]
+    assert second_connection.messages == []
+    connected[signal_two][0]()
+    assert second_connection.messages == [{"id": 9, "type": "event", "event": {}}]
+    assert "wines" not in str(connection.messages + second_connection.messages)
 
     connection.subscriptions[7]()
+    second_connection.subscriptions[9]()
     assert connected == {}
 
 
