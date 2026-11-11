@@ -193,7 +193,7 @@ def test_sync_websocket_subscription_rejects_unloaded_entry() -> None:
     hass = SimpleNamespace(
         services=_Services(),
         http=_HTTP(),
-        websocket_api=_WebSocketAPI(),
+        data={},
         config_entries=SimpleNamespace(async_get_entry=lambda _entry_id: None),
     )
     asyncio.run(async_setup(hass, {}))
