@@ -2,7 +2,7 @@
 from datetime import timedelta
 
 DOMAIN = "ploc_cellar"
-EVENT_SYNC_COMPLETED = f"{DOMAIN}_sync_completed"
+SIGNAL_SYNC_COMPLETED = f"{DOMAIN}_sync_completed"
 
 AUTH_API_BASE = "https://api.ploc.co/a/v3"
 GATEWAY_API_BASE = "https://api.ploc.co/v1"
