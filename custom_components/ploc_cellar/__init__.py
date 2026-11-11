@@ -8,6 +8,10 @@ from typing import Any, cast
 
 import probatio
 from homeassistant.components import websocket_api
+from homeassistant.components.websocket_api.connection import ActiveConnection
+from homeassistant.components.websocket_api.const import ERR_NOT_FOUND
+from homeassistant.components.websocket_api.decorators import websocket_command
+from homeassistant.components.websocket_api.messages import event_message
 from homeassistant.config_entries import ConfigEntryState
 from homeassistant.const import ATTR_CONFIG_ENTRY_ID, Platform
 from homeassistant.core import (
@@ -333,7 +337,7 @@ def _build_inventory_response(
 
 
 @callback
-@cast(Any, websocket_api.websocket_command)(
+@cast(Any, websocket_command)(
     {
         probatio.Required("type"): f"{DOMAIN}/subscribe_sync",
         probatio.Required(ATTR_CONFIG_ENTRY_ID): cv.string,
@@ -341,7 +345,7 @@ def _build_inventory_response(
 )
 def websocket_subscribe_sync(
     hass: HomeAssistant,
-    connection: websocket_api.ActiveConnection,
+    connection: ActiveConnection,
     msg: dict[str, Any],
 ) -> None:
     """Subscribe to successful sync notifications for one loaded cellar."""
@@ -351,7 +355,7 @@ def websocket_subscribe_sync(
     except ServiceValidationError:
         connection.send_error(
             msg["id"],
-            websocket_api.ERR_NOT_FOUND,
+            ERR_NOT_FOUND,
             "Ploc Cellar configuration entry is not loaded",
         )
         return
@@ -359,7 +363,7 @@ def websocket_subscribe_sync(
     @callback
     def forward_sync_completed() -> None:
         """Send an empty invalidation message; inventory remains service-only."""
-        connection.send_message(websocket_api.event_message(msg["id"], {}))
+        connection.send_message(event_message(msg["id"], {}))
 
     connection.subscriptions[msg["id"]] = async_dispatcher_connect(
         hass,
