@@ -55,10 +55,13 @@ class _FakeBus:
         self.events.append((event_type, event_data))
 
 
+def _verify_event_loop_thread(_self: Any, _method: str) -> None:
+    """Stand in for Home Assistant event-loop thread validation."""
+
 def _coordinator(cellar: Cellar, store: _FakeStore) -> PlocCellarCoordinator:
     """Create a coordinator with only the dependencies used by tested methods."""
     coordinator = object.__new__(PlocCellarCoordinator)
-    hass = type("FakeHass", (), {"is_stopping": False, "data": {}})()
+    hass = type("FakeHass", (), {"is_stopping": False, "data": {}, "verify_event_loop_thread": _verify_event_loop_thread})()
     hass.bus = _FakeBus()
     coordinator.hass = cast(Any, hass)
     coordinator.store = cast(Any, store)
