@@ -7,6 +7,7 @@ import logging
 from copy import deepcopy
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
+from typing import Any
 from urllib.parse import quote
 
 from aiohttp import ClientSession
@@ -19,8 +20,9 @@ from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, Upda
 from .const import (
     CELLAR_DATA_VERSION,
     DOMAIN,
-    ORDERS_STORAGE_VERSION,
+    EVENT_SYNC_COMPLETED,
     SIGNAL_SYNC_COMPLETED,
+    ORDERS_STORAGE_VERSION,
     STORAGE_KEY,
     STORAGE_VERSION,
 )
@@ -78,6 +80,31 @@ def _validate_full_sync(objects: PLOUDCollections) -> None:
         )
 
 
+def _build_sync_changes(
+    before: Cellar,
+    after: Cellar,
+) -> dict[str, dict[str, list[str]]]:
+    """Return effective additions, updates and deletions by cellar collection."""
+    collections = (
+        ("wines", before.wines, after.wines),
+        ("racks", before.racks, after.racks),
+        ("rack_items", before.rack_items, after.rack_items),
+        ("orders", before.orders, after.orders),
+    )
+    changes: dict[str, dict[str, list[str]]] = {}
+    for name, previous, current in collections:
+        previous_ids = previous.keys()
+        current_ids = current.keys()
+        added = sorted(current_ids - previous_ids)
+        deleted = sorted(previous_ids - current_ids)
+        updated = sorted(
+            identifier for identifier in previous_ids & current_ids
+            if previous[identifier] != current[identifier]
+        )
+        changes[name] = {"added": added, "updated": updated, "deleted": deleted}
+    return changes
+
+
 class PlocCellarCoordinator(DataUpdateCoordinator[Cellar]):
     """Fetch PLOUD deltas and publish the shared cellar model."""
 
@@ -117,6 +144,7 @@ class PlocCellarCoordinator(DataUpdateCoordinator[Cellar]):
         )
         self.cellar = Cellar()
         self._force_full_sync = False
+        self._sync_trigger = "recurring"
 
     async def _async_save_verified(self, data: dict[str, JsonValue]) -> None:
         """Persist a snapshot atomically and verify it can be read back.
@@ -200,6 +228,8 @@ class PlocCellarCoordinator(DataUpdateCoordinator[Cellar]):
 
     async def _async_update_data(self) -> Cellar:
         """Apply a PLOUD delta and persist it before publishing the new model."""
+        sync_trigger = self._sync_trigger
+        previous_cellar = self.cellar
         try:
             cursor = (
                 1
@@ -376,6 +406,23 @@ class PlocCellarCoordinator(DataUpdateCoordinator[Cellar]):
                 )
             if full_sync:
                 self._force_full_sync = False
+            changes = _build_sync_changes(previous_cellar, updated_cellar)
+            change_counts = {
+                collection: {
+                    operation: len(identifiers)
+                    for operation, identifiers in operations.items()
+                }
+                for collection, operations in changes.items()
+            }
+            event_data: dict[str, Any] = {
+                "config_entry_id": self.entry_id,
+                "last_sync": updated_cellar.last_sync,
+                "trigger": sync_trigger,
+                "sync_type": "full" if full_sync else "incremental",
+                "changes": changes,
+                "change_counts": change_counts,
+            }
+            self.hass.bus.async_fire(EVENT_SYNC_COMPLETED, event_data)
             async_dispatcher_send(
                 self.hass,
                 f"{SIGNAL_SYNC_COMPLETED}_{self.entry_id}",
@@ -401,24 +448,32 @@ class PlocCellarCoordinator(DataUpdateCoordinator[Cellar]):
         """Request a complete PLOUD snapshot without clearing current data first."""
         _LOGGER.info("Manual full PLOUD synchronization requested")
         self._force_full_sync = True
-        while self._force_full_sync:
+        self._sync_trigger = "forced_full"
+        try:
+            while self._force_full_sync:
+                await self.async_refresh()
+                if not self.last_update_success:
+                    raise HomeAssistantError(
+                        translation_domain=DOMAIN,
+                        translation_key="sync_failed",
+                    ) from self.last_exception
+            return self.data
+        finally:
+            self._sync_trigger = "recurring"
+
+    async def async_force_sync(self) -> Cellar:
+        """Request an immediate refresh and report failure to the caller."""
+        self._sync_trigger = "forced_incremental"
+        try:
             await self.async_refresh()
             if not self.last_update_success:
                 raise HomeAssistantError(
                     translation_domain=DOMAIN,
                     translation_key="sync_failed",
                 ) from self.last_exception
-        return self.data
-
-    async def async_force_sync(self) -> Cellar:
-        """Request an immediate refresh and report failure to the caller."""
-        await self.async_refresh()
-        if not self.last_update_success:
-            raise HomeAssistantError(
-                translation_domain=DOMAIN,
-                translation_key="sync_failed",
-            ) from self.last_exception
-        return self.data
+            return self.data
+        finally:
+            self._sync_trigger = "recurring"
 
 
     def image_url(self, document_id: str) -> str | None:
