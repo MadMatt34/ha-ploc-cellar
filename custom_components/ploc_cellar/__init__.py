@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import Any, cast
 
 import probatio
+import voluptuous as vol
 from homeassistant.components.websocket_api import async_register_command  # pyright: ignore[reportUnknownVariableType]
 from homeassistant.components.websocket_api.connection import ActiveConnection
 from homeassistant.components.websocket_api.const import ERR_NOT_FOUND
@@ -59,11 +60,11 @@ CONFIG_SCHEMA: Callable[[dict[str, Any]], dict[str, Any]] = cast(
 
 GET_INVENTORY_SCHEMA: Any = cast(
     Any,
-    probatio.Schema(
+    vol.Schema(
         {
-            probatio.Required(ATTR_CONFIG_ENTRY_ID): cv.string,
-            probatio.Optional(CONF_SEARCH, default=""): cv.string,
-            probatio.Optional(CONF_COLOR, default=""): cv.string,
+            vol.Required(ATTR_CONFIG_ENTRY_ID): cv.string,
+            vol.Optional(CONF_SEARCH, default=""): cv.string,
+            vol.Optional(CONF_COLOR, default=""): cv.string,
         }
     ),
 )
