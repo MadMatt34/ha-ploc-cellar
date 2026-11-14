@@ -24,6 +24,9 @@ from ploc_cellar.const import (
     DOMAIN,
     PLOUD_DEFAULT_SERVER,
     SERVICE_GET_INVENTORY,
+    SIGNAL_SYNC_COMPLETED,
+    STORAGE_KEY,
+    STORAGE_VERSION,
 )
 from ploc_cellar.models import Cellar, Rack, RackItem
 
@@ -76,6 +79,7 @@ def _hass(coordinator: _Coordinator) -> SimpleNamespace:
     return SimpleNamespace(
         services=_Services(),
         http=_HTTP(),
+        data={},
         config_entries=SimpleNamespace(
             async_get_entry=lambda entry_id: entry if entry_id == "entry-1" else None
         ),
@@ -83,13 +87,132 @@ def _hass(coordinator: _Coordinator) -> SimpleNamespace:
 
 
 def test_async_setup_registers_only_the_inventory_service() -> None:
-    """Register only inventory; synchronization is exposed through entity buttons."""
+    """Register the inventory service and scoped synchronization subscription."""
     coordinator = _Coordinator()
     hass = _hass(coordinator)
 
     assert asyncio.run(async_setup(hass, {})) is True
     assert set(hass.services.handlers) == {SERVICE_GET_INVENTORY}
     assert len(hass.http.views) == 1
+    assert list(hass.data["websocket_api"]) == [f"{DOMAIN}/subscribe_sync"]
+
+
+
+def test_sync_websocket_subscription_is_scoped_and_sends_no_inventory_data(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Authenticated standard-user subscriptions receive only scoped invalidations."""
+    import ploc_cellar as integration
+
+    first = _Coordinator()
+    second = _Coordinator()
+    entries = {
+        "entry-1": SimpleNamespace(
+            domain=DOMAIN, state=ConfigEntryState.LOADED, runtime_data=first
+        ),
+        "entry-2": SimpleNamespace(
+            domain=DOMAIN, state=ConfigEntryState.LOADED, runtime_data=second
+        ),
+    }
+    hass = SimpleNamespace(
+        services=_Services(),
+        http=_HTTP(),
+        data={},
+        config_entries=SimpleNamespace(async_get_entry=entries.get),
+    )
+    connected: dict[str, list[Any]] = {}
+
+    def connect(_hass: Any, signal: str, callback: Any) -> Any:
+        connected.setdefault(signal, []).append(callback)
+
+        def unsubscribe() -> None:
+            connected[signal].remove(callback)
+            if not connected[signal]:
+                del connected[signal]
+
+        return unsubscribe
+
+    monkeypatch.setattr(integration, "async_dispatcher_connect", connect)
+    assert asyncio.run(async_setup(hass, {})) is True
+    handler = hass.data["websocket_api"][f"{DOMAIN}/subscribe_sync"][0]
+
+    class _Connection:
+        def __init__(self) -> None:
+            self.user = SimpleNamespace(is_admin=False)
+            self.subscriptions: dict[int, Any] = {}
+            self.messages: list[dict[str, Any]] = []
+            self.results: list[int] = []
+            self.errors: list[tuple[Any, ...]] = []
+
+        def send_event(self, message_id: int, event: dict[str, Any]) -> None:
+            self.messages.append({"id": message_id, "type": "event", "event": event})
+
+        def send_result(self, message_id: int) -> None:
+            self.results.append(message_id)
+
+        def send_error(self, *args: Any) -> None:
+            self.errors.append(args)
+
+    connection = _Connection()
+    handler(
+        hass,
+        connection,
+        {"id": 7, "type": f"{DOMAIN}/subscribe_sync", "config_entry_id": "entry-1"},
+    )
+
+    signal_one = f"{SIGNAL_SYNC_COMPLETED}_entry-1"
+    signal_two = f"{SIGNAL_SYNC_COMPLETED}_entry-2"
+    second_connection = _Connection()
+    handler(
+        hass,
+        second_connection,
+        {"id": 9, "type": f"{DOMAIN}/subscribe_sync", "config_entry_id": "entry-2"},
+    )
+
+    assert set(connected) == {signal_one, signal_two}
+    assert connection.results == [7]
+    assert second_connection.results == [9]
+    assert connection.errors == []
+    assert 7 in connection.subscriptions
+    assert 9 in second_connection.subscriptions
+
+    connected[signal_one][0]()
+    assert connection.messages == [{"id": 7, "type": "event", "event": {}}]
+    assert second_connection.messages == []
+    connected[signal_two][0]()
+    assert second_connection.messages == [{"id": 9, "type": "event", "event": {}}]
+    assert "wines" not in str(connection.messages + second_connection.messages)
+
+    connection.subscriptions[7]()
+    second_connection.subscriptions[9]()
+    assert connected == {}
+
+
+def test_sync_websocket_subscription_rejects_unloaded_entry() -> None:
+    """A client cannot subscribe to a missing or unloaded configuration entry."""
+    hass = SimpleNamespace(
+        services=_Services(),
+        http=_HTTP(),
+        data={},
+        config_entries=SimpleNamespace(async_get_entry=lambda _entry_id: None),
+    )
+    asyncio.run(async_setup(hass, {}))
+    connection = SimpleNamespace(
+        subscriptions={},
+        send_message=lambda _message: None,
+        send_result=lambda _message_id: None,
+        send_error=lambda *args: errors.append(args),
+    )
+    errors: list[tuple[Any, ...]] = []
+
+    hass.data["websocket_api"][f"{DOMAIN}/subscribe_sync"][0](
+        hass,
+        connection,
+        {"id": 8, "type": f"{DOMAIN}/subscribe_sync", "config_entry_id": "missing"},
+    )
+
+    assert errors
+    assert connection.subscriptions == {}
 
 
 def test_inventory_service_returns_json_safe_empty_inventory() -> None:
@@ -140,6 +263,7 @@ def test_inventory_service_dispatches_to_the_selected_config_entry() -> None:
     hass = SimpleNamespace(
         services=_Services(),
         http=_HTTP(),
+        data={},
         config_entries=SimpleNamespace(async_get_entry=entries.get),
     )
     asyncio.run(async_setup(hass, {}))
@@ -185,6 +309,7 @@ def test_services_reject_missing_wrong_or_unloaded_entries(entry: object) -> Non
     hass = SimpleNamespace(
         services=_Services(),
         http=_HTTP(),
+        data={},
         config_entries=SimpleNamespace(async_get_entry=lambda entry_id: entry),
     )
     asyncio.run(async_setup(hass, {}))
@@ -319,7 +444,9 @@ def test_inventory_service_exposes_complete_rack_positions() -> None:
 
 
 
-def test_remove_entry_deletes_its_image_cache(tmp_path: Path) -> None:
+def test_remove_entry_deletes_its_image_cache(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     """Deleting a config entry removes only its own integration cache."""
     cache_root = tmp_path / ".storage" / DOMAIN / "entry-1"
     image_directory = cache_root / "images"
@@ -337,6 +464,21 @@ def test_remove_entry_deletes_its_image_cache(tmp_path: Path) -> None:
     )
     entry = SimpleNamespace(entry_id="entry-1")
 
+    removed_stores: list[tuple[int, str, bool]] = []
+
+    class _FakeStore:
+        def __init__(
+            self, hass: Any, version: int, key: str, *, atomic_writes: bool
+        ) -> None:
+            removed_stores.append((version, key, atomic_writes))
+
+        async def async_remove(self) -> None:
+            return None
+
+    import ploc_cellar as integration
+
+    monkeypatch.setattr(integration, "Store", _FakeStore)
     asyncio.run(async_remove_entry(hass, entry))
 
+    assert removed_stores == [(STORAGE_VERSION, f"{STORAGE_KEY}.entry-1", True)]
     assert not cache_root.exists()

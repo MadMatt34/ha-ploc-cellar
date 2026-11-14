@@ -180,6 +180,7 @@ def test_get_inventory_response_matches_public_contract() -> None:
         "bottle_volume_l", "ploud_pid", "image_url", "meals", "locations",
     }
     assert diagnostic_wine["id"] == "wine-1"
+    assert diagnostic_wine["locations"] == locations
 
     # Pin important nullable/type semantics as well as field names.
     assert response["last_sync"] == "2026-11-07T10:00:00+00:00"

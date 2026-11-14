@@ -81,7 +81,11 @@ def _deleted_document_ids(objects: PLOUDCollections) -> set[str]:
         )
         if kind not in {"115", "document", "documents"}:
             continue
-        identifier = _document_id(record.get("id"))
+        raw_identifier = next(
+            (record[key] for key in ("id", "Id", "ID") if key in record),
+            None,
+        )
+        identifier = _document_id(raw_identifier)
         if identifier is not None:
             deleted.add(identifier)
     return deleted
@@ -212,6 +216,11 @@ async def async_sync_images(
     referenced = image_document_ids(cellar)
     deleted = _deleted_document_ids(objects)
     if not referenced and not deleted:
+        # Even an empty reference set must prune images left by the previous
+        # snapshot (for example, after deleting the last wine).
+        await hass.async_add_executor_job(
+            _cleanup_unreferenced, directory, referenced
+        )
         return
     metadata = _document_records(objects)
     await hass.async_add_executor_job(directory.mkdir, 0o700, True, True)

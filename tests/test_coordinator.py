@@ -10,8 +10,9 @@ from homeassistant.exceptions import (
     ConfigEntryAuthFailed,
     HomeAssistantError,
 )
+from homeassistant.helpers.dispatcher import async_dispatcher_connect
 from ploc_cellar import coordinator as coordinator_module
-from ploc_cellar.const import EVENT_SYNC_COMPLETED
+from ploc_cellar.const import EVENT_SYNC_COMPLETED, SIGNAL_SYNC_COMPLETED
 from ploc_cellar.coordinator import (
     PlocCellarCoordinator,
     UpdateFailed,
@@ -54,10 +55,26 @@ class _FakeBus:
         self.events.append((event_type, event_data))
 
 
+def _verify_event_loop_thread(_self: Any, _method: str) -> None:
+    """Stand in for Home Assistant event-loop thread validation."""
+
+def _async_run_hass_job(_self: Any, job: Any, *args: Any) -> Any:
+    """Run synchronous dispatcher callbacks in the test event loop."""
+    return job.target(*args)
+
 def _coordinator(cellar: Cellar, store: _FakeStore) -> PlocCellarCoordinator:
     """Create a coordinator with only the dependencies used by tested methods."""
     coordinator = object.__new__(PlocCellarCoordinator)
-    hass = type("FakeHass", (), {"is_stopping": False})()
+    hass = type(
+        "FakeHass",
+        (),
+        {
+            "is_stopping": False,
+            "data": {},
+            "verify_event_loop_thread": _verify_event_loop_thread,
+            "async_run_hass_job": _async_run_hass_job,
+        },
+    )()
     hass.bus = _FakeBus()
     coordinator.hass = cast(Any, hass)
     coordinator.store = cast(Any, store)
@@ -66,6 +83,18 @@ def _coordinator(cellar: Cellar, store: _FakeStore) -> PlocCellarCoordinator:
     coordinator._sync_trigger = "recurring"
     coordinator.session = cast(Any, object())
     coordinator.entry_id = "test-entry"
+    notifications: list[bool] = []
+
+    def on_sync_completed() -> None:
+        assert store.saved is not None
+        notifications.append(True)
+
+    async_dispatcher_connect(
+        hass,
+        f"{SIGNAL_SYNC_COMPLETED}_{coordinator.entry_id}",
+        on_sync_completed,
+    )
+    hass.data["test_notifications"] = notifications
     coordinator.image_directory = Path("/tmp/ploc-cellar-test-images")
     coordinator.server = "https://ploud.example"
     coordinator.token = "token"
@@ -340,6 +369,77 @@ def test_full_sync_commits_only_a_complete_snapshot(
             },
         )
     ]
+    assert coordinator.hass.data["test_notifications"] == [True]
+
+
+def test_image_cache_is_not_pruned_when_inventory_persistence_fails(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """An uncommitted candidate must never trigger destructive image cleanup."""
+    original = Cellar(cursor=123, initialized=True)
+    store = _FakeStore()
+    store.save_error = OSError("disk full")
+    coordinator = _coordinator(original, store)
+    coordinator._force_full_sync = True
+    snapshot: PLOUDCollections = {
+        "Wines": [],
+        "Racks": [],
+        "RackItems": [],
+        "Orders": [],
+        "Owners": [],
+    }
+    image_sync_called = False
+
+    async def fake_sync(*args: Any, **kwargs: Any) -> tuple[PLOUDCollections, int]:
+        return snapshot, 456
+
+    async def fake_image_sync(*args: Any, **kwargs: Any) -> None:
+        nonlocal image_sync_called
+        image_sync_called = True
+
+    monkeypatch.setattr(coordinator_module, "async_sync", fake_sync)
+    monkeypatch.setattr(coordinator_module, "async_sync_images", fake_image_sync)
+
+    with pytest.raises(UpdateFailed, match="disk full"):
+        asyncio.run(coordinator._async_update_data())
+
+    assert image_sync_called is False
+    assert coordinator.cellar is original
+    assert coordinator.hass.bus.events == []
+    assert coordinator.hass.data["test_notifications"] == []
+
+
+def test_unexpected_image_cache_error_does_not_invalidate_committed_inventory(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Image-cache failures cannot turn a verified inventory commit into a failure."""
+    original = Cellar(cursor=123, initialized=True)
+    store = _FakeStore()
+    coordinator = _coordinator(original, store)
+    coordinator._force_full_sync = True
+    snapshot: PLOUDCollections = {
+        "Wines": [],
+        "Racks": [],
+        "RackItems": [],
+        "Orders": [],
+        "Owners": [],
+    }
+
+    async def fake_sync(*args: Any, **kwargs: Any) -> tuple[PLOUDCollections, int]:
+        return snapshot, 456
+
+    async def failing_image_sync(*args: Any, **kwargs: Any) -> None:
+        raise RuntimeError("unexpected cache failure")
+
+    monkeypatch.setattr(coordinator_module, "async_sync", fake_sync)
+    monkeypatch.setattr(coordinator_module, "async_sync_images", failing_image_sync)
+
+    updated = asyncio.run(coordinator._async_update_data())
+
+    assert updated is coordinator.cellar
+    assert updated.stale is False
+    assert updated.cursor == 456
+    assert store.saved == updated.to_storage()
 
 
 def test_partial_sync_commits_delta_and_preserves_reconstruction_state(
@@ -398,6 +498,7 @@ def test_partial_sync_commits_delta_and_preserves_reconstruction_state(
             },
         )
     ]
+    assert coordinator.hass.data["test_notifications"] == [True]
 
 
 def test_invalid_full_snapshot_does_not_replace_cached_model(
@@ -475,3 +576,46 @@ def test_sync_change_summary_detects_additions_updates_and_deletions() -> None:
         "updated": ["kept"],
         "deleted": ["removed"],
     }
+
+
+def test_slow_image_cache_does_not_block_inventory_publication(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The committed inventory and sync event publish after the image budget."""
+    store = _FakeStore()
+    coordinator = _coordinator(Cellar(), store)
+    snapshot: PLOUDCollections = {
+        "Wines": [],
+        "Racks": [],
+        "RackItems": [],
+        "Orders": [],
+        "Owners": [],
+    }
+
+    async def fake_sync(
+        session: Any,
+        *,
+        server: str,
+        token: str,
+        device: str,
+        language: str,
+        cursor: int,
+    ) -> tuple[PLOUDCollections, int]:
+        assert cursor == 1
+        return snapshot, 456
+
+    async def slow_images(*args: Any, **kwargs: Any) -> None:
+        await asyncio.sleep(1)
+
+    monkeypatch.setattr(coordinator_module, "async_sync", fake_sync)
+    monkeypatch.setattr(coordinator_module, "async_sync_images", slow_images)
+    monkeypatch.setattr(coordinator_module, "_IMAGE_SYNC_TIMEOUT_SECONDS", 0.01)
+
+    updated = asyncio.run(coordinator._async_update_data())
+
+    assert updated is coordinator.cellar
+    assert updated.initialized is True
+    assert store.saved == updated.to_storage()
+    assert len(coordinator.hass.bus.events) == 1
+    assert coordinator.hass.bus.events[0][0] == EVENT_SYNC_COMPLETED
+    assert coordinator.hass.data["test_notifications"] == [True]

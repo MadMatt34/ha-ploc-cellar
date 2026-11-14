@@ -9,7 +9,7 @@
     "@MadMatt34"
   ],
   "config_flow": true,
-  "dependencies": ["http"],
+  "dependencies": ["http", "websocket_api"],
   "documentation": "https://github.com/MadMatt34/ha-ploc-cellar/blob/main/README.md",
   "integration_type": "hub",
   "iot_class": "cloud_polling",
