@@ -29,7 +29,7 @@ A Home Assistant custom integration for a **read-only** view of a PLOC wine cell
 - Detailed inventory on demand through the ploc_cellar.get_inventory action.
 - Multiple configuration entries, each with its own account, inventory and cache.
 
-Stock is reconstructed from movements and physical rack positions. Diagnostics distinguish stock not assigned to a rack position, negative movement balances and physical surplus. See the [inventory algorithm documentation](docs/ALGORITHMES.md) for exact definitions.
+Stock is reconstructed from movements and physical rack positions. Diagnostics distinguish stock not assigned to a rack position, negative movement balances and physical surplus. See the [inventory algorithm documentation](docs/ALGORITHMS.md) for exact definitions.
 
 ## Installation
 
