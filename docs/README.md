@@ -1,0 +1,29 @@
+# Technical documentation
+
+This directory contains implementation and maintenance documentation for the Ploc Cellar Home Assistant integration. The root README files are intended for installation, configuration and everyday use.
+
+## Integration internals
+
+| Document | Scope |
+|---|---|
+| [Architecture and lifecycle](ARCHITECTURE.md) | Config entries, authentication boundaries, coordinator lifecycle, synchronization flow and persistent state |
+| [Inventory algorithms](ALGORITHMES.md) | Stock reconstruction, diagnostics, incremental merge rules, transactional persistence and image-cache behavior (French) |
+| [PLOUD field mapping](PLOUD_FIELD_MAPPING.md) | Source collections and fields mapped to the local model and inventory response |
+| [Test strategy](TESTS.md) | Test layers, module coverage, local commands and validation limits |
+
+## Cross-repository contract
+
+The public inventory response and synchronization notification contract is maintained with the frontend repository:
+
+- [Backend contract (English)](https://github.com/MadMatt34/ha-ploc-cellar-frontend/blob/main/docs/BACKEND_CONTRACT.md)
+- [Contrat backend (français)](https://github.com/MadMatt34/ha-ploc-cellar-frontend/blob/main/docs/CONTRAT_BACKEND.fr.md)
+- [Compatibility matrix and release policy](https://github.com/MadMatt34/ha-ploc-cellar-frontend/blob/main/docs/COMPATIBILITY_AND_RELEASES.md)
+
+When a public response field or notification behavior changes, update the implementation, contract tests and both contract documents together. See the contract's change procedure before modifying the service.
+
+## Documentation ownership
+
+- Keep user-facing setup and troubleshooting in the root README files.
+- Keep protocol details, data semantics, algorithms, lifecycle and test procedures here.
+- Do not duplicate the full service response schema in this repository: the frontend contract documents are the shared reference.
+- Keep English and French user-facing documentation aligned. Technical documents may retain their established language where a maintained translation does not yet exist.
