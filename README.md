@@ -13,7 +13,7 @@ A Home Assistant custom integration for a **read-only** view of a PLOC wine cell
 
 ## Documentation
 
-- [Technical documentation index](docs/README.md)
+- [Technical documentation index](docs/README.md) / [version française](docs/README.fr.md)
 - [Backend/frontend compatibility and release policy](https://github.com/MadMatt34/ha-ploc-cellar-frontend/blob/main/docs/COMPATIBILITY_AND_RELEASES.md)
 
 ## Requirements
