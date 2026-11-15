@@ -1,5 +1,7 @@
 # Règles des algorithmes de Ploc Cellar
 
+[English version](ALGORITHMS.md)
+
 Ce document décrit les règles métier et les invariants appliqués par
 l'intégration. PLOUD reste la source de vérité : Ploc Cellar reconstruit un
 inventaire local en lecture seule et ne corrige jamais la cave distante.
