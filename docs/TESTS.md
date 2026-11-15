@@ -1,5 +1,7 @@
 # Test strategy
 
+[Version française](TESTS.fr.md)
+
 The backend suite validates the integration at three levels:
 
 1. **Pure model and protocol tests** cover parsing, normalization, stock reconstruction, deletion semantics, storage migrations and PLOUD transport contracts without network access.
