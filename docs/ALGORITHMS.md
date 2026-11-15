@@ -1,5 +1,7 @@
 # Ploc Cellar inventory algorithms
 
+[Version française](ALGORITHMES.md)
+
 This document describes the business rules and invariants applied by the integration. PLOUD remains the source of truth: Ploc Cellar reconstructs a local read-only inventory and never repairs the remote cellar. The [French specification](ALGORITHMES.md) is maintained alongside this English version.
 
 ## 1. Source collections
