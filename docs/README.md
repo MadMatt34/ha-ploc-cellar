@@ -7,7 +7,8 @@ This directory contains implementation and maintenance documentation for the Plo
 | Document | Scope |
 |---|---|
 | [Architecture and lifecycle](ARCHITECTURE.md) | Config entries, authentication boundaries, coordinator lifecycle, synchronization flow and persistent state |
-| [Inventory algorithms](ALGORITHMES.md) | Stock reconstruction, diagnostics, incremental merge rules, transactional persistence and image-cache behavior (French) |
+| [Inventory algorithms (English overview)](ALGORITHMS.md) | Stock reconstruction, diagnostics, synchronization and persistence invariants |
+| [Spécification détaillée des algorithmes (français)](ALGORITHMES.md) | Règles complètes de fusion, récupération, stockage transactionnel et cache des images |
 | [PLOUD field mapping](PLOUD_FIELD_MAPPING.md) | Source collections and fields mapped to the local model and inventory response |
 | [Test strategy](TESTS.md) | Test layers, module coverage, local commands and validation limits |
 
