@@ -13,7 +13,7 @@ Intégration personnalisée Home Assistant permettant de consulter une cave PLOC
 
 ## Documentation
 
-- [Index de la documentation technique](docs/README.md)
+- [Index de la documentation technique](docs/README.fr.md) / [English](docs/README.md)
 - [Compatibilité backend/frontend et politique de publication](https://github.com/MadMatt34/ha-ploc-cellar-frontend/blob/main/docs/COMPATIBILITY_AND_RELEASES.md)
 
 ## Prérequis
