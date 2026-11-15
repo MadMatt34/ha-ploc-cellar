@@ -43,7 +43,7 @@ Le stock est reconstitué à partir des mouvements et des emplacements physiques
 
 ### Installation manuelle
 
-1. Copier le dossier custom_components/ploc_cellar dans <config>/custom_components/.
+1. Copier le dossier custom_components/ploc_cellar dans `<config>/custom_components/`.
 2. Redémarrer Home Assistant.
 3. Ajouter **Ploc Cellar** depuis **Paramètres → Appareils et services → Ajouter une intégration**.
 
