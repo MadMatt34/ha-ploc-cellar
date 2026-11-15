@@ -1,5 +1,7 @@
 # Backend architecture and lifecycle
 
+[Version française](ARCHITECTURE.fr.md)
+
 This document describes the integration's internal boundaries and runtime lifecycle. User setup instructions are in the root [README](../README.md) and [French README](../README.fr.md).
 
 ## Component boundaries
