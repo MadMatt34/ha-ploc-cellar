@@ -11,270 +11,90 @@ Intégration personnalisée Home Assistant permettant de consulter une cave PLOC
 
 ![Ploc Cellar](https://raw.githubusercontent.com/MadMatt34/ha-ploc-cellar/main/custom_components/ploc_cellar/brand/logo.png)
 
-## 📚 Navigation
+## Documentation
 
-- [Backend/frontend compatibility matrix and release policy](https://github.com/MadMatt34/ha-ploc-cellar-frontend/blob/main/docs/COMPATIBILITY_AND_RELEASES.md)
+- [Index de la documentation technique](docs/README.md)
+- [Compatibilité backend/frontend et politique de publication](https://github.com/MadMatt34/ha-ploc-cellar-frontend/blob/main/docs/COMPATIBILITY_AND_RELEASES.md)
 
-- [Prérequis](#prérequis)
-- [Fonctionnalités](#fonctionnalités)
-- [Données des accords mets et vins](#données-des-accords-mets-et-vins)
-- [Installation et première configuration](#installation-et-première-configuration)
-- [Options de synchronisation](#options-de-synchronisation)
-- [Entités](#entités)
-- [Actions et réponse d'inventaire](#actions)
-- [Événement et notification de synchronisation](#événement-et-notification-de-synchronisation)
-- [Stockage et confidentialité](#stockage-et-confidentialité)
-- [Validation](#validation)
-- [Cartes Lovelace](#cartes-lovelace)
-- [Dépannage](#dépannage)
-- [Désinstallation](#désinstallation)
-- [Licence et avertissement](#licence-et-avertissement)
-
-
-## 📋 Prérequis
+## Prérequis
 
 - Home Assistant 2026.10.4 ou version ultérieure.
-- Python 3.14.2 ou version ultérieure, conformément aux prérequis de Home Assistant 2026.10.4.
 
-## ⚡ Fonctionnalités
+## Fonctionnalités
 
-- PLOUD reste la source de vérité.
-- Synchronisation incrémentale en lecture seule via `POST https://ploud.ploc.co/v1/sync/exec`, avec `Objects={}`.
-- Le premier chargement utilise la valeur d'initialisation validée `LastSyncTime=1`. Les synchronisations suivantes utilisent le curseur client en millisecondes Unix.
-- Modèle local persistant : les références `Wine` reçues de PLOUD, les casiers et leurs emplacements. La valeur brute `Wine.bo` est conservée à titre informatif. Le stock effectif est reconstitué avec les mouvements `Orders` et les bouteilles physiquement placées (`RackItems`) selon la formule `max(0, solde des mouvements, bouteilles en cave)`. Les diagnostics distinguent le stock non localisé (`unlocated_bottles`), les soldes de mouvements négatifs (`negative_movement_bottles`) et les excédents physiques (`physical_surplus_bottles`). Un stock non localisé signifie que le solde issu des mouvements dépasse les bouteilles affectées à des emplacements ; cela ne prouve pas qu'une bouteille a été retirée sans mouvement de sortie déclaré. Les données PLOUD ne sont jamais modifiées. Les caractéristiques, dont le domaine viticole, sont directement enregistrées dans chaque fiche vin. Les six collections de référence PLOUD sont indexées et conservées localement afin de résoudre les identifiants compacts lors des mises à jour incrémentales de vins, sans imposer une synchronisation complète. La collection `Owners` reste temporaire et sert uniquement à résoudre le nom du domaine viticole. Si un vin reçu dans un delta référence un propriétaire absent de ce delta, ou un Owner dont l'enregistrement ne contient pas de champ de nom, une synchronisation complète ponctuelle est déclenchée pour résoudre son nom.
-- Quatorze capteurs répartis entre inventaire, casiers et diagnostics ; aucune entité individuelle n'est créée pour chaque vin, casier ou emplacement.
-- Inventaire détaillé accessible à la demande avec l'action `ploc_cellar.get_inventory`.
-- Les photos principales et de couverture des vins sont téléchargées depuis les `Documents` PLOUD lorsqu’elles sont référencées, mises en cache localement et servies par une route Home Assistant authentifiée. Une modification du document invalide le cache ; les documents supprimés ou non référencés sont nettoyés, et la suppression de l’entrée efface son cache d’images.
-- Deux boutons sur l'appareil Cave Ploc déclenchent une synchronisation différentielle ou une synchronisation complète.
-- Les UUID sont normalisés sous leur forme canonique minuscule pour les vins, casiers, positions, mouvements, propriétaires et suppressions ; les identifiants non UUID sont débarrassés des espaces périphériques sans changement de casse.
-- Plusieurs entrées de configuration Ploc Cellar sont autorisées. Chaque entrée utilise un compte PLOC/PLOUD, un appareil Home Assistant, un coordinateur, un inventaire persistant et un cache d'images indépendants.
-- Aucune opération d'écriture n'est envoyée à PLOUD.
+- Consultation en lecture seule : PLOUD reste la source de vérité et l'intégration ne modifie jamais les données de la cave.
+- Synchronisation incrémentale automatique, avec possibilité de lancer une synchronisation différentielle ou complète depuis l'appareil de l'intégration.
+- Inventaire, occupation des casiers et diagnostics de cohérence du stock.
+- Caractéristiques des vins, accords mets-vins et photos mises en cache localement lorsqu'elles sont disponibles.
+- Accès à l'inventaire détaillé à la demande avec l'action ploc_cellar.get_inventory.
+- Plusieurs entrées de configuration indépendantes, chacune avec son compte, son inventaire et son cache.
 
-## Données des accords mets et vins
+Le stock est reconstitué à partir des mouvements et des emplacements physiques. Les diagnostics distinguent le stock non affecté à un casier, les soldes de mouvements négatifs et les excédents physiques. Les définitions précises figurent dans la [documentation des algorithmes d'inventaire](docs/ALGORITHMES.md).
 
-PLOUD stocke les associations mets-vins dans le champ `Wine.ml`. L'intégration expose cette valeur sous la forme de l'entier brut facultatif `Wine.meals` ; elle ne traduit, ne normalise et ne supprime aucun indicateur. Il s'agit d'un masque de bits : plusieurs catégories peuvent être présentes dans une même valeur en combinant leurs indicateurs par OU binaire.
+## Installation
 
-Indicateurs `Meals` identifiés dans les données PLOUD :
-
-| Valeur du bit | Catégorie de mets |
-|---:|---|
-| `1` | Apéritif |
-| `2` | Soupe |
-| `4` | Entrée |
-| `8` | Porc et charcuterie |
-| `16` | Fruits de mer |
-| `32` | Poisson |
-| `64` | Viande blanche |
-| `128` | Gibier |
-| `256` | Volaille |
-| `512` | Viande rouge |
-| `1024` | Plats et légumes |
-| `2048` | Fromage |
-| `4096` | Dessert |
-| `8192` | Épicés |
-
-Le frontend associe ces indicateurs à des libellés localisés dans la fenêtre de détail du vin. Une valeur `meals` absente ou nulle signifie que les données d'association ne sont pas disponibles ; elle ne doit pas être interprétée comme une liste explicitement vide.
-
-L'application Android PLOUD identifie `8192` comme `foodtype8192` (plats épicés). Le frontend affiche cet indicateur confirmé sous le libellé **Épicés**. Les autres bits inconnus doivent toujours être conservés par le backend et ignorés par le frontend.
-
-Les règles détaillées de calcul du stock, de synchronisation et d'intégrité
-du stockage sont décrites dans la [spécification des algorithmes](docs/ALGORITHMES.md).
-
-## 🧩 Installation et première configuration
-
-### 🧩 Installation avec HACS (recommandée)
+### Avec HACS (recommandé)
 
 1. Dans HACS, ouvrir **Dépôts personnalisés**.
-2. Ajouter `MadMatt34/ha-ploc-cellar` et sélectionner la catégorie **Intégration**.
-3. Installer **Ploc Cellar** depuis HACS.
-4. Redémarrer Home Assistant, puis ouvrir **Paramètres → Appareils et services → Ajouter une intégration** et sélectionner **Ploc Cellar**.
+2. Ajouter **MadMatt34/ha-ploc-cellar** et sélectionner la catégorie **Intégration**.
+3. Installer **Ploc Cellar**.
+4. Redémarrer Home Assistant.
+5. Ouvrir **Paramètres → Appareils et services → Ajouter une intégration** et sélectionner **Ploc Cellar**.
 
-Le dépôt est distribué comme intégration HACS personnalisée ; il n'est pas présenté comme faisant partie du catalogue HACS par défaut.
+### Installation manuelle
 
-### 🧩 Installation manuelle
-
-
-1. Copier le dossier `custom_components/ploc_cellar` dans `<config>/custom_components/`.
+1. Copier le dossier custom_components/ploc_cellar dans <config>/custom_components/.
 2. Redémarrer Home Assistant.
-3. Aller dans **Paramètres → Appareils et services → Ajouter une intégration**, puis sélectionner **Ploc Cellar**.
-4. Saisir l'adresse e-mail et le mot de passe du compte PLOC.
+3. Ajouter **Ploc Cellar** depuis **Paramètres → Appareils et services → Ajouter une intégration**.
 
-Aucun jeton technique, identifiant d'appareil ou serveur PLOUD n'est à saisir. Le serveur PLOUD utilisé par l'intégration est fixe. Pour ajouter un autre compte PLOC, répéter l'ajout de l'intégration et se connecter avec les identifiants de ce compte.
+### Première configuration et comptes
 
-### Authentification et activation PLOUD
+Saisir l'adresse e-mail et le mot de passe du compte PLOC lorsque l'assistant le demande. Aucun jeton technique, identifiant d'appareil ou URL de serveur n'est nécessaire. L'intégration active automatiquement PLOUD et lance la synchronisation initiale.
 
-Home Assistant effectue automatiquement les opérations suivantes :
+Il est possible d'ajouter d'autres comptes en configurant une nouvelle entrée Ploc Cellar. Chaque entrée reste indépendante. Si Home Assistant demande une réauthentification, saisir à nouveau l'adresse e-mail et le mot de passe du compte.
 
-1. Authentification au compte PLOC via `POST https://api.ploc.co/a/v3/signin`. La requête utilise le chiffrement et la signature employés par l'application PLOC.
-2. Activation de PLOUD pour l'application **Home Assistant** via `POST https://api.ploc.co/v1/ploud/activate`, avec le jeton de session PLOC obtenu à l'étape précédente.
-3. Récupération du jeton d'accès PLOUD retourné par l'activation.
-4. Génération d'un identifiant d'appareil UUID propre à cette entrée de configuration.
-5. Enregistrement du jeton d'accès PLOUD et de l'identifiant d'appareil dans cette entrée de configuration Home Assistant. Chaque compte dispose ainsi de son propre identifiant PLOUD. La langue n'est pas figée dans l'entrée : elle est déterminée automatiquement à partir du pays configuré dans Home Assistant.
-6. Première synchronisation en lecture seule avec le serveur PLOUD fixe.
+## Configuration
 
-L'identifiant UUID complet est conservé localement. Pour les requêtes PLOUD, seul son préfixe de cinq caractères est envoyé dans le champ `Device` et utilisé pour calculer la signature, conformément au comportement du client Android.
+Ouvrir **Paramètres → Appareils et services → Ploc Cellar → Configurer**.
 
-L'adresse e-mail, le mot de passe et le jeton de session PLOC ne sont pas enregistrés dans l'entrée de configuration. Le mot de passe est utilisé uniquement pendant l'authentification initiale ou lors d'une réauthentification.
+- **Intervalle de synchronisation :** de 5 à 1 440 minutes ; 240 minutes par défaut.
+- **Langue des réponses PLOUD :** Automatique, Français ou Anglais. Le mode automatique sélectionne le français dans les pays francophones et l'anglais ailleurs. Si aucun pays n'est configuré, la langue générale de Home Assistant sert de solution de repli.
 
-### Réauthentification
+L'adresse du serveur PLOUD est fixe et ne peut pas être modifiée dans les options.
 
-Si Home Assistant demande une réauthentification, saisir à nouveau l'adresse e-mail et le mot de passe du compte PLOC. L'intégration renouvelle l'activation PLOUD et remplace le jeton d'accès enregistré. L'identifiant de l'appareil reste inchangé.
+## Entités et commandes
 
-## ⚙️ Options de synchronisation
+Chaque compte configuré crée un appareil **Ploc Cellar** regroupant des capteurs d'inventaire, de casiers et de diagnostic, ainsi que deux boutons de synchronisation. Aucune entité distincte n'est créée pour chaque vin, casier ou emplacement.
 
-Dans **Paramètres → Appareils et services → Ploc Cellar → Configurer**, les options suivantes sont disponibles :
+Les capteurs indiquent l'occupation physique, le stock reconstitué, le nombre de références de vins, la capacité des casiers, les quantités de diagnostic et la date de la dernière synchronisation réussie. Les valeurs calculées à partir des mouvements restent indisponibles tant qu'un historique complet n'a pas été validé. En cas d'échec d'une synchronisation ultérieure, le dernier inventaire valide est conservé et le capteur de dernière synchronisation indique qu'il est obsolète.
 
-- **Intervalle de synchronisation** : de 5 à 1 440 minutes ; 240 minutes par défaut.
-- **Langue des réponses PLOUD** : `Automatique`, `Français` ou `English`. En mode automatique (par défaut), les pays francophones utilisent `fr` et les autres pays `en`. Si aucun pays n'est défini dans Home Assistant, la langue générale de Home Assistant sert de repli (`fr` si elle est française, `en` sinon). Les choix manuels `Français` et `English` restent prioritaires jusqu'à ce que `Automatique` soit sélectionné.
+Les boutons de l'appareil permettent de lancer une synchronisation différentielle ou une actualisation complète. Ils peuvent également être utilisés avec l'action Home Assistant standard button.press.
 
-L'enregistrement des options recharge l'entrée de configuration. L'adresse du serveur PLOUD n'est pas modifiable depuis l'intégration.
+## Action d'inventaire
 
-## 📊 Entités
+L'action de réponse ploc_cellar.get_inventory renvoie les données détaillées d'une cave pour une entrée de configuration sélectionnée. Elle exige config_entry_id et accepte les filtres facultatifs search et color. Dans un script ou une automatisation, récupérer la réponse avec response_variable.
 
-Chaque entrée de configuration crée son propre appareil **Cave Ploc**, avec 14 capteurs, deux boutons de synchronisation et un coordinateur PLOUD dédiés. Les inventaires, les identifiants d'entités et les caches restent indépendants entre les comptes. L’intégration ne crée pas d’entité individuelle pour chaque vin, casier ou emplacement.
+La réponse comprend les totaux de la cave, les casiers, les emplacements physiques, les vins correspondants, les diagnostics de stock et la date de dernière synchronisation réussie. Le [contrat du service d'inventaire](https://github.com/MadMatt34/ha-ploc-cellar-frontend/blob/main/docs/CONTRAT_BACKEND.fr.md) décrit précisément sa structure et les champs facultatifs.
 
-| Famille | Nom de l’entité | Signification |
-|---|---|---|
-| Inventaire | Bouteilles en cave | Bouteilles physiquement affectées à des emplacements (positions `RackItems` occupées). |
-| Inventaire | Bouteilles en stock total | Stock total reconstitué : stock issu des mouvements ou stock physique, selon le plus élevé, avec les positions occupées dont le vin est inconnu. |
-| Inventaire | Références de vins en stock | Références de vins connues dont le stock effectif est positif. |
-| Inventaire | Références physiquement présentes en cave | Références de vins connues ayant au moins une position physique en cave. |
-| Casiers | Nombre de casiers | Nombre de casiers connus. |
-| Casiers | Nombre total d’emplacements | Nombre total d’emplacements physiques. |
-| Casiers | Emplacements disponibles | Nombre d’emplacements vides. |
-| Diagnostics | Bouteilles non localisées | Bouteilles reconstituées qui ne sont affectées à aucun emplacement. |
-| Diagnostics | Vins avec stock non localisé | Références de vins avec du stock non localisé. |
-| Diagnostics | Bouteilles liées à des mouvements négatifs | Somme des soldes entrées-sorties négatifs, en valeur absolue. |
-| Diagnostics | Vins avec solde de mouvements négatif | Références de vins avec un solde de mouvements négatif. |
-| Diagnostics | Bouteilles en excédent physique | Bouteilles physiques au-delà du stock non négatif issu des mouvements. |
-| Diagnostics | Vins avec excédent physique | Références de vins présentant un excédent physique. |
-| Diagnostics | Dernière synchronisation réussie | Date et heure de la dernière synchronisation réussie ; son attribut `stale` passe à true lorsqu’une synchronisation ultérieure échoue. |
-| Boutons | Synchronisation différentielle | Récupère les modifications depuis le curseur PLOUD enregistré. |
-| Boutons | Synchronisation complète | Force un instantané PLOUD complet et reconstruit l’inventaire local. |
+## Dépannage
 
-Les capteurs de stock et de diagnostic dépendant des mouvements affichent `unknown` tant qu’un instantané PLOUD complet de la collection `Orders` n’a pas été validé. Les compteurs physiques de bouteilles et d’emplacements restent disponibles. Après un échec de synchronisation, la date de dernière réussite est conservée et l’attribut `stale` du capteur de synchronisation passe à true ; une synchronisation réussie le remet à false.
+- **Échec de l'authentification :** vérifier les identifiants du compte PLOC et l'accès réseau de Home Assistant aux services PLOC/PLOUD.
+- **Valeurs de stock inconnues :** elles restent indisponibles tant qu'un instantané complet des mouvements PLOUD n'a pas été validé. Les comptes physiques des casiers et des bouteilles peuvent rester disponibles.
+- **Dernière synchronisation obsolète :** une synchronisation ultérieure a échoué ; le dernier inventaire validé est conservé. Consulter **Paramètres → Système → Journaux**, puis relancer une synchronisation depuis l'appareil Ploc Cellar.
+- **Les cartes frontend ne s'actualisent pas :** vérifier que le frontend est installé, compatible et configuré pour la même entrée d'intégration.
 
-L’intégration ne force aucun identifiant d’entité. Home Assistant les génère selon le format configuré dans l’instance (zone, appareil parent, appareil et nom de l’entité). Les identifiants déjà présents dans le registre sont conservés lors d’une mise à niveau. Pour les recréer selon le format actuel, utiliser **Recréer les identifiants d’entité** dans le menu de l’appareil.
-## 🔘 Actions
+Pour signaler un problème, indiquer la version de Home Assistant, celle de l'intégration, les messages de journal pertinents et les étapes de reproduction. Ne jamais publier de mot de passe ou jeton d'accès. Les journaux de débogage peuvent contenir des enregistrements bruts de la cave : les anonymiser avant tout partage.
 
-### Boutons de synchronisation
+## Désinstallation
 
-Les deux boutons sont disponibles sur l’appareil **Cave Ploc** :
+1. Ouvrir **Paramètres → Appareils et services → Ploc Cellar** et supprimer l'entrée de configuration.
+2. Désinstaller **Ploc Cellar** depuis HACS ou supprimer le dossier custom_components/ploc_cellar en cas d'installation manuelle.
+3. Redémarrer Home Assistant.
 
-- **Synchronisation différentielle** : applique les modifications depuis la dernière synchronisation à partir du curseur enregistré.
-- **Synchronisation complète** : demande un instantané PLOUD complet et reconstruit l’inventaire local. L’inventaire validé existant reste disponible tant que le nouvel instantané n’a pas été validé et enregistré.
+La suppression d'une entrée efface également son instantané d'inventaire local et son cache privé d'images de vins.
 
-Ils peuvent également être utilisés dans une automatisation avec l’action standard `button.press`.
-
-### `ploc_cellar.get_inventory`
-
-Action avec réponse. Utiliser `response_variable` dans un script ou une automatisation.
-
-Le champ `config_entry_id` est obligatoire pour identifier la connexion Ploc Cellar. Home Assistant propose un sélecteur limité aux entrées de cette intégration. Les filtres facultatifs sont :
-
-- `search` : recherche partielle dans le nom du vin, le domaine viticole, l'appellation, la région, le pays, le cépage, la cuvée ou le commentaire.
-- `color` : filtre partiel sur la couleur du vin.
-
-Exemple :
-
-```yaml
-action: ploc_cellar.get_inventory
-data:
-  config_entry_id: IDENTIFIANT_DE_CONFIGURATION
-  search: Condrieu
-response_variable: cave
-```
-
-La réponse contient :
-
-- les totaux globaux : `total_bottles` compte toutes les positions physiques occupées ; `stocked_wines` compte les références Wine connues ayant au moins une position ; `total_stock_bottles` inclut aussi les positions occupées dont la référence Wine est temporairement inconnue ; `orders_without_wine` compte les mouvements conservés pour des vins inconnus ou supprimés (ils sont exclus des calculs de stock des vins connus) ; `unlocated_wines` et `unlocated_bottles` décrivent le stock reconstitué non affecté à un emplacement ; `negative_movement_wines` et `negative_movement_bottles` décrivent les soldes de mouvements négatifs ; `physical_surplus_wines` et `physical_surplus_bottles` décrivent les bouteilles physiquement présentes au-delà du stock non négatif issu des mouvements. Ces valeurs dérivées des Orders valent `null` lorsque `stock_reconstruction_complete` est faux ;
-- `rack_count`, `total_positions`, `occupied_positions` et `empty_positions`, le nombre de casiers et le détail des emplacements ; `positions_without_rack` et `positions_with_unknown_wine` signalent les références de casier ou de vin temporairement inconnues ;
-- `matching_wines`, le nombre de vins correspondant aux filtres ;
-- `racks`, la liste des casiers ;
-- `rack_items`, la liste complète des emplacements physiques, y compris les emplacements libres et les références de casier ou de vin temporairement inconnues. Chaque élément contient `id`, `rack_id`, `wine_id` (`null` si l'emplacement est libre), `row` et `column` ;
-- `stale`, indique si l'inventaire affiché est antérieur à la dernière synchronisation réussie parce qu'une synchronisation ultérieure a échoué ;
-- `wines`, normalement uniquement les vins dont le stock effectif est positif. Si la reconstitution est incomplète, seuls les vins connus avec des bouteilles physiquement placées sont renvoyés ; leurs quantités et diagnostics dépendant du stock valent `null`, comme les totaux globaux qui dépendent des mouvements ;
-- `wine_diagnostics`, la liste non filtrée des vins ayant au moins un diagnostic de stock non localisé, de solde de mouvements négatif ou d’excédent physique, y compris ceux dont le stock effectif est nul. Chaque entrée fournit les entrées, sorties, le solde des mouvements, la quantité physique, le stock effectif et les trois quantités de diagnostic. Cette liste vaut `null` tant que la reconstitution du stock est incomplète ;
-- `stock_reconstruction_complete`, indique si un instantané complet des Orders est disponible ;
-- `last_sync`, la date et l'heure de la dernière synchronisation réussie.
-
-Pour chaque vin, `unlocated_bottles` correspond à la différence entre le stock effectif et les bouteilles physiquement placées ; `negative_movement_bottles` est la valeur absolue d'un solde entrées-sorties négatif ; `physical_surplus_bottles` compte les bouteilles physiquement présentes au-delà de `max(0, movement_balance)`. Ces diagnostics sont distincts et peuvent coexister pour une même référence. Un stock non localisé ne prouve pas qu'une bouteille a été retirée sans déclarer sa sortie : elle peut ne jamais avoir été rangée ou être conservée hors de la cave. Les valeurs brutes `Wine.bo` restent informatives et ne déterminent pas le stock effectif. Aucune correction n'est envoyée à PLOUD. Les filtres ne modifient pas les totaux globaux. Chaque emplacement associé à un vin contient le nom et l'identifiant du casier, ainsi que la rangée et la colonne lorsqu'elles sont disponibles.
-
-## 📡 Événement et notification de synchronisation
-
-Après validation, enregistrement et activation du nouvel inventaire, l'intégration continue d'émettre l'événement Home Assistant `ploc_cellar_sync_completed`. Aucun événement n'est émis lorsqu'une synchronisation échoue. Cet événement public est conservé pour assurer la compatibilité avec les automatisations existantes des administrateurs.
-
-Les données de l'événement sont les suivantes :
-
-| Champ | Signification |
-|---|---|
-| `config_entry_id` | Identifiant de l'entrée de configuration Ploc Cellar dont l'inventaire a été mis à jour. |
-| `last_sync` | Date et heure de la dernière synchronisation réussie. |
-| `trigger` | Origine de la synchronisation : `recurring`, `forced_incremental` ou `forced_full`. Une synchronisation complète de récupération déclenchée en interne après un delta incomplet conserve le déclencheur initial. |
-| `sync_type` | Opération PLOUD réellement exécutée : `incremental` ou `full`. |
-| `changes` | Identifiants des objets effectivement ajoutés, modifiés et supprimés, regroupés sous `wines`, `racks`, `rack_items` et `orders`. |
-| `change_counts` | Nombre d'identifiants ajoutés, modifiés et supprimés pour chaque collection. |
-
-Chaque collection de `changes` contient trois tableaux : `added`, `updated` et `deleted`. Les modifications sont déterminées en comparant le modèle validé avant et après application de la synchronisation ; la simple réception d'un objet dans un delta PLOUD ne constitue pas un changement. Les instantanés complets sont comparés à l'ancien inventaire local : les listes décrivent donc les différences réelles, et non le nombre d'enregistrements téléchargés. Les tableaux ne contiennent que des identifiants afin de conserver un événement léger.
-
-Home Assistant réserve l'abonnement aux événements personnalisés aux administrateurs. Les cartes frontend n'utilisent donc plus cet événement pour se rafraîchir : elles s'abonnent à la commande WebSocket `ploc_cellar/subscribe_sync` avec le `config_entry_id` de la cave. Le backend valide que l'entrée existe et est chargée, puis utilise un signal interne distinct par entrée. La commande est accessible aux utilisateurs authentifiés non administrateurs.
-
-La notification WebSocket est volontairement vide (`{}`) : elle indique uniquement qu'un nouvel inventaire a été validé et enregistré, sans transmettre de données de cave, d'identifiants d'objets ni de détails de synchronisation. La carte relit ensuite l'inventaire via `ploc_cellar.get_inventory`. Home Assistant nettoie l'abonnement lors du désabonnement ou de la fermeture de la connexion WebSocket. Aucun polling ni identifiant d'entité généré n'est nécessaire.
-
-## 🔐 Stockage et confidentialité
-
-Les fichiers image restent dans le cache privé de l'entrée de configuration et ne sont accessibles qu'aux utilisateurs authentifiés de Home Assistant. Ce cache est indépendant de l'inventaire persistant et n'entraîne aucune écriture vers PLOUD.
-
-Le jeton d'accès PLOUD et l'identifiant UUID de l'appareil sont conservés séparément dans chaque entrée de configuration Home Assistant. Le mot de passe et le jeton de session PLOC ne sont pas stockés.
-
-L'inventaire local et son curseur de synchronisation associé sont enregistrés avec le `Store` persistant de Home Assistant. Les changements reçus sont appliqués à une copie du modèle puis enregistrés avant de remplacer le modèle en mémoire : un échec d'écriture ne fait donc pas avancer le curseur actif.
-
-L'intégration envoie uniquement les paramètres nécessaires à la synchronisation et un objet `Objects` vide. Elle ne transmet aucun objet de cave et n'effectue aucune modification de la cave. La collection `Owners` est traitée uniquement en mémoire pour renseigner `Wine.domain`. Les mouvements `Orders` sont conservés localement afin de calculer les diagnostics d'inventaire. Les commandes dont la référence Wine n'existe plus sont conservées comme historique et comptées dans `orders_without_wine`, mais ne contribuent au stock d'aucun vin connu. Si un propriétaire référencé par un nouveau vin manque dans le delta, le coordinateur effectue une seule synchronisation complète pour résoudre son nom.
-
-## 🧪 Validation
-
-La CI vérifie le code avec Ruff et Hassfest, puis exécute Pyright en mode strict et la suite pytest avec la version minimale déclarée de Home Assistant (2026.10.4) ainsi que la dernière version stable. La validation HACS de l'intégration est exécutée séparément.
-
-Ces contrôles statiques ne remplacent pas les essais de bout en bout avec une instance Home Assistant réelle et la cave PLOUD.
-
-
-## 🖥️ Cartes Lovelace
-
-Les cartes Lovelace facultatives sont désormais maintenues et publiées
-indépendamment dans le dépôt
-[Ploc Cellar Cards](https://github.com/MadMatt34/ha-ploc-cellar-frontend).
-Ce dépôt contient la documentation des cartes, les instructions d'installation
-du plugin Dashboard HACS et le workflow de développement frontend.
-
-
-## 🛠️ Dépannage
-
-- **Impossible d'ajouter l'intégration ou de se réauthentifier :** vérifier l'adresse e-mail et le mot de passe du compte PLOC, puis relancer le parcours d'authentification.
-- **L'authentification réussit, mais aucune donnée de cave n'apparaît :** vérifier que PLOUD est activé pour l'application Home Assistant et que Home Assistant peut joindre les services PLOC/PLOUD.
-- **Les capteurs liés au stock affichent `unknown` :** les valeurs calculées à partir des mouvements restent indisponibles tant qu'un instantané complet de `Orders` n'a pas été validé. Les compteurs physiques de casiers et de bouteilles peuvent rester disponibles.
-- **La dernière synchronisation est signalée comme obsolète :** la synchronisation la plus récente a échoué ; le dernier inventaire validé est conservé. Consulter **Paramètres → Système → Journaux**, puis relancer une synchronisation depuis l'appareil Ploc Cellar.
-- **Les cartes ne s'actualisent pas après une synchronisation :** vérifier que la version du frontend est à jour et que la carte utilise la bonne entrée de configuration Ploc Cellar.
-
-Pour ouvrir un ticket, joindre la version de Home Assistant, la version de l'intégration, les messages de journal pertinents et les étapes permettant de reproduire le problème. Ne jamais publier de mot de passe, de jeton d'accès ou d'autres identifiants.
-
-## 🗑️ Désinstallation
-
-1. Ouvrir **Paramètres → Appareils et services → Ploc Cellar**.
-2. Ouvrir le menu de l'intégration/de l'appareil et supprimer l'entrée de configuration Ploc Cellar.
-3. Si l'intégration a été installée avec HACS, désinstaller **Ploc Cellar** depuis HACS.
-4. En cas d'installation manuelle, supprimer le dossier `custom_components/ploc_cellar` du répertoire de configuration Home Assistant.
-5. Redémarrer Home Assistant.
-
-La suppression de l'entrée de configuration efface également l'instantané persistant de la cave et les fichiers privés d'images mis en cache pour cette entrée.
-
-Lorsque les journaux de débogage de cette intégration sont activés, les synchronisations PLOUD consignent les enregistrements bruts des vins, casiers, emplacements et commandes afin de faciliter le diagnostic. Ces données peuvent contenir des informations personnelles ou propres à la cave : pensez à les anonymiser avant tout partage public.
-
-## ⚖️ Licence et avertissement
+## Licence et avertissement
 
 Ce projet est distribué sous [licence MIT](LICENSE).
 
-Cette intégration s'appuie sur des interfaces PLOUD qui **ne constituent pas une API publique et documentée**. Elle a été développée à partir d'un travail d'analyse technique indépendant : étude des dépôts liés à PLOUD, comparaison de fichiers de sauvegarde, analyse du comportement de l'application mobile officielle, ainsi que d'autres observations et expérimentations. Il s'agit d'un travail de rétro-ingénierie, et non d'une spécification officielle d'API ; ces interfaces privées peuvent évoluer ou devenir incompatibles à tout moment et sans préavis. Le propriétaire de PLOC a été contacté afin d'échanger sur ce travail et sur l'existence éventuelle d'une interface officielle, mais aucune réponse n'avait été reçue au moment de la rédaction de cette documentation.
-
-Ploc Cellar est un projet indépendant et non officiel. Il n'est ni affilié à PLOC ou PLOUD, ni approuvé ou pris en charge par ces services.
-
-Cette intégration s'appuie sur des interfaces PLOUD qui **ne constituent pas une API publique et documentée**. Elle a été développée à partir d'un travail d'analyse technique indépendant : étude des dépôts liés à PLOUD, comparaison de fichiers de sauvegarde, analyse du comportement de l'application mobile officielle, ainsi que d'autres observations et expérimentations. Il s'agit d'un travail de rétro-ingénierie, et non d'une spécification officielle d'API ; ces interfaces privées peuvent évoluer ou devenir incompatibles à tout moment et sans préavis. Le propriétaire de PLOC a été contacté afin d'échanger sur ce travail et sur l'existence éventuelle d'une interface officielle, mais aucune réponse n'avait été reçue au moment de la rédaction de cette documentation.
+Ploc Cellar est un projet indépendant et non officiel. Il n'est ni affilié à PLOC ou PLOUD, ni approuvé ou pris en charge par ces services. Le backend s'appuie sur des interfaces PLOUD privées et non documentées, reconstituées par un travail de recherche technique indépendant ; elles ne constituent pas une spécification officielle d'API et peuvent évoluer sans préavis.
