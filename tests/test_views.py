@@ -24,8 +24,15 @@ def _view(tmp_path: Path, document_id: str) -> PlocCellarImageView:
         state=ConfigEntryState.LOADED,
         runtime_data=coordinator,
     )
+    executor_calls: list[Any] = []
+
+    async def async_add_executor_job(function: Any, *args: Any) -> Any:
+        executor_calls.append(function)
+        return function(*args)
+
     hass = SimpleNamespace(
-        config_entries=SimpleNamespace(async_get_entry=lambda entry_id: entry)
+        config_entries=SimpleNamespace(async_get_entry=lambda entry_id: entry),
+        async_add_executor_job=async_add_executor_job,
     )
     return PlocCellarImageView(cast(Any, hass))
 
@@ -48,6 +55,9 @@ def test_image_view_serves_only_cached_images(
     assert isinstance(response, web.FileResponse)
     assert response.headers["Cache-Control"] == "private, no-store"
     assert view.requires_auth is True
+    from ploc_cellar.images import safe_image_path
+
+    assert executor_calls == [safe_image_path]
 
 
 @pytest.mark.parametrize(
