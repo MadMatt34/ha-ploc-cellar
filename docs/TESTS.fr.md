@@ -27,14 +27,14 @@ Tous les appels HTTP PLOC/PLOUD des tests unitaires utilisent des doubles déter
 | `test_coordinator_lifecycle.py` | Initialisation, actualisation, annulation, déchargement et nettoyage du cycle de vie |
 | `test_services.py` | Filtres d'inventaire, diagnostics de stock et valeurs de réponse |
 | `test_service_contract.py` | Contrat JSON exact et compatibilité frontend |
-| `test_integration_services.py` | Enregistrement et dispatch du service, cycle de vie des entrées, validation des entrées chargées, abonnements WebSocket par entrée, notifications vides, commande compatible non-admin et nettoyage des désabonnements |
+| `test_integration_services.py` | Enregistrement du service et dispatch de la construction de l'inventaire via l'exécuteur, cycle de vie des entrées, validation des entrées chargées, abonnements WebSocket par entrée, notifications vides, commande compatible non-admin et nettoyage des désabonnements |
 | `test_sensor.py` | Valeurs et disponibilité des capteurs, attributs d'horodatage obsolète, migration du registre et création des entités |
 | `test_button.py` | Comportement des boutons de synchronisation différentielle/complète et propagation des erreurs |
-| `test_images.py` | Métadonnées, téléchargement/cache, remplacement et suppression des images |
+| `test_images.py` | Métadonnées, téléchargement/cache, remplacement et suppression des images, y compris la recherche d'image en cache via l'exécuteur |
 | `test_images_edges.py` | Métadonnées invalides, documents non pris en charge, nettoyage du cache et erreurs système de fichiers |
 | `test_image_boundaries.py` | Limites de taille et de type de contenu des images |
 | `test_image_lifecycle.py` | Nettoyage du cache d'images lors du cycle de vie d'une entrée |
-| `test_views.py` | Endpoint d'image authentifié et requêtes de documents invalides |
+| `test_views.py` | Endpoint d'image authentifié, requêtes de documents invalides et recherche dans le cache via l'exécuteur |
 
 ## Exécution locale
 
