@@ -12,9 +12,13 @@ from ploc_cellar.ploud import PLOUDCollections
 
 
 class _FakeHass:
-    """Run executor jobs inline for deterministic filesystem tests."""
+    """Run executor jobs inline and record their dispatch for tests."""
+
+    def __init__(self) -> None:
+        self.executor_calls: list[Any] = []
 
     async def async_add_executor_job(self, function: Any, *args: Any) -> Any:
+        self.executor_calls.append(function)
         return function(*args)
 
 
@@ -89,9 +93,10 @@ def test_sync_downloads_and_caches_a_referenced_image(
 
     monkeypatch.setattr(images_module, "async_get_document", fake_download)
 
+    hass = _FakeHass()
     asyncio.run(
         async_sync_images(
-            cast(Any, _FakeHass()),
+            cast(Any, hass),
             cast(Any, object()),
             directory=tmp_path,
             server="https://ploud.example/v1",
@@ -108,6 +113,7 @@ def test_sync_downloads_and_caches_a_referenced_image(
     assert cached.read_bytes() == b"\xff\xd8\xffimage-data"
     assert safe_image_path(tmp_path, document_id) == cached
     assert downloads == [document_id]
+    assert images_module.find_cached_image in hass.executor_calls
     assert document_id not in cached.name
 
 
