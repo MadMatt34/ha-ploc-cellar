@@ -29,7 +29,7 @@ Intégration personnalisée Home Assistant permettant de consulter une cave PLOC
 - Accès à l'inventaire détaillé à la demande avec l'action ploc_cellar.get_inventory.
 - Plusieurs entrées de configuration indépendantes, chacune avec son compte, son inventaire et son cache.
 
-Le stock est reconstitué à partir des mouvements et des emplacements physiques. Les diagnostics distinguent le stock non affecté à un casier, les soldes de mouvements négatifs et les excédents physiques. Les définitions précises figurent dans la [documentation des algorithmes d'inventaire](docs/ALGORITHMES.md).
+Le stock est reconstitué à partir des mouvements et des emplacements physiques. Les diagnostics distinguent le stock non affecté à un casier, les soldes de mouvements négatifs et les excédents physiques. Les définitions précises figurent dans la [documentation des algorithmes d'inventaire](docs/ALGORITHMS.fr.md).
 
 ## Installation
 
@@ -74,7 +74,7 @@ Les boutons de l'appareil permettent de lancer une synchronisation différentiel
 
 L'action de réponse ploc_cellar.get_inventory renvoie les données détaillées d'une cave pour une entrée de configuration sélectionnée. Elle exige config_entry_id et accepte les filtres facultatifs search et color. Dans un script ou une automatisation, récupérer la réponse avec response_variable.
 
-La réponse comprend les totaux de la cave, les casiers, les emplacements physiques, les vins correspondants, les diagnostics de stock et la date de dernière synchronisation réussie. Le [contrat du service d'inventaire](https://github.com/MadMatt34/ha-ploc-cellar-frontend/blob/main/docs/CONTRAT_BACKEND.fr.md) décrit précisément sa structure et les champs facultatifs.
+La réponse comprend les totaux de la cave, les casiers, les emplacements physiques, les vins correspondants, les diagnostics de stock et la date de dernière synchronisation réussie. Le [contrat du service d'inventaire](https://github.com/MadMatt34/ha-ploc-cellar-frontend/blob/main/docs/BACKEND_CONTRACT.fr.md) décrit précisément sa structure et les champs facultatifs.
 
 ## Dépannage
 

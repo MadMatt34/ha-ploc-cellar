@@ -8,7 +8,7 @@ Ce répertoire rassemble la documentation d'implémentation et de maintenance de
 |---|---|
 | [Architecture et cycle de vie](ARCHITECTURE.fr.md) | Entrées de configuration, authentification, coordinateur, synchronisation, notifications et stockage |
 | [Architecture and lifecycle](ARCHITECTURE.md) | English version |
-| [Algorithmes d'inventaire](ALGORITHMES.md) | Règles détaillées de reconstruction du stock, diagnostics, synchronisation et persistance |
+| [Algorithmes d'inventaire](ALGORITHMS.fr.md) | Règles détaillées de reconstruction du stock, diagnostics, synchronisation et persistance |
 | [Inventory algorithms](ALGORITHMS.md) | English version of the algorithm specification |
 | [Correspondance des champs PLOUD](PLOUD_FIELD_MAPPING.fr.md) | Correspondance des collections et champs PLOUD avec le modèle local |
 | [PLOUD field mapping](PLOUD_FIELD_MAPPING.md) | English version |
@@ -19,7 +19,7 @@ Ce répertoire rassemble la documentation d'implémentation et de maintenance de
 
 Le contrat public de l'action d'inventaire et des notifications de synchronisation est maintenu dans le dépôt frontend :
 
-- [Contrat backend en français](https://github.com/MadMatt34/ha-ploc-cellar-frontend/blob/main/docs/CONTRAT_BACKEND.fr.md)
+- [Contrat backend en français](https://github.com/MadMatt34/ha-ploc-cellar-frontend/blob/main/docs/BACKEND_CONTRACT.fr.md)
 - [Backend contract in English](https://github.com/MadMatt34/ha-ploc-cellar-frontend/blob/main/docs/BACKEND_CONTRACT.md)
 - [Compatibilité et publications](https://github.com/MadMatt34/ha-ploc-cellar-frontend/blob/main/docs/COMPATIBILITY_AND_RELEASES.fr.md)
 
