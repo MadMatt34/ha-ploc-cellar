@@ -76,10 +76,18 @@ def _hass(coordinator: _Coordinator) -> SimpleNamespace:
         state=ConfigEntryState.LOADED,
         runtime_data=coordinator,
     )
+    executor_calls: list[Any] = []
+
+    async def add_executor_job(function: Any, *args: Any) -> Any:
+        executor_calls.append(function)
+        return function(*args)
+
     return SimpleNamespace(
         services=_Services(),
         http=_HTTP(),
         data={},
+        executor_calls=executor_calls,
+        async_add_executor_job=add_executor_job,
         config_entries=SimpleNamespace(
             async_get_entry=lambda entry_id: entry if entry_id == "entry-1" else None
         ),
@@ -232,6 +240,8 @@ def test_inventory_service_returns_json_safe_empty_inventory() -> None:
     assert response["racks"] == []
     assert response["rack_items"] == []
     assert response["stale"] is False
+    assert len(hass.executor_calls) == 1
+    assert hass.executor_calls[0].func.__name__ == "_build_inventory_response"
 
 
 
@@ -260,10 +270,14 @@ def test_inventory_service_dispatches_to_the_selected_config_entry() -> None:
             runtime_data=second_coordinator,
         ),
     }
+    async def add_executor_job(function: Any, *args: Any) -> Any:
+        return function(*args)
+
     hass = SimpleNamespace(
         services=_Services(),
         http=_HTTP(),
         data={},
+        async_add_executor_job=add_executor_job,
         config_entries=SimpleNamespace(async_get_entry=entries.get),
     )
     asyncio.run(async_setup(hass, {}))
