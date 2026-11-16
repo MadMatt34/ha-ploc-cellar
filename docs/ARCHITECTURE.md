@@ -48,7 +48,7 @@ A coordinator refresh can be initiated by the configured interval, the different
 - A failed request, invalid payload or failed persistence must not publish a partially updated inventory or advance the active cursor.
 - The last successfully committed inventory remains available after a later synchronization failure and is exposed as stale.
 
-The exact merge rules, deletion handling, cursor semantics, stock reconstruction and cache lifecycle are specified in [ALGORITHMES.md](ALGORITHMES.md).
+The exact merge rules, deletion handling, cursor semantics, stock reconstruction and cache lifecycle are specified in [ALGORITHMS.md](ALGORITHMS.md).
 
 ## Successful-update notifications
 
@@ -70,7 +70,7 @@ Image downloads are best-effort and must not cause a valid inventory synchroniza
 
 Cached-image lookup performs synchronous filesystem checks and directory scans. Async callers must dispatch these operations through Home Assistant's executor. The image synchronization path offloads each cache lookup, the authenticated image view offloads its safe-path lookup, and the `ploc_cellar.get_inventory` service dispatches the complete response-building operation once. This keeps filesystem access and response construction off the event loop while preserving the synchronous helper interfaces and avoiding one executor dispatch per wine image.
 
-See [PLOUD_FIELD_MAPPING.md](PLOUD_FIELD_MAPPING.md) for source-to-model mapping and [ALGORITHMES.md](ALGORITHMES.md) for persistence and image lifecycle details.
+See [PLOUD_FIELD_MAPPING.md](PLOUD_FIELD_MAPPING.md) for source-to-model mapping and [ALGORITHMS.md](ALGORITHMS.md) for persistence and image lifecycle details.
 
 ## Maintenance invariants
 
