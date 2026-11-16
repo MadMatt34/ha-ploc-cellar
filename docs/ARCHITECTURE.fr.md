@@ -15,7 +15,7 @@ L'intégration est un client Home Assistant en lecture seule de PLOC/PLOUD. PLOU
 - `services.yaml` et l'enregistrement du service exposent l'action de réponse `ploc_cellar.get_inventory`.
 - `types.py` centralise les structures typées partagées ; `const.py` contient les constantes de l'intégration.
 
-Le frontend est maintenu dans un dépôt distinct. Il communique avec cette intégration par l'intermédiaire de Home Assistant et n'appelle pas directement PLOC ou PLOUD. Le contrat public du service et des notifications est décrit dans le [contrat backend/frontend](https://github.com/MadMatt34/ha-ploc-cellar-frontend/blob/main/docs/CONTRAT_BACKEND.fr.md).
+Le frontend est maintenu dans un dépôt distinct. Il communique avec cette intégration par l'intermédiaire de Home Assistant et n'appelle pas directement PLOC ou PLOUD. Le contrat public du service et des notifications est décrit dans le [contrat backend/frontend](https://github.com/MadMatt34/ha-ploc-cellar-frontend/blob/main/docs/BACKEND_CONTRACT.fr.md).
 
 ## Isolation des entrées de configuration
 
@@ -46,7 +46,7 @@ Une actualisation du coordinateur peut être déclenchée par l'intervalle confi
 - Une requête échouée, une charge utile invalide ou un échec de persistance ne doit ni publier un inventaire partiel ni avancer le curseur actif.
 - Après un échec de synchronisation ultérieur, le dernier inventaire validé reste disponible et est signalé comme obsolète.
 
-Les règles détaillées de fusion, de suppression, de curseur, de reconstruction du stock et de cycle de vie du cache figurent dans [ALGORITHMES.md](ALGORITHMES.md).
+Les règles détaillées de fusion, de suppression, de curseur, de reconstruction du stock et de cycle de vie du cache figurent dans [ALGORITHMS.fr.md](ALGORITHMS.fr.md).
 
 ## Notifications après mise à jour réussie
 
@@ -58,7 +58,7 @@ Après validation, persistance et activation du modèle candidat, l'intégration
 
 L'événement public contient les métadonnées de synchronisation et les changements effectifs d'identifiants d'objets. La notification d'abonnement frontend est volontairement vide : elle sert uniquement de signal d'invalidation, après lequel la carte appelle `ploc_cellar.get_inventory`.
 
-Home Assistant réserve les abonnements aux événements personnalisés aux administrateurs. Le frontend utilise donc la commande WebSocket authentifiée dédiée plutôt que l'événement public. La charge utile, les champs et les garanties de cycle de vie sont définis dans le [contrat backend/frontend](https://github.com/MadMatt34/ha-ploc-cellar-frontend/blob/main/docs/CONTRAT_BACKEND.fr.md).
+Home Assistant réserve les abonnements aux événements personnalisés aux administrateurs. Le frontend utilise donc la commande WebSocket authentifiée dédiée plutôt que l'événement public. La charge utile, les champs et les garanties de cycle de vie sont définis dans le [contrat backend/frontend](https://github.com/MadMatt34/ha-ploc-cellar-frontend/blob/main/docs/BACKEND_CONTRACT.fr.md).
 
 ## Stockage de l'inventaire et des images
 
@@ -68,7 +68,7 @@ Les téléchargements d'images sont facultatifs et ne doivent pas faire échouer
 
 La recherche d'une image en cache effectue des vérifications synchrones du système de fichiers et parcourt les répertoires. Les appelants asynchrones doivent déporter ces opérations vers l'exécuteur Home Assistant. La synchronisation des images y déporte chaque recherche en cache, la vue d'image authentifiée y déporte la résolution du chemin sécurisé et le service `ploc_cellar.get_inventory` y exécute en une seule fois la construction complète de la réponse. Les accès au système de fichiers et la construction de la réponse restent ainsi hors de la boucle d'événements, tout en conservant les helpers synchrones et sans déclencher un appel à l'exécuteur pour chaque image de vin.
 
-Voir [PLOUD_FIELD_MAPPING.fr.md](PLOUD_FIELD_MAPPING.fr.md) pour la correspondance des champs sources et [ALGORITHMES.md](ALGORITHMES.md) pour les règles de persistance et de cache.
+Voir [PLOUD_FIELD_MAPPING.fr.md](PLOUD_FIELD_MAPPING.fr.md) pour la correspondance des champs sources et [ALGORITHMS.fr.md](ALGORITHMS.fr.md) pour les règles de persistance et de cache.
 
 ## Invariants de maintenance
 
