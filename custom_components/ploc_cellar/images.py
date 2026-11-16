@@ -238,7 +238,9 @@ async def async_sync_images(
             return
         record = metadata.get(identifier)
         fingerprint = _metadata_fingerprint(record) if record is not None else None
-        cached = find_cached_image(directory, identifier)
+        cached = await hass.async_add_executor_job(
+            find_cached_image, directory, identifier
+        )
         if cached is not None and (
             fingerprint is None
             or cached.name.startswith(f"{_cache_prefix(identifier)}-{fingerprint}")

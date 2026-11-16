@@ -27,14 +27,14 @@ All PLOC/PLOUD HTTP calls in unit tests use deterministic response/session doubl
 | `test_coordinator_lifecycle.py` | Coordinator setup, refresh, cancellation, unload and lifecycle cleanup |
 | `test_services.py` | Inventory filtering, stock diagnostics and response values |
 | `test_service_contract.py` | Exact JSON response contract and frontend-facing compatibility |
-| `test_integration_services.py` | Inventory service registration/dispatch, config-entry setup/unload, loaded-entry validation, per-entry WebSocket subscriptions, empty notification payloads, non-admin-compatible command registration and unsubscribe cleanup |
+| `test_integration_services.py` | Inventory service registration/dispatch through the executor, config-entry setup/unload, loaded-entry validation, per-entry WebSocket subscriptions, empty notification payloads, non-admin-compatible command registration and unsubscribe cleanup |
 | `test_sensor.py` | Sensor values, availability, stale timestamp attributes, registry migration and entity creation |
 | `test_button.py` | Differential/full synchronization button behavior and failure propagation |
 | `test_images.py` | Image metadata, download/cache, replacement and deletion lifecycle |
 | `test_images_edges.py` | Invalid metadata, unsupported documents, cache cleanup and filesystem failures |
 | `test_image_boundaries.py` | Image size and content-type boundaries |
 | `test_image_lifecycle.py` | Image cache cleanup on config-entry lifecycle |
-| `test_views.py` | Authenticated image endpoint and invalid document requests |
+| `test_views.py` | Authenticated image endpoint, invalid document requests and executor-based cache lookup |
 
 ## Local execution
 

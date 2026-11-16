@@ -3,6 +3,7 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from datetime import timedelta
+from functools import partial
 from pathlib import Path
 from typing import Any, cast
 
@@ -384,12 +385,16 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
         coordinator = _get_coordinator(
             hass, service_data["config_entry_id"]
         )
-        return _build_inventory_response(
+        # Building the response resolves cached image paths. Keep its
+        # filesystem scans and response construction off the event loop.
+        build_response = partial(
+            _build_inventory_response,
             coordinator.data,
             search=service_data.get(CONF_SEARCH, ""),
             color=service_data.get(CONF_COLOR, ""),
             image_url_builder=coordinator.image_url,
         )
+        return await hass.async_add_executor_job(build_response)
 
     hass.services.async_register(  # pyright: ignore[reportUnknownMemberType]
         DOMAIN,
