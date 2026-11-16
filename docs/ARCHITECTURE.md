@@ -68,6 +68,8 @@ The inventory snapshot and its matching synchronization cursor are stored using 
 
 Image downloads are best-effort and must not cause a valid inventory synchronization to fail. A document update changes the served image URL so clients can invalidate an existing browser object URL. Removing a config entry removes its inventory and image cache.
 
+Cached-image lookup performs synchronous filesystem checks and directory scans. Async callers must dispatch these operations through Home Assistant's executor. The image synchronization path offloads each cache lookup, the authenticated image view offloads its safe-path lookup, and the `ploc_cellar.get_inventory` service dispatches the complete response-building operation once. This keeps filesystem access and response construction off the event loop while preserving the synchronous helper interfaces and avoiding one executor dispatch per wine image.
+
 See [PLOUD_FIELD_MAPPING.md](PLOUD_FIELD_MAPPING.md) for source-to-model mapping and [ALGORITHMES.md](ALGORITHMES.md) for persistence and image lifecycle details.
 
 ## Maintenance invariants
