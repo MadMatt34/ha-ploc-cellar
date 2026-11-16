@@ -66,6 +66,8 @@ L'instantané d'inventaire et le curseur de synchronisation correspondant sont s
 
 Les téléchargements d'images sont facultatifs et ne doivent pas faire échouer une synchronisation d'inventaire valide. Une mise à jour de document modifie l'URL locale de l'image afin que les clients puissent invalider une URL objet déjà mise en cache. La suppression d'une entrée supprime son inventaire et son cache d'images.
 
+La recherche d'une image en cache effectue des vérifications synchrones du système de fichiers et parcourt les répertoires. Les appelants asynchrones doivent déporter ces opérations vers l'exécuteur Home Assistant. La synchronisation des images y déporte chaque recherche en cache, la vue d'image authentifiée y déporte la résolution du chemin sécurisé et le service `ploc_cellar.get_inventory` y exécute en une seule fois la construction complète de la réponse. Les accès au système de fichiers et la construction de la réponse restent ainsi hors de la boucle d'événements, tout en conservant les helpers synchrones et sans déclencher un appel à l'exécuteur pour chaque image de vin.
+
 Voir [PLOUD_FIELD_MAPPING.fr.md](PLOUD_FIELD_MAPPING.fr.md) pour la correspondance des champs sources et [ALGORITHMES.md](ALGORITHMES.md) pour les règles de persistance et de cache.
 
 ## Invariants de maintenance
