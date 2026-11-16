@@ -14,7 +14,9 @@ from ploc_cellar.images import safe_image_path
 from ploc_cellar.views import PlocCellarImageView
 
 
-def _view(tmp_path: Path, document_id: str) -> PlocCellarImageView:
+def _view(
+    tmp_path: Path, document_id: str
+) -> tuple[PlocCellarImageView, list[Any]]:
     """Build an authenticated image view with one loaded config entry."""
     prefix = hashlib.sha256(document_id.encode()).hexdigest()
     image_path = tmp_path / f"{prefix}-fingerprint.jpg"
@@ -35,7 +37,7 @@ def _view(tmp_path: Path, document_id: str) -> PlocCellarImageView:
         config_entries=SimpleNamespace(async_get_entry=lambda entry_id: entry),
         async_add_executor_job=async_add_executor_job,
     )
-    return PlocCellarImageView(cast(Any, hass))
+    return PlocCellarImageView(cast(Any, hass)), executor_calls
 
 
 def test_image_view_serves_only_cached_images(
@@ -43,7 +45,7 @@ def test_image_view_serves_only_cached_images(
 ) -> None:
     """A loaded entry can serve a cached image through the authenticated view."""
     document_id = "4fe6124e-6d59-45b5-9dcd-67f3fcdcda0a"
-    view = _view(tmp_path, document_id)
+    view, executor_calls = _view(tmp_path, document_id)
 
     response = asyncio.run(
         view.get(
@@ -97,7 +99,7 @@ def test_image_view_rejects_uncached_and_unsafe_document_ids(
     tmp_path: Path,
 ) -> None:
     """Only a cached document with a valid opaque identifier can be served."""
-    view = _view(tmp_path, "4fe6124e-6d59-45b5-9dcd-67f3fcdcda0a")
+    view, _ = _view(tmp_path, "4fe6124e-6d59-45b5-9dcd-67f3fcdcda0a")
 
     with pytest.raises(web.HTTPNotFound):
         asyncio.run(
