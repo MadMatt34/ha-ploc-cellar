@@ -10,6 +10,7 @@ from typing import Any, cast
 import pytest
 from aiohttp import web
 from homeassistant.config_entries import ConfigEntryState
+from ploc_cellar.images import safe_image_path
 from ploc_cellar.views import PlocCellarImageView
 
 
@@ -55,8 +56,6 @@ def test_image_view_serves_only_cached_images(
     assert isinstance(response, web.FileResponse)
     assert response.headers["Cache-Control"] == "private, no-store"
     assert view.requires_auth is True
-    from ploc_cellar.images import safe_image_path
-
     assert executor_calls == [safe_image_path]
 
 
