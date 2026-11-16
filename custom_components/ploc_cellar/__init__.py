@@ -2,8 +2,8 @@
 from __future__ import annotations
 
 from collections.abc import Callable
-from functools import partial
 from datetime import timedelta
+from functools import partial
 from pathlib import Path
 from typing import Any, cast
 
