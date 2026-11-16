@@ -40,7 +40,9 @@ class PlocCellarImageView(HomeAssistantView):
             raise web.HTTPNotFound()
 
         coordinator = cast(PlocCellarConfigEntry, entry).runtime_data
-        image_path = safe_image_path(coordinator.image_directory, document_id)
+        image_path = await self.hass.async_add_executor_job(
+            safe_image_path, coordinator.image_directory, document_id
+        )
         if image_path is None:
             raise web.HTTPNotFound()
 
