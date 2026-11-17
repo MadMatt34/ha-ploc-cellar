@@ -20,14 +20,18 @@ class _DeviceRegistry:
     def __init__(self, legacy_device: Any) -> None:
         self.legacy_device = legacy_device
 
-    def async_get_device(
+    def async_get_device_by_identifier(
         self,
-        identifiers: set[tuple[str, str]],
-        connections: set[tuple[str, str]],
+        identifier: tuple[str, str],
+        config_entry_id: str,
     ) -> Any:
-        assert identifiers == {(DOMAIN, LEGACY_IDENTIFIER)}
-        assert connections == set()
-        return self.legacy_device
+        assert identifier == (DOMAIN, LEGACY_IDENTIFIER)
+        if (
+            self.legacy_device is not None
+            and self.legacy_device.config_entry_id == config_entry_id
+        ):
+            return self.legacy_device
+        return None
 
 
 def test_existing_entry_keeps_legacy_device_and_entity_unique_ids(
