@@ -35,14 +35,11 @@ def get_entity_identity(
 ) -> PlocCellarEntityIdentity:
     """Resolve a per-entry device identity without renaming an existing device."""
     registry = async_get_device_registry(hass)
-    legacy_device = registry.async_get_device(
-        {(DOMAIN, LEGACY_DEVICE_IDENTIFIER)},
-        set(),
+    legacy_device = registry.async_get_device_by_identifier(
+        (DOMAIN, LEGACY_DEVICE_IDENTIFIER),
+        entry.entry_id,
     )
-    preserve_legacy_identity = (
-        legacy_device is not None
-        and legacy_device.config_entry_id == entry.entry_id
-    )
+    preserve_legacy_identity = legacy_device is not None
 
     entry_identifier = entry.unique_id or entry.entry_id
     device_identifier = (
