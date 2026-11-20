@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import gc
 import tracemalloc
+from typing import Any
 
 from ploc_cellar import _build_inventory_response
 from ploc_cellar.models import Cellar, Rack, RackItem, Wine
@@ -60,7 +61,7 @@ def _large_cellar(size: int = 120) -> Cellar:
 def test_repeated_inventory_response_builds_do_not_retain_temporary_payloads() -> None:
     """Repeated response generation leaves only bounded traced memory behind."""
     cellar = _large_cellar()
-    def build_response():
+    def build_response() -> dict[str, Any]:
         return _build_inventory_response(
             cellar,
             search="",
