@@ -34,7 +34,7 @@ All PLOC/PLOUD HTTP calls in unit tests use deterministic response/session doubl
 | `test_images_edges.py` | Invalid metadata, unsupported documents, cache cleanup and filesystem failures |
 | `test_image_boundaries.py` | Image size and content-type boundaries |
 | `test_image_lifecycle.py` | Image cache cleanup on config-entry lifecycle |
-| `test_views.py` | Authenticated image endpoint, invalid document requests and executor-based cache lookup |
+| `test_views.py` | Authenticated image endpoint, invalid document requests and executor-based cache lookup |\n| `test_memory_stability.py` | Repeated inventory response construction on a synthetic cellar, with traced current/peak memory bounds to detect retained temporary payloads |
 
 ## Local execution
 
