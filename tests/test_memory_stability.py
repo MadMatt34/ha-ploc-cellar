@@ -60,14 +60,15 @@ def _large_cellar(size: int = 120) -> Cellar:
 def test_repeated_inventory_response_builds_do_not_retain_temporary_payloads() -> None:
     """Repeated response generation leaves only bounded traced memory behind."""
     cellar = _large_cellar()
-    build = lambda: _build_inventory_response(  # noqa: E731
-        cellar,
-        search="",
-        color="",
-        image_url_builder=lambda document_id: f"/image/{document_id}",
-    )
+    def build_response():
+        return _build_inventory_response(
+            cellar,
+            search="",
+            color="",
+            image_url_builder=lambda document_id: f"/image/{document_id}",
+        )
 
-    warmup = build()
+    warmup = build_response()
     assert len(warmup["wines"]) == len(cellar.wines)
     del warmup
     gc.collect()
@@ -76,7 +77,7 @@ def test_repeated_inventory_response_builds_do_not_retain_temporary_payloads() -
     try:
         baseline, _ = tracemalloc.get_traced_memory()
         for _ in range(40):
-            response = build()
+            response = build_response()
             assert len(response["wines"]) == len(cellar.wines)
             assert len(response["rack_items"]) == len(cellar.rack_items)
             del response
