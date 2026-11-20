@@ -233,7 +233,7 @@ L'intégration envoie uniquement les paramètres nécessaires à la synchronisat
 
 ## 🧪 Validation
 
-La CI vérifie le code avec Ruff et Hassfest, puis exécute Pyright en mode strict et la suite pytest avec la version minimale déclarée de Home Assistant (2026.10.4) ainsi que la dernière version stable. La validation HACS de l'intégration est exécutée séparément.
+La CI vérifie le code avec Ruff et Hassfest, puis exécute Pyright en mode strict et la suite pytest avec la version minimale déclarée de Home Assistant (2026.10.4) ainsi que la dernière version stable. Les tests vérifient aussi que la construction répétée de réponses inventaire ne retient pas les payloads temporaires, avec `tracemalloc` sur une cave synthétique. Il s'agit d'une garde contre la rétention d'allocations, pas d'un profilage mémoire d'une instance réelle. La validation HACS de l'intégration est exécutée séparément.
 
 Ces contrôles statiques ne remplacent pas les essais de bout en bout avec une instance Home Assistant réelle et la cave PLOUD.
 
