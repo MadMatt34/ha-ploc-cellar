@@ -233,7 +233,7 @@ The integration sends only the parameters required for synchronization and an em
 
 ## 🧪 Validation
 
-CI runs Ruff and Hassfest, then executes strict Pyright and the pytest suite against both the declared minimum Home Assistant version (2026.10.4) and the latest stable release. HACS integration validation runs separately.
+CI runs Ruff and Hassfest, then executes strict Pyright and the pytest suite against both the declared minimum Home Assistant version (2026.10.4) and the latest stable release. The test suite also checks that repeated inventory response construction does not retain temporary payloads, using `tracemalloc` on a synthetic cellar. This is an allocation-retention regression guard, not live-instance memory profiling. HACS integration validation runs separately.
 
 These static checks do not replace end-to-end testing against a real Home Assistant instance and the PLOUD cellar.
 
