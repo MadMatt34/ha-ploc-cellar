@@ -35,6 +35,7 @@ Tous les appels HTTP PLOC/PLOUD des tests unitaires utilisent des doubles déter
 | `test_image_boundaries.py` | Limites de taille et de type de contenu des images |
 | `test_image_lifecycle.py` | Nettoyage du cache d'images lors du cycle de vie d'une entrée |
 | `test_views.py` | Endpoint d'image authentifié, requêtes de documents invalides et recherche dans le cache via l'exécuteur |
+| `test_memory_stability.py` | Constructions répétées de réponses d'inventaire sur une cave synthétique, avec mesure mémoire courante et maximale pour détecter les allocations temporaires retenues |
 
 ## Exécution locale
 
