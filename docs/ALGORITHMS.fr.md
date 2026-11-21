@@ -1,6 +1,6 @@
 # Règles des algorithmes de Ploc Cellar
 
-[English version](ALGORITHMS.fr.md)
+[Version anglaise](ALGORITHMS.md)
 
 Ce document décrit les règles métier et les invariants appliqués par
 l'intégration. PLOUD reste la source de vérité : Ploc Cellar reconstruit un
