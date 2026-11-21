@@ -32,11 +32,12 @@ All PLOC/PLOUD HTTP calls in unit tests use deterministic response/session doubl
 | `test_integration_services.py` | Inventory service registration/dispatch through the executor, config-entry setup/unload, loaded-entry validation, per-entry WebSocket subscriptions, empty notification payloads, non-admin-compatible command registration and unsubscribe cleanup |
 | `test_sensor.py` | Sensor values, availability, stale timestamp attributes, registry migration and entity creation |
 | `test_button.py` | Differential/full synchronization button behavior and failure propagation |
-| `test_images.py` | Image metadata, download/cache, replacement and deletion lifecycle, including executor-based cached-image lookup |
+| `test_images.py` | Image metadata, download/cache, replacement and deletion lifecycle |
 | `test_images_edges.py` | Invalid metadata, unsupported documents, cache cleanup and filesystem failures |
 | `test_image_boundaries.py` | Image size and content-type boundaries |
 | `test_image_lifecycle.py` | Image cache cleanup on config-entry lifecycle |
 | `test_views.py` | Authenticated image endpoint, invalid document requests and executor-based cache lookup |
+| `test_memory_stability.py` | Repeated inventory response construction on a synthetic cellar, with traced current/peak memory bounds to detect retained temporary payloads |
 
 ## Local execution
 
