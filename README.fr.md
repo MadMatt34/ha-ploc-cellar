@@ -35,9 +35,9 @@ Intégration personnalisée Home Assistant permettant de consulter une cave [PLO
 
 - Le stock effectif est reconstitué à partir des mouvements et des bouteilles physiquement placées. Les **diagnostics** distinguent stock non localisé, solde de mouvements négatif et excédent physique. Un stock non localisé ne prouve pas qu'une bouteille a été retirée sans mouvement de sortie déclaré ; à contrôler dans l'application [PLOC](https://www.ploc.co/).
 
-- Les données sont stockées dans un **modèle local persistant**.
+- Les données sont stockées dans un **stockage local persistant**.
 
-- **Photos** téléchargées depuis les fiches [PLOUD](https://www.ploc.co/sauvegarder-et-synchroniser) référencées, mises en cache localement et servies via une route Home Assistant authentifiée. Les fiches modifiées invalident le cache ; les fiches supprimées ou non référencées entrainent un nettoyage des images associées.
+- **Photos** téléchargées depuis les fiches [PLOUD](https://www.ploc.co/sauvegarder-et-synchroniser) référencées, mises en cache localement et servies via un accès Home Assistant authentifié. Les fiches modifiées invalident le cache ; les fiches supprimées ou non référencées entrainent un nettoyage des images associées.
 
 ---
 
@@ -78,6 +78,11 @@ L'installation se fait 100 % via l'interface graphique de Home Assistant.
 1. Saisir l'adresse e-mail et le mot de passe du compte [PLOC](https://www.ploc.co/).\
 Home Assistant authentifie le compte [PLOC](https://www.ploc.co/), identifie Home Assistant dans [PLOUD](https://www.ploc.co/sauvegarder-et-synchroniser), puis lance la synchronisation initiale en lecture seule.
 
+   [<picture>
+      <img src='docs/screenshots/install.fr.png' alt='Installation' style="max-height: 250px; margin: auto;" />
+   </picture>](docs/screenshots/install.fr.png)
+
+
 > [!NOTE]
 > L'adresse e-mail, le mot de passe et le jeton de session ne sont pas conservés dans l'entrée. Le mot de passe sert uniquement à la configuration ou à la réauthentification.\
 > Lors d'une réauthentification, saisir à nouveau les identifiants ; l'identifiant d'appareil est conservé.
@@ -117,6 +122,10 @@ Chaque entrée crée un appareil **Ploc Cellar** distinct avec 14 capteurs et de
 Le capteur de dernière synchronisation conserve son horodatage après un échec ultérieur et passe son attribut `stale` à true ; une synchronisation réussie le remet à false.
 
 Le bouton différentiel applique les changements depuis le curseur enregistré. Le bouton de synchronisation complète demande un instantané complet et reconstruit l'inventaire local ; l'inventaire validé reste disponible tant que le nouvel instantané n'est pas validé et enregistré. Les deux boutons peuvent être utilisés dans un script ou une automatisation avec l'action standard `button.press`.
+
+   [<picture>
+      <img src='docs/screenshots/buttons.fr.png' alt='Buttons' style="max-height: 150px; margin: auto;" />
+   </picture>](docs/screenshots/buttons.fr.png)
 
 ## Action d'inventaire
 
