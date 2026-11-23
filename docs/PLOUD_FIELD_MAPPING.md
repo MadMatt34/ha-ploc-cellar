@@ -1,5 +1,7 @@
 # PLOUD field mapping
 
+[Version française](PLOUD_FIELD_MAPPING.fr.md)
+
 This document describes the current mapping implemented by the backend. PLOUD
 remains the source of truth; the integration synchronizes read-only data and
 never sends cellar mutations.

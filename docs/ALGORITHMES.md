@@ -1,482 +1,303 @@
-# Règles des algorithmes de Ploc Cellar
+# Ploc Cellar inventory algorithms
 
-Ce document décrit les règles métier et les invariants appliqués par
-l'intégration. PLOUD reste la source de vérité : Ploc Cellar reconstruit un
-inventaire local en lecture seule et ne corrige jamais la cave distante.
+[Version française](ALGORITHMES.md)
 
-## 1. Sources et rôle des collections
+This document describes the business rules and invariants applied by the integration. PLOUD remains the source of truth: Ploc Cellar reconstructs a local read-only inventory and never repairs the remote cellar. The [French specification](ALGORITHMES.md) is maintained alongside this English version.
 
-| Collection PLOUD | Rôle dans le modèle local |
+## 1. Source collections
+
+| PLOUD collection | Role in the local model |
 |---|---|
-| `Wines` | Références de vins et caractéristiques descriptives |
-| `Orders` | Mouvements d'entrée et de sortie de bouteilles |
-| `RackItems` | Emplacements physiques, occupés ou vides |
-| `Racks` | Métadonnées des casiers |
-| `appellations`, `bottleFormats`, `classifications`, `colors`, `countries`, `regions` | Index de références persisté dans `Cellar.references` pour résoudre les identifiants compacts des vins |
-| `Owners` | Résolution temporaire du domaine viticole à partir de son UUID ; seul le nom résolu est conservé dans `Wine.domain` |
-| `DeletedObjects` | Suppressions explicites à appliquer au modèle local |
+| `Wines` | Wine references and descriptive characteristics |
+| `Orders` | Incoming and outgoing bottle movements |
+| `RackItems` | Physical positions, occupied or empty |
+| `Racks` | Rack metadata |
+| `appellations`, `bottleFormats`, `classifications`, `colors`, `countries`, `regions` | Reference indexes persisted in `Cellar.references` to resolve compact wine identifiers |
+| `Owners` | Temporary winery-name resolution from its UUID; only the resolved name is retained in `Wine.domain` |
+| `DeletedObjects` | Explicit deletions applied to the local model |
 
-Les références `Wine` à stock nul sont conservées dans le modèle : un delta
-ultérieur peut leur affecter un mouvement ou un emplacement. Elles sont
-simplement exclues de la liste normale d'inventaire tant que leur stock effectif
-reste nul.
+Zero-stock Wine references remain in the model because a later delta may assign them a movement or rack position. They are excluded from the normal inventory list while their effective stock remains zero.
 
-La valeur brute `Wine.bo` (ou `Wine.bottles`) est conservée à titre
-informatif. Elle n'est jamais utilisée comme source directe du stock effectif.
+The raw `Wine.bo` (or `Wine.bottles`) value is retained for information only. It is never used directly as effective stock.
 
-## 2. Reconstruction du stock
+## 2. Stock reconstruction
 
-Les trois quantités fondamentales sont calculées séparément pour chaque UUID
-de vin.
+The following quantities are calculated independently for each wine UUID.
 
-### 2.1 Mouvements
+### 2.1 Movements
 
-- `purchased` = somme des `Order.in` du vin.
-- `consumed` = somme des `Order.ot` du vin.
+- `purchased` = sum of the wine's `Order.in` values.
+- `consumed` = sum of the wine's `Order.ot` values.
 - `movement_balance` = `purchased - consumed`.
 - `calculated_stock` = `max(0, movement_balance)`.
 
-Un solde négatif n'est pas ramené à zéro dans le diagnostic : il reste visible
-dans `movement_balance` et génère l'avertissement
-`negative_movement_balance`.
+A negative balance is not clamped in the diagnostic data: it remains visible in `movement_balance` and produces the `negative_movement_balance` warning.
 
-### 2.2 Bouteilles physiquement placées
+### 2.2 Physically placed bottles
 
-Chaque `RackItem` représente exactement une position physique. Une position
-est occupée lorsque son `wine_id` n'est pas vide.
+Each `RackItem` represents exactly one physical position. A position is occupied when its `wine_id` is not empty.
 
-Pour un vin connu :
+For a known wine, `bottles_in_cellar` is the number of `RackItems` whose `wine_id` matches that wine UUID. This count does not depend on rack metadata being available. A RackItem whose `rack_id` is temporarily unknown remains occupied and still counts toward the associated wine.
 
-`bottles_in_cellar` = nombre de `RackItems` dont `wine_id` correspond à
-l'UUID du vin.
+### 2.3 Effective stock
 
-Ce décompte ne dépend pas de la présence des métadonnées du casier. Un
-`RackItem` dont le `rack_id` est temporairement inconnu reste un emplacement
-occupé et compte toujours pour le vin associé.
-
-### 2.3 Stock effectif
-
-La règle de reconstruction est :
+The reconstruction rule is:
 
 ```text
 effective_stock = max(0, movement_balance, bottles_in_cellar)
 unlocated_bottles = max(0, effective_stock - bottles_in_cellar)
 ```
 
-Conséquences :
+Consequences:
 
-- Le stock effectif n'est jamais négatif.
-- Le stock effectif ne peut jamais être inférieur au nombre de bouteilles
-  déjà placées.
-- Les mouvements déterminent le stock disponible lorsqu'ils dépassent le
-  nombre de bouteilles placées.
-- `Wine.bo` n'intervient pas dans cette formule.
+- Effective stock is never negative.
+- Effective stock can never be lower than the number of bottles already placed.
+- Movements determine available stock when they exceed the number of placed bottles.
+- `Wine.bo` is not part of this formula.
 
-## 3. Invariants globaux de l'inventaire
+## 3. Global inventory invariants
 
-Soit `R` l'ensemble de tous les `RackItems`.
+Let `R` be the set of all RackItems.
 
-| Attribut | Règle |
+| Attribute | Rule |
 |---|---|
 | `total_positions` | `len(R)` |
-| `occupied_positions` | Nombre de `RackItems` dont `wine_id` est non vide |
+| `occupied_positions` | Number of RackItems with a non-empty `wine_id` |
 | `empty_positions` | `total_positions - occupied_positions` |
 | `total_bottles` | `occupied_positions` |
-| `stocked_wines` | Nombre de références Wine connues ayant `bottles_in_cellar > 0` |
-| `wine_references` | Nombre de références Wine connues dont le stock effectif est positif |
-| `unlocated_bottles` | Somme des bouteilles du stock effectif qui ne sont pas affectées à un emplacement |
-| `total_stock_bottles` | Somme des stocks effectifs connus + `positions_with_unknown_wine` |
-| `rack_count` | Nombre de références Rack connues |
+| `stocked_wines` | Number of known Wine references with `bottles_in_cellar > 0` |
+| `wine_references` | Number of known Wine references with positive effective stock |
+| `unlocated_bottles` | Effective-stock bottles not assigned to a position |
+| `total_stock_bottles` | Sum of known effective stocks + `positions_with_unknown_wine` |
+| `rack_count` | Number of known Rack references |
 
-Trois compteurs d'intégrité sont distincts :
+Three integrity counters are distinct:
 
-- `positions_without_rack` compte les positions dont le `rack_id` ne
-  correspond à aucun casier local connu.
-- `positions_with_unknown_wine` compte les positions occupées dont le
-  `wine_id` ne correspond à aucune référence Wine locale connue.
-- `orders_without_wine` compte les mouvements `Order` conservés dont le
-  `wine_id` ne correspond plus à une référence Wine locale connue.
+- `positions_without_rack`: positions whose `rack_id` does not match a locally known rack.
+- `positions_with_unknown_wine`: occupied positions whose `wine_id` does not match a locally known Wine reference.
+- `orders_without_wine`: retained Order movements whose `wine_id` no longer matches a locally known Wine reference.
 
-Une position orpheline de vin reste une bouteille physique : elle est incluse
-dans `occupied_positions` et `total_bottles`. Elle est également ajoutée à
-`total_stock_bottles` lorsque la reconstitution du stock est complète. Si
-l'historique Orders n'est pas disponible, `total_stock_bottles` vaut `null`
-plutôt que de présenter un total partiel comme un total exact. Elle n'est
-jamais convertie silencieusement en emplacement vide.
+A position with an unknown wine remains a physical bottle and is included in `occupied_positions` and `total_bottles`. It is also included in `total_stock_bottles` once stock reconstruction is complete. If Orders history is unavailable, `total_stock_bottles` is `null`, rather than presenting a partial total as exact. Such a position is never silently converted to an empty slot.
 
-Les filtres de recherche et de couleur de l'action `get_inventory` ne
-modifient jamais les totaux globaux.
+Search and color filters on `get_inventory` never change global totals.
 
-## 4. Diagnostics de stock et de cohérence
+## 4. Stock and consistency diagnostics
 
-Les diagnostics dérivés des mouvements ne sont calculés que lorsque
-l'historique Orders est complet. Avant cela, leurs quantités et compteurs
-valent `null` ; les quantités physiquement placées et les références de
-positions restent connues.
+Movement-derived diagnostics are calculated only when Orders history is complete. Before then, their quantities and counters are `null`; physical position quantities and position references remain known.
 
-### 4.1 Stock non localisé
+### 4.1 Unlocated stock
 
-Pour chaque vin :
+For each wine:
 
 `unlocated_bottles = max(0, effective_stock - bottles_in_cellar)`.
 
-- `unlocated_wines` compte les références ayant au moins une bouteille non
-  localisée.
-- `unlocated_bottles` compte le total de ces bouteilles.
+- `unlocated_wines` counts references with at least one unlocated bottle.
+- `unlocated_bottles` counts those bottles.
 
-Ce diagnostic signifie que le stock reconstitué à partir des mouvements est
-supérieur au nombre de bouteilles affectées à des positions. Il ne prouve pas
-qu'une bouteille a été retirée sans mouvement de sortie : elle peut aussi
-n'avoir jamais été rangée ou être conservée hors de la cave.
+This means reconstructed stock from movements exceeds the number of bottles assigned to rack positions. It does not prove that a bottle was removed without an outgoing movement: it may never have been placed in a rack or may be stored elsewhere.
 
-### 4.2 Solde de mouvements négatif
+### 4.2 Negative movement balance
 
-Pour chaque vin :
+For each wine:
 
 `negative_movement_bottles = max(0, -movement_balance)`.
 
-- `negative_movement_wines` compte les références dont le solde de mouvements
-  est négatif.
-- `negative_movement_bottles` additionne la valeur absolue de ces soldes
-  négatifs.
+- `negative_movement_wines` counts references with a negative movement balance.
+- `negative_movement_bottles` sums the absolute values of those negative balances.
 
-Ce diagnostic signale un registre dans lequel les sorties dépassent les
-entrées. Il ne représente pas un nombre de bouteilles physiquement manquantes.
+This identifies a ledger where outgoing movements exceed incoming movements. It does not represent a number of physically missing bottles.
 
-### 4.3 Excédent physique
+### 4.3 Physical surplus
 
-Pour chaque vin :
+For each wine:
 
 `physical_surplus_bottles = max(0, bottles_in_cellar - calculated_stock)`.
 
-`calculated_stock` vaut `max(0, movement_balance)`. Les agrégats sont :
+`calculated_stock` is `max(0, movement_balance)`.
 
-- `physical_surplus_wines` compte les références dont le nombre de bouteilles
-  physiquement placées dépasse le stock non négatif calculé par les mouvements.
-- `physical_surplus_bottles` additionne ces bouteilles physiques excédentaires.
+- `physical_surplus_wines` counts references whose physically placed bottles exceed the non-negative movement-derived stock.
+- `physical_surplus_bottles` sums those surplus physical bottles.
 
-Un excédent physique peut signaler une entrée non enregistrée ou un historique
-incomplet. Il peut coexister avec un solde de mouvements négatif pour une même
-référence ; les familles de diagnostics ne sont donc pas nécessairement
-mutuellement exclusives.
+A physical surplus may indicate an unrecorded incoming movement or incomplete history. It can coexist with a negative movement balance for the same reference; diagnostic families are not necessarily mutually exclusive.
 
-### 4.4 Références non résolues
+### 4.4 Unresolved references
 
-- `positions_without_rack` compte les positions qui référencent un casier
-  inconnu.
-- `positions_with_unknown_wine` compte les positions occupées qui
-  référencent un vin inconnu.
-- `orders_without_wine` compte les commandes conservées dont le vin n'existe
-  plus dans les références locales. Une telle commande peut être un historique
-  normal après suppression d'un vin dans PLOUD.
+- `positions_without_rack` counts positions referencing an unknown rack.
+- `positions_with_unknown_wine` counts occupied positions referencing an unknown wine.
+- `orders_without_wine` counts retained orders whose wine no longer exists in local references. This can be normal history after a wine is deleted in PLOUD.
 
-### 4.5 Détail des diagnostics
+### 4.5 Diagnostic details
 
-L'action `get_inventory` expose `wine_diagnostics`, une liste non filtrée
-des vins qui présentent au moins un des trois diagnostics de stock :
-`unlocated_bottles`, `negative_movement_bottles` ou
-`physical_surplus_bottles`. Elle inclut également les vins à stock effectif
-nul. Chaque entrée fournit les quantités achetées et sorties, le solde des
-mouvements, la quantité physique, le stock effectif et les trois quantités de
-diagnostic. Cette liste vaut `null` tant que la reconstitution Orders est
-incomplète.
+The `get_inventory` action exposes `wine_diagnostics`, an unfiltered list of wines with at least one of the three stock diagnostics: `unlocated_bottles`, `negative_movement_bottles` or `physical_surplus_bottles`. It also includes wines with zero effective stock. Each entry provides purchased and consumed quantities, movement balance, physical quantity, effective stock and all three diagnostic quantities. The list is `null` while Orders reconstruction is incomplete.
 
-Les agrégats sont exposés par des capteurs Home Assistant distincts, regroupés
-entre inventaire, casiers et diagnostics. Le capteur
-`sensor.ploc_cellar_bottles_in_stock` conserve l'identifiant unique historique
-et mesure les positions physiquement occupées ; le capteur
-`sensor.ploc_cellar_bottles_stock_total` mesure le stock effectif reconstitué.
-Les six capteurs de diagnostic reprennent les trois familles décrites ci-dessus,
-avec un compteur de bouteilles et un compteur de références pour chacune. Le
-capteur `sensor.ploc_cellar_diagnostic_last_successful_sync` fournit l'horodatage
-de la dernière synchronisation validée et porte l'attribut `stale`. La liste
-`wine_diagnostics` et les caractéristiques individuelles restent accessibles
-uniquement par l'action `get_inventory` ; aucun capteur n'est créé par vin.
+Aggregates are exposed through separate Home Assistant sensors grouped into inventory, racks and diagnostics. `sensor.ploc_cellar_bottles_in_stock` retains its historical unique ID and measures physically occupied positions; `sensor.ploc_cellar_bottles_stock_total` measures reconstructed effective stock. The six diagnostic sensors represent the three diagnostic families, each with a bottle count and a wine-reference count. `sensor.ploc_cellar_diagnostic_last_successful_sync` provides the last committed synchronization timestamp and carries the `stale` attribute. `wine_diagnostics` and individual wine characteristics remain available only through `get_inventory`; no entity is created per wine.
 
-## 5. Règles de synchronisation PLOUD
+## 5. PLOUD synchronization rules
 
-### 5.1 Synchronisation complète et incrémentale
+### 5.1 Full and incremental synchronization
 
-La première synchronisation et toute récupération utilisent
-`LastSyncTime=1`. Les synchronisations suivantes utilisent le curseur
-incrémental en millisecondes Unix.
+The first synchronization and every recovery use `LastSyncTime=1`. Later synchronizations use the incremental cursor in Unix milliseconds.
 
-Une réponse complète est un instantané : le modèle candidat repart d'une cave
-vide. Les références absentes de l'instantané ne sont donc pas conservées par
-erreur.
+A full response is a snapshot: the candidate model starts from an empty cellar. References absent from that snapshot are therefore not accidentally retained.
 
-Un delta est appliqué à une copie du dernier modèle validé. Le modèle actif et
-son curseur ne changent qu'après validation et sauvegarde vérifiée.
+A delta is applied to a copy of the last validated model. The active model and its cursor change only after validation and verified persistence.
 
-Une réponse complète doit contenir les collections `Wines`, `Racks`,
-`RackItems`, `Orders` et `Owners`. Les références RackItem doivent être
-résolues dans cet instantané. Un instantané complet contenant encore une
-référence Rack ou Wine inconnue est rejeté.
+A full response must contain `Wines`, `Racks`, `RackItems`, `Orders` and `Owners`. RackItem references must resolve within the snapshot. A full snapshot that still contains an unknown Rack or Wine reference is rejected.
 
-### 5.2 Fusion des champs partiels
+### 5.2 Partial-field merging
 
-Un delta peut ne transmettre qu'une partie des champs d'un objet existant.
-La règle générale est :
+A delta may contain only some fields of an existing object. The general rules are:
 
-- **Champ absent** : conserver la valeur connue dans le modèle précédent.
-- **Champ explicitement vide ou nul** : appliquer l'effacement lorsque le
-  champ autorise une valeur vide.
-- **Champ présent mais invalide** : rejeter la réponse plutôt que d'effacer
-  silencieusement une valeur connue.
-- **Nouvel objet incomplet** : ne pas inventer les champs manquants ; demander
-  un instantané complet.
+- **Field omitted:** preserve the known value from the previous model.
+- **Field explicitly empty or null:** clear it when the field permits an empty value.
+- **Field present but invalid:** reject the response rather than silently erase a known value.
+- **New incomplete object:** do not invent missing fields; request a full snapshot.
 
-Cette règle s'applique aux caractéristiques Wine, aux métadonnées Rack, aux
-mouvements Order et aux positions RackItem.
+These rules apply to Wine characteristics, Rack metadata, Order movements and RackItem positions.
 
-Pour un `Wine`, les caractéristiques, le nom, le millésime, le propriétaire
-et la valeur informative de stock sont préservés quand ils sont absents du
-delta. Les champs descriptifs explicitement vides peuvent être effacés. Un
-nouveau Wine doit notamment fournir son identifiant et une valeur de stock
-initiale ; si cette dernière manque, le delta est considéré incomplet.
+For an existing Wine, omitted characteristics, name, vintage, owner and informational bottle quantity are preserved. Explicitly empty descriptive fields may be cleared. A new Wine must include its identifier and initial bottle-count value; otherwise the delta is incomplete.
 
-Pour un `Rack` déjà connu, l'absence de `nm` ou `name` préserve le nom
-précédent. Un nouveau Rack doit fournir son nom ; sinon, le delta est considéré
-incomplet. Une valeur explicitement vide ou nulle efface le nom ; une valeur
-d'un type incorrect rejette la réponse.
+For an existing Rack, omitted `nm` or `name` preserves the previous name. A new Rack must provide a name. An explicitly empty or null name clears it; a value of the wrong type rejects the response.
 
-Pour un `RackItem` déjà connu, le traitement de `wi` dépend de la
-complétude des coordonnées de position :
+For an existing RackItem, handling of `wi` depends on whether position coordinates are complete:
 
-- Si `rk`, `rw` et `cl` sont tous présents mais que `wi` est absent,
-  le delta décrit une position complète désormais vide : le `wine_id`
-  précédent est effacé.
-- Si au moins l'un des champs `rk`, `rw` ou `cl` est absent, le delta de
-  position est incomplet : l'affectation du vin précédente est préservée,
-  même si `wi` est absent.
-- Si `wi` est présent avec une valeur, cette affectation est appliquée.
-  Une chaîne vide ou une valeur nulle explicite sur `wi` efface également
-  l'affectation.
+- If `rk`, `rw` and `cl` are all present but `wi` is omitted, the delta describes a complete position that is now empty; the previous `wine_id` is cleared.
+- If any of `rk`, `rw` or `cl` is omitted, the position delta is incomplete; the previous wine assignment is preserved even if `wi` is omitted.
+- If `wi` is present with a value, that assignment is applied. An explicitly empty string or null also clears the assignment.
 
-Pour un nouveau RackItem, les champs `rk` et `wi` doivent être présents :
-leur omission ne signifie pas que l'emplacement est libre. Les coordonnées
-explicitement vides deviennent `None`; une coordonnée mal formée rejette
-la réponse.
+For a new RackItem, `rk` and `wi` must be present. Their omission does not mean the position is empty. Explicitly empty coordinates become `None`; malformed coordinates reject the response.
 
-Pour un `Order` déjà connu, les champs `wi`, `in` et `ot` absents sont
-conservés depuis l'objet précédent. Un nouvel Order doit fournir ces trois
-champs. Les quantités doivent être des entiers positifs ou nuls.
+For an existing Order, omitted `wi`, `in` and `ot` values are preserved. A new Order must provide all three fields. Quantities must be non-negative integers.
 
-Pour un `Wine`, un millésime négatif ou une valeur numérique négative
-(alcoométrie, températures ou volume) rejette la réponse. La valeur zéro reste
-interprétée comme une absence de donnée pour ces champs optionnels. Un
-`owner_id` doit être une chaîne ou un entier ; une valeur nulle ou vide efface
-la référence, tandis qu'un autre type rejette la réponse.
+For a Wine, a negative vintage or negative numeric value (alcohol, temperatures or volume) rejects the response. Zero is interpreted as missing data for these optional fields. `owner_id` must be a string or integer; null or empty clears the reference, while another type rejects the response.
 
-Pour un `Owner`, l'identifiant doit être présent. Le champ de nom peut être
-absent dans un delta, mais cet Owner n'est alors pas considéré comme résolu :
-un Wine nouvellement associé à cet Owner provoque une récupération complète.
-Un nom explicitement vide ou nul efface le domaine ; un nom d'un type incorrect
-rejette la réponse.
+An Owner must have an identifier. Its name may be omitted in a delta, but that Owner is then unresolved: a Wine newly associated with that Owner triggers a full recovery. An explicitly empty or null name clears the winery domain; a name of the wrong type rejects the response.
 
-### 5.3 Identifiants en doublon
+### 5.3 Duplicate identifiers
 
-Une même réponse ne peut pas contenir deux fois le même identifiant Wine,
-Owner, Rack, RackItem ou Order. Deux noms de collections pris en charge qui ne
-diffèrent que par la casse (par exemple `Wines` et `wines`) sont également
-rejetés : aucune collection ne doit être ignorée silencieusement.
+A response cannot contain the same Wine, Owner, Rack, RackItem or Order identifier twice. Two supported collection names that differ only by case (for example `Wines` and `wines`) are also rejected; no collection may be silently ignored.
 
-### 5.4 Normalisation des identifiants
+### 5.4 Identifier normalization
 
-Les identifiants UUID sont convertis en forme canonique minuscule et avec
-tirets, qu'ils proviennent d'un objet, d'une référence croisée ou de
-`DeletedObjects`. Cette règle s'applique aux Wine, Rack, RackItem, Order et
-Owner. Les espaces périphériques sont supprimés avant la normalisation.
-Les identifiants qui ne sont pas des UUID restent opaques : ils sont seulement
-rognés et leur casse est conservée. Les identifiants et références restaurés
-depuis un ancien stockage sont normalisés de la même façon avant de reconstruire
-les dictionnaires du modèle.
+UUID identifiers are converted to canonical lowercase hyphenated form, whether they come from an object, cross-reference or `DeletedObjects`. This applies to Wine, Rack, RackItem, Order and Owner. Surrounding whitespace is removed first.
 
-Les nouvelles écritures du stockage exigent cette représentation canonique.
-Une migration qui détecte deux clés devenant identiques après normalisation est
-rejetée et le cache est récupéré par un instantané complet, plutôt que de
-fusionner arbitrairement les enregistrements.
+Non-UUID identifiers remain opaque: they are trimmed only and retain their case. Identifiers and references restored from old storage are normalized the same way before model dictionaries are rebuilt.
 
-### 5.5 Références inconnues et suppressions explicites
+New storage writes require canonical representation. If a migration detects two keys that become identical after normalization, it is rejected and the cache is recovered through a full snapshot rather than arbitrarily merging records.
 
-Une référence RackItem vers un Wine inconnu est conservée comme position
-occupée. Elle provoque une récupération par synchronisation complète lorsqu'elle
-arrive dans un delta. Si l'instantané complet ne résout pas cette référence,
-il est rejeté.
+### 5.5 Unknown references and explicit deletions
 
-Un `Order` dont le `wine_id` n'existe plus dans la collection `Wines` est
-conservé comme historique de mouvements, notamment lorsqu'un vin a été supprimé
-sans suppression correspondante de ses commandes. Il ne contribue au stock
-d'aucun vin connu, ne crée pas de référence Wine artificielle et ne déclenche
-pas de synchronisation complète à lui seul. Le compteur
-`orders_without_wine` rend ces commandes visibles. Une suppression explicite
-de l'Order dans `DeletedObjects` reste appliquée normalement.
+A RackItem reference to an unknown Wine is retained as an occupied position. When it arrives in a delta, it triggers recovery through a full synchronization. If the full snapshot does not resolve the reference, the snapshot is rejected.
 
-Une référence vers un Owner absent du delta ou dont le champ de nom est
-incomplet peut provoquer une synchronisation complète afin de résoudre le nom
-du domaine viticole. Les doublons d'identifiant Owner, comparés sans tenir
-compte de la casse, sont rejetés.
+An Order whose `wine_id` no longer exists in `Wines` is retained as movement history, for example when a wine was deleted without deleting its orders. It contributes to no known wine's stock, does not create an artificial Wine reference and does not trigger a full synchronization by itself. The `orders_without_wine` counter exposes these records. An explicit Order deletion in `DeletedObjects` is still applied normally.
 
-Les suppressions ont une sémantique explicite :
+A reference to an Owner missing from a delta or with an incomplete name may trigger a full synchronization to resolve the winery name. Duplicate Owner identifiers are rejected case-insensitively.
 
-- Suppression d'un Wine : effacer uniquement son `wine_id` dans les positions
-  concernées ; conserver l'identifiant de la position, le casier, la rangée
-  et la colonne.
-- Suppression d'un Rack : supprimer les positions physiques appartenant à ce
-  casier.
-- Une référence Wine simplement absente du delta n'est **pas** une suppression.
-- Un Wine reçu avec `bo = 0` n'est **pas** supprimé et ses positions ne sont
-  **pas** vidées.
+Deletion semantics are explicit:
 
-## 6. Stockage persistant et transaction
+- Deleting a Wine clears only its `wine_id` in affected positions; the position ID, rack, row and column are retained.
+- Deleting a Rack deletes the physical positions belonging to that rack.
+- A Wine reference merely absent from a delta is **not** a deletion.
+- A Wine received with `bo = 0` is **not** deleted and its positions are **not** cleared.
 
-La version du schéma de cave est stockée séparément de la version enveloppe
-Home Assistant. Le schéma courant est la version 7. La version 6 est la
-première à persister les mouvements Orders.
+## 6. Persistent storage and transaction
 
-Au chargement :
+The cellar schema version is stored separately from the Home Assistant storage envelope version. The current schema is version 7. Version 6 was the first to persist Orders movements.
 
-- Les schémas historiques pris en charge sont migrés et leur curseur est
-  ramené à `1` pour forcer un instantané complet.
-- Pour les versions 1 à 5, l'historique Orders complet n'est pas disponible :
-  le cache physique est conservé, mais `stock_reconstruction_complete` vaut
-  `false`.
-- Pour la version 6, l'historique Orders est considéré complet si le curseur
-  stocké est supérieur à `1`. Un curseur égal à `1` signifie que le premier
-  instantané n'avait pas encore été validé.
-- Le stockage est converti en version 7 ; les identifiants UUID et toutes
-  leurs références sont normalisés. Le drapeau de disponibilité Orders est
-  conservé séparément du curseur remis à `1`.
-- Le schéma courant doit contenir les quatre collections persistées
-  (`wines`, `racks`, `rack_items`, `orders`) sous forme de dictionnaires,
-  ainsi que des enregistrements complets et typés. Il contient également le
-  drapeau `stock_reconstruction_complete`; lorsqu'il vaut `false`, le curseur
-  doit rester à `1`.
-- Un stockage courant incomplet ou mal formé n'est pas interprété comme une
-  collection vide. L'inventaire cache est mis de côté en mémoire et une
-  synchronisation complète est exigée. Le fichier existant n'est remplacé
-  qu'après réception, validation et sauvegarde vérifiée d'un nouvel instantané.
+On load:
 
-Pour chaque synchronisation :
+- Supported historical schemas are migrated and their cursor is reset to `1` to force a full snapshot.
+- Versions 1 to 5 do not contain complete Orders history. The physical cache is retained, but `stock_reconstruction_complete` is `false`.
+- For version 6, Orders history is considered complete when the stored cursor is greater than `1`. A cursor of `1` means the first snapshot was not yet committed.
+- Storage is converted to version 7; UUID identifiers and all their references are normalized. The Orders-availability flag is retained separately from the cursor reset to `1`.
+- The current schema must contain the four persisted collections (`wines`, `racks`, `rack_items`, `orders`) as dictionaries with complete, correctly typed records. It also contains `stock_reconstruction_complete`; when false, the cursor must remain `1`.
+- Incomplete or malformed current storage is not interpreted as an empty collection. The cached inventory is set aside in memory and a full synchronization is required. The existing file is replaced only after a new snapshot has been received, validated and successfully persisted.
 
-1. Récupérer la réponse PLOUD.
-2. Construire un modèle candidat (copie du modèle actif pour un delta, modèle
-   vide pour un instantané complet).
-3. Appliquer les modifications et les suppressions.
-4. Vérifier les références RackItem et les invariants du modèle.
-5. Sérialiser le candidat et l'enregistrer via le `Store` Home Assistant avec
-   écritures atomiques.
-6. Relire le stockage et comparer le contenu avec le candidat.
-7. Remplacer le modèle actif et son curseur uniquement si l'écriture a été
-   vérifiée.
+Each synchronization follows this transaction:
 
-En cas d'échec réseau, de validation ou de persistance, le dernier modèle
-validé et son curseur restent actifs ; l'intégration marque l'inventaire comme
-périmé (`stale = true`).
+1. Fetch the PLOUD response.
+2. Build a candidate model (copy the active model for a delta, empty model for a full snapshot).
+3. Apply changes and deletions.
+4. Validate RackItem references and model invariants.
+5. Serialize and save the candidate through the Home Assistant `Store` using atomic writes.
+6. Read storage back and compare it with the candidate.
+7. Replace the active model and cursor only after the write is verified.
 
-### Cache hors ligne sans historique Orders
+On network, validation or persistence failure, the last validated model and its cursor remain active; the inventory is marked stale (`stale = true`).
 
-Les versions 1 à 5 ne conservaient pas les mouvements permettant de
-reconstituer le stock effectif. La valeur brute `Wine.bo` ne peut pas servir
-de remplacement : elle peut surestimer le stock réel. Pour éviter à la fois
-une estimation artificielle et une sous-déclaration présentée comme exacte,
-les données connues restent accessibles mais les résultats dépendant des
-mouvements sont temporairement indisponibles :
+### Offline cache without Orders history
 
-- `total_bottles`, les positions occupées et les quantités physiquement
-  placées restent exacts ;
-- `stock_reconstruction_complete` vaut `false` ;
-- `wine_references`, `total_stock_bottles`, les compteurs de stock non localisé,
-  de mouvements négatifs et d'excédent physique, ainsi que `orders_without_wine`,
-  valent `null` ;
-- l'action `get_inventory` retourne les vins connus physiquement placés,
-  mais laisse leurs champs calculés et diagnostics à `null` ;
-- un instantané PLOUD complet réussi marque le stock comme reconstitué et
-  réactive tous les calculs.
+Versions 1 to 5 did not retain the movements needed to reconstruct effective stock. Raw `Wine.bo` is not a valid substitute because it may overstate real stock. To avoid both fabricated estimates and partial values presented as exact, known data remains accessible while movement-dependent results are temporarily unavailable:
 
-Un cache version 6 qui contient déjà un instantané Orders complet garde ses
-calculs pendant une panne, même si la migration vers la version 7 force un
-nouvel instantané pour actualiser les identifiants.
+- `total_bottles`, occupied positions and physically placed quantities remain exact.
+- `stock_reconstruction_complete` is `false`.
+- `wine_references`, `total_stock_bottles`, unlocated-stock, negative-movement and physical-surplus counters, and `orders_without_wine` are `null`.
+- `get_inventory` returns known wines that are physically placed, but their calculated stock and diagnostic fields are `null`.
+- A successful complete PLOUD snapshot marks stock reconstruction complete and re-enables all calculations.
 
-### Arrêt de Home Assistant pendant une sauvegarde
+A version 6 cache that already contains a complete Orders snapshot retains its calculations during an outage, even if migration to version 7 forces another snapshot to refresh identifiers.
 
-Lorsque Home Assistant passe à l'état d'arrêt, `Store.async_save()` peut
-mettre les données en attente d'une écriture finale puis retourner sans que le
-fichier soit déjà écrit sur disque. Dans ce cas, `Store.async_load()` peut
-renvoyer le contenu en attente depuis sa mémoire interne : une égalité entre
-les données relues et le candidat ne prouve donc pas, à elle seule, la
-persistance sur disque.
+### Home Assistant shutdown during a save
 
-L'intégration vérifie l'état d'arrêt avant la sauvegarde, juste après
-`async_save()` et après la relecture. Si l'arrêt a commencé pendant cette
-séquence, la transaction n'est pas considérée comme validée et le modèle en
-mémoire n'est pas avancé. L'écriture finale de Home Assistant peut néanmoins
-terminer la sauvegarde en attente ; au redémarrage, le stockage est revalidé
-avant réutilisation.
+When Home Assistant enters its stopping state, `Store.async_save()` may queue data for a final write and return before the file has reached disk. In this case, `Store.async_load()` may return the queued data from its in-memory state: equality between reloaded data and the candidate alone does not prove disk persistence.
 
-## 7. Garanties de lecture seule
+The integration checks the stopping state before saving, immediately after `async_save()` and after reloading. If shutdown starts during this sequence, the transaction is not considered committed and the in-memory model is not advanced. Home Assistant's final write may still complete the queued save; on restart, storage is validated again before reuse.
 
-Toutes les requêtes de synchronisation transmettent `Objects={}`. L'intégration
-ne transmet aucun objet de cave modifié et n'envoie aucune écriture métier à
-PLOUD. Les corrections de cohérence sont locales au modèle Home Assistant ;
-les anomalies distantes restent des diagnostics et ne sont jamais corrigées
-automatiquement.
+## 7. Read-only guarantees
 
-## Données des accords mets et vins
+All synchronization requests send `Objects={}`. The integration sends no modified cellar objects and performs no business writes to PLOUD. Consistency corrections are local to the Home Assistant model; remote anomalies remain diagnostics and are never automatically repaired.
 
-PLOUD stocke les associations mets-vins dans le champ `Wine.ml`. L'intégration expose cette valeur sous la forme de l'entier brut facultatif `Wine.meals` ; elle ne traduit, ne normalise et ne supprime aucun indicateur. Il s'agit d'un masque de bits : plusieurs catégories peuvent être présentes dans une même valeur en combinant leurs indicateurs par OU binaire.
+## 8. Food-pairing data
 
-Indicateurs `Meals` identifiés dans les données PLOUD :
+PLOUD stores food pairings in `Wine.ml`. The integration exposes this as the optional raw integer `Wine.meals`; it does not translate, normalize or remove flags. This is a bitmask: multiple categories can be combined using bitwise OR.
 
-| Valeur du bit | Catégorie de mets |
+| Bit value | Food category |
 |---:|---|
-| `1` | Apéritif |
-| `2` | Soupe |
-| `4` | Entrée |
-| `8` | Porc et charcuterie |
-| `16` | Fruits de mer |
-| `32` | Poisson |
-| `64` | Viande blanche |
-| `128` | Gibier |
-| `256` | Volaille |
-| `512` | Viande rouge |
-| `1024` | Plats et légumes |
-| `2048` | Fromage |
+| `1` | Aperitif |
+| `2` | Soup |
+| `4` | Starter |
+| `8` | Pork and charcuterie |
+| `16` | Seafood |
+| `32` | Fish |
+| `64` | White meat |
+| `128` | Game |
+| `256` | Poultry |
+| `512` | Red meat |
+| `1024` | Vegetable dishes |
+| `2048` | Cheese |
 | `4096` | Dessert |
-| `8192` | Épicés |
+| `8192` | Spicy dishes |
 
-Le frontend associe ces indicateurs à des libellés localisés dans la fenêtre de détail du vin. Une valeur `meals` absente ou nulle signifie que les données d'association ne sont pas disponibles ; elle ne doit pas être interprétée comme une liste explicitement vide.
+The frontend maps these flags to localized labels in the wine detail view. Missing or null `meals` means pairing data is unavailable; it must not be interpreted as an explicitly empty list. The PLOUD Android application identifies `8192` as `foodtype8192` (spicy dishes). Unknown future bits remain preserved by the backend and are ignored by the frontend.
 
-L'application Android PLOUD identifie `8192` comme `foodtype8192` (plats épicés). Le frontend affiche cet indicateur sous le libellé **Épicés**. Les autres bits inconnus restent conservés par le backend et ignorés par le frontend.
+## 9. Wine images and PLOUD documents
 
-## 8. Images des vins et documents PLOUD
+Images are not part of stock calculations and never modify cellar data. They are synchronized separately from the PLOUD `Documents` collection and the references carried by `Wines` records.
 
-Les images ne font pas partie du calcul du stock et ne modifient jamais les données de cave. Elles sont synchronisées séparément à partir de la collection PLOUD `Documents` et des références portées par les fiches `Wines`.
+### 9.1 References and retrieval
 
-### 8.1 Références et récupération
+- Wine compact fields `im` and `ci` reference the primary image and cover image respectively.
+- Document metadata is retained from the `Documents` collection. It identifies the document type and supports a version fingerprint based on available metadata (`tm`, `tp`, `lt`, `ct`, `wd`, `ht`, `or`, `ty`).
+- Binary content is fetched on demand through the PLOUD `getdocument` method and its dedicated document route. The request is signed according to the PLOC client protocol; the response is a binary stream, not JSON.
+- Only documents referenced by at least one Wine are downloaded. Unreferenced documents are not bulk-downloaded.
+- Supported image formats are JPEG, PNG, GIF and WebP. Validation uses the binary signature; a generic MIME type does not prevent a valid image from being accepted. Documents identified as PDF, text, audio or video are rejected. The maximum accepted image size is 20 MiB.
 
-- Les champs compacts `im` et `ci` d'un Wine référencent respectivement l'image principale et l'image de couverture.
-- Les métadonnées des documents sont conservées depuis la collection `Documents`. Elles permettent d'identifier le type de document et de calculer une empreinte de version à partir des métadonnées disponibles (`tm`, `tp`, `lt`, `ct`, `wd`, `ht`, `or`, `ty`).
-- Le contenu binaire est récupéré à la demande par la méthode PLOUD `getdocument`, via la route document dédiée. La requête est signée selon le protocole du client PLOC ; la réponse est un flux binaire, pas un objet JSON.
-- Seuls les documents référencés par au moins un Wine sont téléchargés. Les documents sans référence image ne sont pas aspirés.
-- Les formats image reconnus sont JPEG, PNG, GIF et WebP. La validation s'appuie sur la signature binaire ; un type MIME générique n'empêche pas un fichier image valide d'être accepté. Les documents identifiés comme PDF, texte, audio ou vidéo sont rejetés. La taille maximale acceptée est de 20 Mio par image.
+### 9.2 Cache and refresh
 
-### 8.2 Cache et actualisation
+Images are stored in a private cache scoped to the config entry, under `.storage/ploc_cellar/<entry_id>/images`. The image cache is separate from transactional inventory storage.
 
-Les images sont stockées dans un cache privé propre à l'entrée de configuration, sous `.storage/ploc_cellar/<entry_id>/images`. Le cache image est distinct du stockage transactionnel de l'inventaire.
+The filename includes a document fingerprint. If metadata changes for the same document ID, a new version is downloaded and the served path changes. The frontend can therefore detect a different URL and reload the image even when the PLOUD document ID remains unchanged.
 
-Le nom de fichier inclut une empreinte du document. Si les métadonnées changent pour un même identifiant de document, une nouvelle version est téléchargée et le chemin servi change également. Le frontend peut ainsi détecter une URL différente et recharger l'image même lorsque l'identifiant PLOUD reste identique.
+An image download failure does not fail inventory synchronization. A valid existing image remains available; another attempt is made during a later synchronization.
 
-Une erreur de téléchargement d'image ne fait pas échouer la synchronisation de l'inventaire. L'image existante reste disponible lorsqu'elle est valide ; un nouvel essai sera effectué lors d'une synchronisation ultérieure.
+### 9.3 Deletion and cleanup
 
-### 8.3 Suppressions et nettoyage
+After a successful image synchronization, the cache is pruned: files no longer matching an `im` or `ci` reference, explicitly deleted documents (PLOUD type `Document = 115`) and replaced older versions are removed. Deletions are not inferred from simple absence in an inventory delta; they rely on known document references and explicit document deletions.
 
-Après une synchronisation d'images réussie, le cache est élagué : les fichiers qui ne correspondent plus à une référence `im` ou `ci`, les documents explicitement supprimés (type PLOUD `Document = 115`) et les anciennes versions remplacées sont supprimés. Les suppressions ne sont pas déduites d'une simple absence dans un delta d'inventaire ; elles reposent sur les références et suppressions documentaires effectivement connues.
+Removing a Home Assistant config entry deletes its image-cache directory. Unloading or reloading an entry does not delete images. The cache remains local and is never sent to PLOUD.
 
-La suppression de l'entrée de configuration Home Assistant supprime son répertoire de cache image. Un simple déchargement ou rechargement de l'entrée ne supprime pas les images. Le cache reste local et n'est jamais envoyé à PLOUD.
+### 9.4 Exposure to Home Assistant and the frontend
 
-### 8.4 Exposition à Home Assistant et au frontend
+The `get_inventory` service adds `image_url` to each wine record when the primary image or, failing that, the cover image is available in the cache. The value is `null` when no usable local image exists. The path is served by an authenticated Home Assistant view; responses use private HTTP caching without shared persistence.
 
-Le service `get_inventory` ajoute `image_url` à chaque fiche vin lorsque l'image principale ou, à défaut, l'image de couverture est disponible dans le cache. La valeur est `null` lorsqu'aucune image locale exploitable n'existe. Le chemin est servi par une vue Home Assistant authentifiée ; les réponses utilisent un cache HTTP privé sans conservation partagée.
-
-L'URL est un endpoint local Home Assistant, pas une URL PLOUD publique. Le frontend doit utiliser le mécanisme authentifié de Home Assistant pour récupérer son contenu. Les images ne doivent pas être chargées avec un élément distant non authentifié ni être mises en cache dans un stockage public.
+The URL is a local Home Assistant endpoint, not a public PLOUD URL. The frontend must use Home Assistant's authenticated mechanism to retrieve its content. Images must not be loaded through an unauthenticated remote element or cached in public storage.
